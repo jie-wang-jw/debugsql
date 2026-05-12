@@ -22,6 +22,22 @@ data/postgres/
 
 This directory is ignored by Git and survives normal container restarts and rebuilds.
 
+Benchmark files should be stored under:
+
+```text
+data/benchmarks/
+  bird/
+    raw/
+    processed/
+    sqlite/
+  spider/
+    raw/
+    processed/
+    sqlite/
+```
+
+Only `.gitkeep` files are committed. Raw benchmark files, processed metadata, and SQLite databases should stay out of Git.
+
 ## Quick Start
 
 Create local environment variables:
@@ -82,6 +98,7 @@ debugsql/
   .env.example
   data/
     .gitkeep
+    benchmarks/
   README.md
 ```
 

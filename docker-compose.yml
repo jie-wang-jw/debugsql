@@ -30,6 +30,8 @@ services:
       NL2IR_PROVIDER: ${NL2IR_PROVIDER:-stub}
     expose:
       - "8000"
+    volumes:
+      - ./data/benchmarks:/app/data/benchmarks:ro
     depends_on:
       postgres:
         condition: service_healthy

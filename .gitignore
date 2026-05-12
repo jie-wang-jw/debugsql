@@ -17,6 +17,24 @@ postgres_data/
 debugsql_data/
 data/*
 !data/.gitkeep
+!data/benchmarks/
+!data/benchmarks/.gitkeep
+!data/benchmarks/bird/
+!data/benchmarks/bird/.gitkeep
+!data/benchmarks/bird/raw/
+!data/benchmarks/bird/raw/.gitkeep
+!data/benchmarks/bird/processed/
+!data/benchmarks/bird/processed/.gitkeep
+!data/benchmarks/bird/sqlite/
+!data/benchmarks/bird/sqlite/.gitkeep
+!data/benchmarks/spider/
+!data/benchmarks/spider/.gitkeep
+!data/benchmarks/spider/raw/
+!data/benchmarks/spider/raw/.gitkeep
+!data/benchmarks/spider/processed/
+!data/benchmarks/spider/processed/.gitkeep
+!data/benchmarks/spider/sqlite/
+!data/benchmarks/spider/sqlite/.gitkeep
 
 .DS_Store
 Thumbs.db
