@@ -8,6 +8,10 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+psycopg://debugsql:debugsql_dev_password@postgres:5432/debugsql"
     debugsql_auto_login: bool = True
     nl2ir_provider: str = "stub"
+    ir_to_plan_provider: str = "stub"
+    ir_to_plan_api_url: str = ""
+    ir_to_plan_api_key: str = ""
+    ir_to_plan_timeout_seconds: int = 30
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
