@@ -1,3 +1,7 @@
+/* ================================================
+   StatusBadge — muted, professional badge variants
+   ================================================ */
+
 .sbadge {
   display: inline-flex;
   align-items: center;
@@ -15,20 +19,20 @@
 .sbadge--md { font-size: 11px; padding: 3px 10px; }
 
 .sbadge__dot {
-  width: 5px;
-  height: 5px;
+  width: 4px;
+  height: 4px;
   border-radius: 50%;
   flex-shrink: 0;
 }
 
-/* ---- Variants ---- */
-.sbadge--blue   { color: var(--accent-blue-light); background: var(--accent-blue-dim);   border: 1px solid rgba(59, 130, 246, 0.22); }
-.sbadge--cyan   { color: var(--accent-cyan);        background: var(--accent-cyan-dim);   border: 1px solid rgba(6, 182, 212, 0.22);  }
-.sbadge--green  { color: var(--accent-green);       background: var(--accent-green-dim);  border: 1px solid rgba(16, 185, 129, 0.22); }
-.sbadge--orange { color: var(--accent-orange);      background: var(--accent-orange-dim); border: 1px solid rgba(245, 158, 11, 0.22); }
-.sbadge--red    { color: var(--accent-red);         background: var(--accent-red-dim);    border: 1px solid rgba(239, 68, 68, 0.22);  }
-.sbadge--purple { color: var(--accent-purple);      background: var(--accent-purple-dim); border: 1px solid rgba(139, 92, 246, 0.22); }
-.sbadge--gray   { color: var(--text-secondary);     background: rgba(255,255,255,0.04);   border: 1px solid var(--border-default);    }
+/* ---- Variants — muted, calm ---- */
+.sbadge--blue   { color: var(--accent-blue-light);   background: var(--accent-blue-dim);   border: 1px solid rgba(107, 143, 191, 0.20); }
+.sbadge--cyan   { color: var(--accent-cyan);          background: var(--accent-cyan-dim);   border: 1px solid rgba(90,  152, 150, 0.20); }
+.sbadge--green  { color: var(--accent-green);         background: var(--accent-green-dim);  border: 1px solid rgba(103, 160, 122, 0.20); }
+.sbadge--orange { color: var(--accent-orange);        background: var(--accent-orange-dim); border: 1px solid rgba(196, 152, 92,  0.20); }
+.sbadge--red    { color: var(--accent-red);           background: var(--accent-red-dim);    border: 1px solid rgba(184, 114, 114, 0.20); }
+.sbadge--purple { color: var(--accent-purple-light);  background: var(--accent-purple-dim); border: 1px solid rgba(136, 120, 192, 0.20); }
+.sbadge--gray   { color: var(--text-secondary);       background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border-default); }
 
 .sbadge--blue   .sbadge__dot { background: var(--accent-blue);   }
 .sbadge--cyan   .sbadge__dot { background: var(--accent-cyan);   }

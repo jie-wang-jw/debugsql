@@ -33,11 +33,11 @@ const NODE_TYPES: NodeTypes = {
 /** Derive minimap node dot colour from its type string. */
 function getMinimapColor(node: Node): string {
   const map: Record<string, string> = {
-    intent:    '#3b82f6',
-    operation: '#6366f1',
-    data:      '#10b981',
+    intent:    '#6b8fbf',
+    operation: '#8878c0',
+    data:      '#67a07a',
   };
-  return map[node.type ?? ''] ?? '#444466';
+  return map[node.type ?? ''] ?? '#3a3a3f';
 }
 
 export interface QueryPlanFlowProps {
@@ -110,14 +110,14 @@ function QueryPlanFlowInner({ graph, selectedNodeId, onNodeSelect }: QueryPlanFl
     >
       <Background
         variant={BackgroundVariant.Dots}
-        color="rgba(255,255,255,0.04)"
-        gap={22}
-        size={1.2}
+        color="rgba(255,255,255,0.03)"
+        gap={24}
+        size={1}
       />
       <Controls showInteractive={false} className="qplan-controls" />
       <MiniMap
         nodeColor={getMinimapColor}
-        maskColor="rgba(0,0,5,0.65)"
+        maskColor="rgba(0,0,0,0.70)"
         className="qplan-minimap"
         pannable
         zoomable

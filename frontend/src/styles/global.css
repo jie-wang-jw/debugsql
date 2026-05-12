@@ -1,60 +1,76 @@
 /* ================================================
    DebugSQL – Global Design System
    CSS variables, base reset, and shared utilities
-   Phase 6: extended glow palette, animation curves,
-            glassmorphism tokens, skeleton shimmer
+
+   Theme: Premium Research Tool
+   — deep graphite backgrounds
+   — warm off-white text
+   — muted slate / teal / amber accents
+   — no glow effects; subtle elevation only
    ================================================ */
 
 :root {
-  /* Backgrounds */
-  --bg-base:     #07070e;
-  --bg-surface:  #0c0c18;
-  --bg-card:     #10101f;
-  --bg-elevated: #141428;
-  --bg-input:    #09091a;
-  --bg-hover:    rgba(255, 255, 255, 0.035);
-  --bg-hover-md: rgba(255, 255, 255, 0.055);
+  /* ---- Backgrounds — charcoal graphite ---- */
+  --bg-base:     #111113;
+  --bg-surface:  #17171a;
+  --bg-card:     #1e1e21;
+  --bg-elevated: #242428;
+  --bg-input:    #0f0f11;
+  --bg-hover:    rgba(255, 255, 255, 0.030);
+  --bg-hover-md: rgba(255, 255, 255, 0.052);
 
-  /* Glassmorphism */
-  --glass-bg:     rgba(12, 12, 26, 0.78);
+  /* ---- Glassmorphism ---- */
+  --glass-bg:     rgba(23, 23, 26, 0.85);
   --glass-border: rgba(255, 255, 255, 0.07);
 
-  /* Borders */
-  --border-subtle:  rgba(255, 255, 255, 0.04);
-  --border-default: rgba(255, 255, 255, 0.07);
-  --border-strong:  rgba(255, 255, 255, 0.13);
-  --border-accent:  rgba(59, 130, 246, 0.42);
+  /* ---- Borders — thin, understated ---- */
+  --border-subtle:  rgba(255, 255, 255, 0.040);
+  --border-default: rgba(255, 255, 255, 0.080);
+  --border-strong:  rgba(255, 255, 255, 0.140);
+  --border-accent:  rgba(107, 143, 191, 0.280);
 
-  /* Accent palette */
-  --accent-blue:          #3b82f6;
-  --accent-blue-light:    #60a5fa;
-  --accent-blue-dim:      rgba(59, 130, 246, 0.12);
-  --accent-blue-glow:     rgba(59, 130, 246, 0.22);
-  --accent-cyan:          #06b6d4;
-  --accent-cyan-dim:      rgba(6, 182, 212, 0.12);
-  --accent-cyan-glow:     rgba(6, 182, 212, 0.20);
-  --accent-purple:        #8b5cf6;
-  --accent-purple-light:  #a78bfa;
-  --accent-purple-dim:    rgba(139, 92, 246, 0.12);
-  --accent-purple-glow:   rgba(139, 92, 246, 0.20);
-  --accent-green:         #10b981;
-  --accent-green-dim:     rgba(16, 185, 129, 0.12);
-  --accent-green-glow:    rgba(16, 185, 129, 0.18);
-  --accent-orange:        #f59e0b;
-  --accent-orange-dim:    rgba(245, 158, 11, 0.12);
-  --accent-orange-glow:   rgba(245, 158, 11, 0.18);
-  --accent-red:           #ef4444;
-  --accent-red-dim:       rgba(239, 68, 68, 0.12);
-  --accent-red-glow:      rgba(239, 68, 68, 0.20);
+  /* ---- Accent palette — muted, desaturated ---- */
 
-  /* Text */
-  --text-primary:   #eeeeff;
-  --text-secondary: #8888aa;
-  --text-muted:     #44445a;
-  --text-accent:    #93c5fd;
-  --text-code:      #a5f3fc;
+  /* Slate blue — primary interactive */
+  --accent-blue:          #6b8fbf;
+  --accent-blue-light:    #8aadd6;
+  --accent-blue-dim:      rgba(107, 143, 191, 0.10);
+  --accent-blue-glow:     rgba(107, 143, 191, 0.14);
 
-  /* Spacing */
+  /* Desaturated teal — secondary */
+  --accent-cyan:          #5a9896;
+  --accent-cyan-dim:      rgba(90, 152, 150, 0.10);
+  --accent-cyan-glow:     rgba(90, 152, 150, 0.12);
+
+  /* Soft lavender — operations / inspector */
+  --accent-purple:        #8878c0;
+  --accent-purple-light:  #a296d4;
+  --accent-purple-dim:    rgba(136, 120, 192, 0.10);
+  --accent-purple-glow:   rgba(136, 120, 192, 0.12);
+
+  /* Muted sage green — data / success */
+  --accent-green:         #67a07a;
+  --accent-green-dim:     rgba(103, 160, 122, 0.10);
+  --accent-green-glow:    rgba(103, 160, 122, 0.12);
+
+  /* Soft amber — warnings / cost */
+  --accent-orange:        #c4985c;
+  --accent-orange-dim:    rgba(196, 152, 92, 0.10);
+  --accent-orange-glow:   rgba(196, 152, 92, 0.12);
+
+  /* Muted red — errors */
+  --accent-red:           #b87272;
+  --accent-red-dim:       rgba(184, 114, 114, 0.10);
+  --accent-red-glow:      rgba(184, 114, 114, 0.12);
+
+  /* ---- Text — warm off-white tones ---- */
+  --text-primary:   #e2e2e6;
+  --text-secondary: #818188;
+  --text-muted:     #4a4a52;
+  --text-accent:    #8aadd6;
+  --text-code:      #88c4be;
+
+  /* ---- Spacing ---- */
   --sp-0:  2px;
   --sp-1:  4px;
   --sp-2:  8px;
@@ -66,35 +82,37 @@
   --sp-10: 40px;
   --sp-12: 48px;
 
-  /* Border radius */
-  --r-xs:   3px;
-  --r-sm:   5px;
-  --r-md:   9px;
-  --r-lg:   14px;
-  --r-xl:   20px;
+  /* ---- Border radius — refined, consistent ---- */
+  --r-xs:   2px;
+  --r-sm:   4px;
+  --r-md:   7px;
+  --r-lg:   11px;
+  --r-xl:   16px;
   --r-full: 9999px;
 
-  /* Typography */
+  /* ---- Typography ---- */
   --font-sans: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace;
 
-  /* Transitions */
-  --t-fast:    100ms ease;
-  --t-default: 200ms ease;
-  --t-slow:    320ms ease;
-  --t-spring:  300ms cubic-bezier(0.22, 1, 0.36, 1);
+  /* ---- Transitions — smooth, professional ---- */
+  --t-fast:    90ms ease;
+  --t-default: 180ms ease;
+  --t-slow:    300ms ease;
+  --t-spring:  280ms cubic-bezier(0.22, 1, 0.36, 1);
 
-  /* Shadows */
-  --shadow-sm:           0 1px 4px rgba(0, 0, 0, 0.5);
-  --shadow-md:           0 4px 16px rgba(0, 0, 0, 0.65);
-  --shadow-lg:           0 8px 32px rgba(0, 0, 0, 0.75);
-  --shadow-xl:           0 16px 48px rgba(0, 0, 0, 0.85);
-  --shadow-glow-blue:    0 0 24px rgba(59, 130, 246, 0.22);
-  --shadow-glow-cyan:    0 0 24px rgba(6, 182, 212, 0.18);
-  --shadow-glow-purple:  0 0 24px rgba(139, 92, 246, 0.22);
-  --shadow-glow-green:   0 0 22px rgba(16, 185, 129, 0.18);
-  --shadow-glow-orange:  0 0 22px rgba(245, 158, 11, 0.18);
-  --shadow-glow-red:     0 0 22px rgba(239, 68, 68, 0.20);
+  /* ---- Shadows — pure elevation, no colored glow ---- */
+  --shadow-sm:  0 1px 3px rgba(0, 0, 0, 0.45);
+  --shadow-md:  0 4px 12px rgba(0, 0, 0, 0.55);
+  --shadow-lg:  0 8px 24px rgba(0, 0, 0, 0.60);
+  --shadow-xl:  0 16px 40px rgba(0, 0, 0, 0.68);
+
+  /* Glow-named variables kept for compatibility; redefined as subtle rings */
+  --shadow-glow-blue:    0 0 0 1px rgba(107, 143, 191, 0.18), 0 2px 8px rgba(0, 0, 0, 0.40);
+  --shadow-glow-cyan:    0 0 0 1px rgba(90, 152, 150, 0.16),  0 2px 8px rgba(0, 0, 0, 0.40);
+  --shadow-glow-purple:  0 0 0 1px rgba(136, 120, 192, 0.18), 0 2px 8px rgba(0, 0, 0, 0.40);
+  --shadow-glow-green:   0 0 0 1px rgba(103, 160, 122, 0.18), 0 2px 8px rgba(0, 0, 0, 0.40);
+  --shadow-glow-orange:  0 0 0 1px rgba(196, 152, 92, 0.16),  0 2px 8px rgba(0, 0, 0, 0.40);
+  --shadow-glow-red:     0 0 0 1px rgba(184, 114, 114, 0.16), 0 2px 8px rgba(0, 0, 0, 0.40);
 }
 
 /* ---- Base reset ---- */
@@ -123,16 +141,16 @@ html, body {
   width: 100%;
 }
 
-/* ---- Custom scrollbar ---- */
+/* ---- Custom scrollbar — minimal, neutral ---- */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, rgba(99, 102, 241, 0.25), rgba(59, 130, 246, 0.15));
+  background: rgba(255, 255, 255, 0.10);
   border-radius: var(--r-full);
   transition: background var(--t-default);
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, rgba(99, 102, 241, 0.5), rgba(59, 130, 246, 0.35));
+  background: rgba(255, 255, 255, 0.20);
 }
 ::-webkit-scrollbar-corner { background: transparent; }
 
@@ -155,23 +173,23 @@ a { color: inherit; text-decoration: none; }
 /* ---- Code ---- */
 code, pre { font-family: var(--font-mono); }
 
-/* ---- Override Bootstrap base colors ---- */
+/* ---- Bootstrap color override ---- */
 body { background-color: var(--bg-base) !important; color: var(--text-primary) !important; }
 .btn:focus-visible { box-shadow: 0 0 0 3px var(--accent-blue-dim) !important; }
 
-/* ---- Skeleton shimmer (shared keyframe used by SkeletonLoader) ---- */
+/* ---- Skeleton shimmer ---- */
 @keyframes skeleton-shimmer {
   0%   { background-position: -600px 0; }
-  100% { background-position: 600px 0; }
+  100% { background-position:  600px 0; }
 }
 
-/* ---- Pulse glow animation (reusable) ---- */
+/* ---- Subtle pulse (reusable) ---- */
 @keyframes pulse-glow {
   0%, 100% { opacity: 0.5; }
   50%       { opacity: 1; }
 }
 
-/* ---- Float animation (reusable subtle bob) ---- */
+/* ---- Float animation ---- */
 @keyframes float {
   0%, 100% { transform: translateY(0); }
   50%       { transform: translateY(-4px); }
@@ -183,20 +201,15 @@ body { background-color: var(--bg-base) !important; color: var(--text-primary) !
   to   { transform: rotate(360deg); }
 }
 
-/* ---- Reusable glass surface ---- */
+/* ---- Glass surface utility ---- */
 .glass-surface {
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
 }
 
-/* ---- Reusable shimmer text ---- */
+/* ---- Accent text utility ---- */
 .text-gradient-blue {
-  background: linear-gradient(135deg, var(--accent-blue-light), var(--accent-cyan));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--accent-blue-light);
 }
-
-/* ---- TODO: add theme utility cleanup pass ---- */

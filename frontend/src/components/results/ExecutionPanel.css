@@ -1,8 +1,7 @@
 /* ================================================
    ExecutionPanel + sub-component styles
-   Phase 6: richer idle/running/failed states,
-            metric chip hover glow, SQL preview polish,
-            results table refinements, skeleton loader
+   Theme: professional data-tool aesthetic — clean
+          states, refined table, muted metrics
 
    Class prefix map:
      .exec-panel      → ExecutionPanel
@@ -35,11 +34,7 @@
   height: 36px;
   flex-shrink: 0;
   border-bottom: 1px solid var(--border-default);
-  background: linear-gradient(
-    180deg,
-    rgba(16, 16, 34, 0.95) 0%,
-    rgba(12, 12, 24, 0.8) 100%
-  );
+  background: var(--bg-surface);
 }
 
 .exec-panel__header-left {
@@ -55,9 +50,9 @@
   width: 22px;
   height: 22px;
   border-radius: var(--r-sm);
-  background: var(--accent-blue-dim);
+  background: var(--bg-elevated);
   color: var(--accent-blue-light);
-  border: 1px solid rgba(59, 130, 246, 0.2);
+  border: 1px solid var(--border-default);
 }
 
 .exec-panel__title {
@@ -111,15 +106,15 @@
 
 @keyframes idle-float {
   0%, 100% { transform: translateY(0); }
-  50%       { transform: translateY(-5px); }
+  50%       { transform: translateY(-4px); }
 }
 
 .exec-panel__idle-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 48px;
-  height: 48px;
+  width: 44px;
+  height: 44px;
   border-radius: var(--r-md);
   background: var(--bg-elevated);
   border: 1px solid var(--border-default);
@@ -127,16 +122,6 @@
   margin-bottom: var(--sp-2);
   animation: idle-float 3.5s ease-in-out infinite;
   box-shadow: var(--shadow-sm);
-  position: relative;
-}
-
-/* Subtle outer ring on idle icon */
-.exec-panel__idle-icon::before {
-  content: '';
-  position: absolute;
-  inset: -5px;
-  border-radius: calc(var(--r-md) + 3px);
-  border: 1px solid var(--border-subtle);
 }
 
 .exec-panel__idle-title {
@@ -164,22 +149,23 @@
   position: relative;
 }
 
+/* Progress line — clean, no blur/glow */
 .exec-panel__run-glow {
   position: absolute;
   top: 0;
   left: 50%;
   transform: translateX(-50%);
-  width: 240px;
-  height: 2px;
+  width: 200px;
+  height: 1.5px;
   border-radius: var(--r-full);
   background: linear-gradient(90deg,
     transparent,
-    var(--accent-blue) 25%,
-    var(--accent-cyan) 75%,
+    var(--accent-blue) 35%,
+    var(--accent-blue-light) 65%,
     transparent
   );
+  opacity: 0.55;
   transform-origin: center;
-  filter: blur(1px);
 }
 
 .exec-panel__run-label {
@@ -206,7 +192,6 @@
   border: 1px solid var(--border-default);
   color: var(--text-muted);
   letter-spacing: 0.02em;
-  transition: color var(--t-default), border-color var(--t-default);
 }
 
 /* ---- Failed state ---- */
@@ -222,7 +207,6 @@
 .exec-panel__failed-icon {
   color: var(--accent-red);
   margin-bottom: var(--sp-1);
-  filter: drop-shadow(0 0 6px rgba(239, 68, 68, 0.4));
 }
 
 .exec-panel__failed-title {
@@ -236,8 +220,8 @@
   color: var(--text-muted);
   max-width: 280px;
   font-family: var(--font-mono);
-  background: rgba(239, 68, 68, 0.05);
-  border: 1px solid rgba(239, 68, 68, 0.12);
+  background: var(--accent-red-dim);
+  border: 1px solid rgba(184, 114, 114, 0.14);
   border-radius: var(--r-sm);
   padding: 6px 12px;
   margin-top: 2px;
@@ -257,9 +241,7 @@
   padding: 3px 9px;
   border-radius: var(--r-full);
   background: color-mix(in srgb, var(--status-color) 10%, transparent);
-  border: 1px solid color-mix(in srgb, var(--status-color) 28%, transparent);
-  position: relative;
-  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--status-color) 24%, transparent);
   transition: background var(--t-default), border-color var(--t-default);
 }
 
@@ -284,7 +266,7 @@
 .exec-status__timing {
   font-family: var(--font-mono);
   font-size: 10px;
-  opacity: 0.75;
+  opacity: 0.70;
   margin-left: 2px;
 }
 
@@ -319,21 +301,19 @@
   background: var(--bg-elevated);
   font-size: 10.5px;
   white-space: nowrap;
-  transition:
-    border-color var(--t-default),
-    box-shadow var(--t-default),
-    background var(--t-fast);
+  transition: border-color var(--t-default), background var(--t-fast);
   cursor: default;
 }
 
 .exec-metric:hover {
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--bg-hover-md);
+  border-color: var(--border-strong);
 }
 
 .exec-metric__icon {
   display: inline-flex;
   align-items: center;
-  opacity: 0.75;
+  opacity: 0.70;
 }
 
 .exec-metric__value {
@@ -346,45 +326,12 @@
   font-size: 10px;
 }
 
-.exec-metric--blue {
-  color: var(--accent-blue-light);
-}
-.exec-metric--blue:hover {
-  border-color: rgba(59, 130, 246, 0.3);
-  box-shadow: 0 0 12px rgba(59, 130, 246, 0.08);
-}
-
-.exec-metric--green {
-  color: var(--accent-green);
-}
-.exec-metric--green:hover {
-  border-color: rgba(16, 185, 129, 0.3);
-  box-shadow: 0 0 12px rgba(16, 185, 129, 0.08);
-}
-
-.exec-metric--cyan {
-  color: var(--accent-cyan);
-}
-.exec-metric--cyan:hover {
-  border-color: rgba(6, 182, 212, 0.3);
-  box-shadow: 0 0 12px rgba(6, 182, 212, 0.08);
-}
-
-.exec-metric--purple {
-  color: var(--accent-purple-light);
-}
-.exec-metric--purple:hover {
-  border-color: rgba(139, 92, 246, 0.3);
-  box-shadow: 0 0 12px rgba(139, 92, 246, 0.08);
-}
-
-.exec-metric--orange {
-  color: var(--accent-orange);
-}
-.exec-metric--orange:hover {
-  border-color: rgba(245, 158, 11, 0.3);
-  box-shadow: 0 0 12px rgba(245, 158, 11, 0.08);
-}
+/* Metric accent variants — color only, no glow */
+.exec-metric--blue   { color: var(--accent-blue-light); }
+.exec-metric--green  { color: var(--accent-green); }
+.exec-metric--cyan   { color: var(--accent-cyan); }
+.exec-metric--purple { color: var(--accent-purple-light); }
+.exec-metric--orange { color: var(--accent-orange); }
 
 /* ------------------------------------------------------------------ */
 /* SQLPreview                                                           */
@@ -405,11 +352,7 @@
   justify-content: space-between;
   padding: 7px var(--sp-3);
   border-bottom: 1px solid var(--border-subtle);
-  background: linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0.025) 0%,
-    rgba(59, 130, 246, 0.04) 100%
-  );
+  background: var(--bg-elevated);
 }
 
 .sql-preview__header-left {
@@ -422,7 +365,7 @@
 
 .sql-preview__header-icon {
   color: var(--accent-blue-light);
-  opacity: 0.8;
+  opacity: 0.75;
 }
 
 .sql-preview__title {
@@ -448,20 +391,18 @@
   transition:
     color var(--t-fast),
     border-color var(--t-fast),
-    background var(--t-fast),
-    box-shadow var(--t-fast);
+    background var(--t-fast);
 }
 
 .sql-preview__copy-btn:hover {
   color: var(--text-secondary);
   border-color: var(--border-strong);
-  background: var(--bg-hover);
+  background: var(--bg-hover-md);
 }
 
 .sql-preview__copy-btn--done {
   color: var(--accent-green) !important;
-  border-color: rgba(16, 185, 129, 0.35) !important;
-  box-shadow: 0 0 8px rgba(16, 185, 129, 0.12);
+  border-color: rgba(103, 160, 122, 0.32) !important;
 }
 
 .sql-preview__code {
@@ -476,10 +417,10 @@
   tab-size: 2;
 }
 
-/* SQL syntax tokens */
+/* SQL syntax tokens — muted, professional */
 .sql-kw  { color: var(--accent-blue-light); font-weight: 600; }
 .sql-fn  { color: var(--accent-cyan); }
-.sql-str { color: var(--accent-green); opacity: 0.85; }
+.sql-str { color: var(--accent-green); opacity: 0.90; }
 .sql-num { color: var(--accent-orange); }
 .sql-cmt { color: var(--text-muted); font-style: italic; }
 .sql-op  { color: var(--text-secondary); }
@@ -516,11 +457,7 @@
   position: sticky;
   top: 0;
   z-index: 2;
-  background: linear-gradient(
-    180deg,
-    rgba(22, 22, 44, 0.98) 0%,
-    var(--bg-elevated) 100%
-  );
+  background: var(--bg-elevated);
 }
 
 .results-table__th {
@@ -544,20 +481,20 @@
 }
 
 .results-table__row:hover {
-  background: rgba(59, 130, 246, 0.04);
+  background: var(--bg-hover-md);
 }
 
 .results-table__row:last-child {
   border-bottom: none;
 }
 
-/* Subtle alternating row tint */
+/* Alternating row tint — very subtle */
 .results-table__row:nth-child(even) {
-  background: rgba(255, 255, 255, 0.012);
+  background: rgba(255, 255, 255, 0.010);
 }
 
 .results-table__row:nth-child(even):hover {
-  background: rgba(59, 130, 246, 0.04);
+  background: var(--bg-hover-md);
 }
 
 .results-table__td {
@@ -600,11 +537,11 @@
   background: linear-gradient(
     90deg,
     var(--bg-elevated) 25%,
-    rgba(255, 255, 255, 0.045) 50%,
+    rgba(255, 255, 255, 0.038) 50%,
     var(--bg-elevated) 75%
   );
   background-size: 800px 100%;
-  animation: skeleton-sweep 1.6s ease-in-out infinite;
+  animation: skeleton-sweep 1.7s ease-in-out infinite;
 }
 
 .skeleton__line--short  { width: 40%; }

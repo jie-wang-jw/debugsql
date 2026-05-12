@@ -10,26 +10,14 @@
   position: relative;
 }
 
-/* Subtle ambient glow behind the canvas */
-.qplan::before {
-  content: '';
-  position: absolute;
-  top: 30%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 360px;
-  height: 200px;
-  background: radial-gradient(ellipse, rgba(59, 130, 246, 0.055) 0%, transparent 70%);
-  pointer-events: none;
-  z-index: 0;
-}
+/* No ambient glow — clean canvas */
 
 /* ---- Header ---- */
 .qplan__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 18px;
+  padding: 12px 18px;
   border-bottom: 1px solid var(--border-default);
   flex-shrink: 0;
   gap: 12px;
@@ -51,8 +39,8 @@
   justify-content: center;
   width: 26px;
   height: 26px;
-  background: var(--accent-blue-dim);
-  border: 1px solid var(--border-accent);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
   border-radius: var(--r-sm);
   color: var(--accent-blue-light);
   flex-shrink: 0;
