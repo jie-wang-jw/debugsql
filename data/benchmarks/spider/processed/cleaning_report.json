@@ -1,0 +1,1709 @@
+{
+  "schema": {
+    "missing_sqlite": [],
+    "fk_mismatches": [],
+    "empty_tables": {
+      "academic": [
+        "author",
+        "conference",
+        "domain",
+        "domain_author",
+        "domain_conference",
+        "journal",
+        "domain_journal",
+        "keyword",
+        "domain_keyword",
+        "publication",
+        "domain_publication",
+        "organization",
+        "publication_keyword",
+        "writes",
+        "cite"
+      ],
+      "imdb": [
+        "actor",
+        "copyright",
+        "cast",
+        "genre",
+        "classification",
+        "company",
+        "director",
+        "producer",
+        "directed_by",
+        "keyword",
+        "made_by",
+        "movie",
+        "tags",
+        "tv_series",
+        "writer",
+        "written_by"
+      ],
+      "music_2": [
+        "Songs",
+        "Albums",
+        "Band",
+        "Instruments",
+        "Performance",
+        "Tracklists",
+        "Vocals"
+      ],
+      "restaurants": [
+        "GEOGRAPHIC",
+        "RESTAURANT",
+        "LOCATION"
+      ],
+      "sakila_1": [
+        "film_text",
+        "language",
+        "staff",
+        "store"
+      ],
+      "scholar": [
+        "venue",
+        "author",
+        "dataset",
+        "journal",
+        "keyphrase",
+        "paper",
+        "cite",
+        "paperDataset",
+        "paperKeyphrase",
+        "writes"
+      ],
+      "yelp": [
+        "business",
+        "category",
+        "user",
+        "checkin",
+        "neighbourhood",
+        "review",
+        "tip"
+      ],
+      "formula_1": [
+        "pitStops",
+        "lapTimes"
+      ],
+      "geo": [
+        "state",
+        "city",
+        "border_info",
+        "highlow",
+        "lake",
+        "mountain",
+        "river"
+      ]
+    },
+    "normalized_names": [
+      {
+        "db_id": "icfp_1",
+        "type": "table",
+        "before": [
+          "Inst",
+          "Authors",
+          "Papers",
+          "Authorship"
+        ],
+        "after": [
+          "inst",
+          "authors",
+          "papers",
+          "authorship"
+        ]
+      },
+      {
+        "db_id": "department_store",
+        "type": "table",
+        "before": [
+          "Addresses",
+          "Staff",
+          "Suppliers",
+          "Department_Store_Chain",
+          "Customers",
+          "Products",
+          "Supplier_Addresses",
+          "Customer_Addresses",
+          "Customer_Orders",
+          "Department_Stores",
+          "Departments",
+          "Order_Items",
+          "Product_Suppliers",
+          "Staff_Department_Assignments"
+        ],
+        "after": [
+          "addresses",
+          "staff",
+          "suppliers",
+          "department_store_chain",
+          "customers",
+          "products",
+          "supplier_addresses",
+          "customer_addresses",
+          "customer_orders",
+          "department_stores",
+          "departments",
+          "order_items",
+          "product_suppliers",
+          "staff_department_assignments"
+        ]
+      },
+      {
+        "db_id": "insurance_fnol",
+        "type": "table",
+        "before": [
+          "Customers",
+          "Services",
+          "Available_Policies",
+          "Customers_Policies",
+          "First_Notification_of_Loss",
+          "Claims",
+          "Settlements"
+        ],
+        "after": [
+          "customers",
+          "services",
+          "available_policies",
+          "customers_policies",
+          "first_notification_of_loss",
+          "claims",
+          "settlements"
+        ]
+      },
+      {
+        "db_id": "assets_maintenance",
+        "type": "table",
+        "before": [
+          "Third_Party_Companies",
+          "Maintenance_Contracts",
+          "Parts",
+          "Skills",
+          "Staff",
+          "Assets",
+          "Asset_Parts",
+          "Maintenance_Engineers",
+          "Engineer_Skills",
+          "Fault_Log",
+          "Engineer_Visits",
+          "Part_Faults",
+          "Fault_Log_Parts",
+          "Skills_Required_To_Fix"
+        ],
+        "after": [
+          "third_party_companies",
+          "maintenance_contracts",
+          "parts",
+          "skills",
+          "staff",
+          "assets",
+          "asset_parts",
+          "maintenance_engineers",
+          "engineer_skills",
+          "fault_log",
+          "engineer_visits",
+          "part_faults",
+          "fault_log_parts",
+          "skills_required_to_fix"
+        ]
+      },
+      {
+        "db_id": "student_assessment",
+        "type": "table",
+        "before": [
+          "Addresses",
+          "People",
+          "Students",
+          "Courses",
+          "People_Addresses",
+          "Student_Course_Registrations",
+          "Student_Course_Attendance",
+          "Candidates",
+          "Candidate_Assessments"
+        ],
+        "after": [
+          "addresses",
+          "people",
+          "students",
+          "courses",
+          "people_addresses",
+          "student_course_registrations",
+          "student_course_attendance",
+          "candidates",
+          "candidate_assessments"
+        ]
+      },
+      {
+        "db_id": "dog_kennels",
+        "type": "table",
+        "before": [
+          "Breeds",
+          "Charges",
+          "Sizes",
+          "Treatment_Types",
+          "Owners",
+          "Dogs",
+          "Professionals",
+          "Treatments"
+        ],
+        "after": [
+          "breeds",
+          "charges",
+          "sizes",
+          "treatment_types",
+          "owners",
+          "dogs",
+          "professionals",
+          "treatments"
+        ]
+      },
+      {
+        "db_id": "solvency_ii",
+        "type": "table",
+        "before": [
+          "Addresses",
+          "Locations",
+          "Products",
+          "Parties",
+          "Assets",
+          "Channels",
+          "Finances",
+          "Events",
+          "Products_in_Events",
+          "Parties_in_Events",
+          "Agreements",
+          "Assets_in_Events"
+        ],
+        "after": [
+          "addresses",
+          "locations",
+          "products",
+          "parties",
+          "assets",
+          "channels",
+          "finances",
+          "events",
+          "products_in_events",
+          "parties_in_events",
+          "agreements",
+          "assets_in_events"
+        ]
+      },
+      {
+        "db_id": "manufactory_1",
+        "type": "table",
+        "before": [
+          "Manufacturers",
+          "Products"
+        ],
+        "after": [
+          "manufacturers",
+          "products"
+        ]
+      },
+      {
+        "db_id": "network_2",
+        "type": "table",
+        "before": [
+          "Person",
+          "PersonFriend"
+        ],
+        "after": [
+          "person",
+          "personfriend"
+        ]
+      },
+      {
+        "db_id": "local_govt_in_alabama",
+        "type": "table",
+        "before": [
+          "Services",
+          "Participants",
+          "Events",
+          "Participants_in_Events"
+        ],
+        "after": [
+          "services",
+          "participants",
+          "events",
+          "participants_in_events"
+        ]
+      },
+      {
+        "db_id": "e_learning",
+        "type": "table",
+        "before": [
+          "Course_Authors_and_Tutors",
+          "Students",
+          "Subjects",
+          "Courses",
+          "Student_Course_Enrolment",
+          "Student_Tests_Taken"
+        ],
+        "after": [
+          "course_authors_and_tutors",
+          "students",
+          "subjects",
+          "courses",
+          "student_course_enrolment",
+          "student_tests_taken"
+        ]
+      },
+      {
+        "db_id": "scientist_1",
+        "type": "table",
+        "before": [
+          "Scientists",
+          "Projects",
+          "AssignedTo"
+        ],
+        "after": [
+          "scientists",
+          "projects",
+          "assignedto"
+        ]
+      },
+      {
+        "db_id": "ship_1",
+        "type": "table",
+        "before": [
+          "captain",
+          "Ship"
+        ],
+        "after": [
+          "captain",
+          "ship"
+        ]
+      },
+      {
+        "db_id": "allergy_1",
+        "type": "table",
+        "before": [
+          "Allergy_Type",
+          "Has_Allergy",
+          "Student"
+        ],
+        "after": [
+          "allergy_type",
+          "has_allergy",
+          "student"
+        ]
+      },
+      {
+        "db_id": "products_for_hire",
+        "type": "table",
+        "before": [
+          "Discount_Coupons",
+          "Customers",
+          "Bookings",
+          "Products_for_Hire",
+          "Payments",
+          "Products_Booked",
+          "View_Product_Availability"
+        ],
+        "after": [
+          "discount_coupons",
+          "customers",
+          "bookings",
+          "products_for_hire",
+          "payments",
+          "products_booked",
+          "view_product_availability"
+        ]
+      },
+      {
+        "db_id": "chinook_1",
+        "type": "table",
+        "before": [
+          "Album",
+          "Artist",
+          "Customer",
+          "Employee",
+          "Genre",
+          "Invoice",
+          "InvoiceLine",
+          "MediaType",
+          "Playlist",
+          "PlaylistTrack",
+          "Track"
+        ],
+        "after": [
+          "album",
+          "artist",
+          "customer",
+          "employee",
+          "genre",
+          "invoice",
+          "invoiceline",
+          "mediatype",
+          "playlist",
+          "playlisttrack",
+          "track"
+        ]
+      },
+      {
+        "db_id": "pets_1",
+        "type": "table",
+        "before": [
+          "Student",
+          "Has_Pet",
+          "Pets"
+        ],
+        "after": [
+          "student",
+          "has_pet",
+          "pets"
+        ]
+      },
+      {
+        "db_id": "dorm_1",
+        "type": "table",
+        "before": [
+          "Student",
+          "Dorm",
+          "Dorm_amenity",
+          "Has_amenity",
+          "Lives_in"
+        ],
+        "after": [
+          "student",
+          "dorm",
+          "dorm_amenity",
+          "has_amenity",
+          "lives_in"
+        ]
+      },
+      {
+        "db_id": "local_govt_and_lot",
+        "type": "table",
+        "before": [
+          "Customers",
+          "Properties",
+          "Residents",
+          "Organizations",
+          "Services",
+          "Residents_Services",
+          "Things",
+          "Customer_Events",
+          "Customer_Event_Notes",
+          "Timed_Status_of_Things",
+          "Timed_Locations_of_Things"
+        ],
+        "after": [
+          "customers",
+          "properties",
+          "residents",
+          "organizations",
+          "services",
+          "residents_services",
+          "things",
+          "customer_events",
+          "customer_event_notes",
+          "timed_status_of_things",
+          "timed_locations_of_things"
+        ]
+      },
+      {
+        "db_id": "driving_school",
+        "type": "table",
+        "before": [
+          "Addresses",
+          "Staff",
+          "Vehicles",
+          "Customers",
+          "Customer_Payments",
+          "Lessons"
+        ],
+        "after": [
+          "addresses",
+          "staff",
+          "vehicles",
+          "customers",
+          "customer_payments",
+          "lessons"
+        ]
+      },
+      {
+        "db_id": "music_2",
+        "type": "table",
+        "before": [
+          "Songs",
+          "Albums",
+          "Band",
+          "Instruments",
+          "Performance",
+          "Tracklists",
+          "Vocals"
+        ],
+        "after": [
+          "songs",
+          "albums",
+          "band",
+          "instruments",
+          "performance",
+          "tracklists",
+          "vocals"
+        ]
+      },
+      {
+        "db_id": "inn_1",
+        "type": "table",
+        "before": [
+          "Rooms",
+          "Reservations"
+        ],
+        "after": [
+          "rooms",
+          "reservations"
+        ]
+      },
+      {
+        "db_id": "browser_web",
+        "type": "table",
+        "before": [
+          "Web_client_accelerator",
+          "browser",
+          "accelerator_compatible_browser"
+        ],
+        "after": [
+          "web_client_accelerator",
+          "browser",
+          "accelerator_compatible_browser"
+        ]
+      },
+      {
+        "db_id": "csu_1",
+        "type": "table",
+        "before": [
+          "Campuses",
+          "csu_fees",
+          "degrees",
+          "discipline_enrollments",
+          "enrollments",
+          "faculty"
+        ],
+        "after": [
+          "campuses",
+          "csu_fees",
+          "degrees",
+          "discipline_enrollments",
+          "enrollments",
+          "faculty"
+        ]
+      },
+      {
+        "db_id": "tracking_orders",
+        "type": "table",
+        "before": [
+          "Customers",
+          "Invoices",
+          "Orders",
+          "Products",
+          "Order_Items",
+          "Shipments",
+          "Shipment_Items"
+        ],
+        "after": [
+          "customers",
+          "invoices",
+          "orders",
+          "products",
+          "order_items",
+          "shipments",
+          "shipment_items"
+        ]
+      },
+      {
+        "db_id": "insurance_policies",
+        "type": "table",
+        "before": [
+          "Customers",
+          "Customer_Policies",
+          "Claims",
+          "Settlements",
+          "Payments"
+        ],
+        "after": [
+          "customers",
+          "customer_policies",
+          "claims",
+          "settlements",
+          "payments"
+        ]
+      },
+      {
+        "db_id": "e_government",
+        "type": "table",
+        "before": [
+          "Addresses",
+          "Services",
+          "Forms",
+          "Individuals",
+          "Organizations",
+          "Parties",
+          "Organization_Contact_Individuals",
+          "Party_Addresses",
+          "Party_Forms",
+          "Party_Services"
+        ],
+        "after": [
+          "addresses",
+          "services",
+          "forms",
+          "individuals",
+          "organizations",
+          "parties",
+          "organization_contact_individuals",
+          "party_addresses",
+          "party_forms",
+          "party_services"
+        ]
+      },
+      {
+        "db_id": "hospital_1",
+        "type": "table",
+        "before": [
+          "Physician",
+          "Department",
+          "Affiliated_With",
+          "Procedures",
+          "Trained_In",
+          "Patient",
+          "Nurse",
+          "Appointment",
+          "Medication",
+          "Prescribes",
+          "Block",
+          "Room",
+          "On_Call",
+          "Stay",
+          "Undergoes"
+        ],
+        "after": [
+          "physician",
+          "department",
+          "affiliated_with",
+          "procedures",
+          "trained_in",
+          "patient",
+          "nurse",
+          "appointment",
+          "medication",
+          "prescribes",
+          "block",
+          "room",
+          "on_call",
+          "stay",
+          "undergoes"
+        ]
+      },
+      {
+        "db_id": "customers_campaigns_ecommerce",
+        "type": "table",
+        "before": [
+          "Premises",
+          "Products",
+          "Customers",
+          "Mailshot_Campaigns",
+          "Customer_Addresses",
+          "Customer_Orders",
+          "Mailshot_Customers",
+          "Order_Items"
+        ],
+        "after": [
+          "premises",
+          "products",
+          "customers",
+          "mailshot_campaigns",
+          "customer_addresses",
+          "customer_orders",
+          "mailshot_customers",
+          "order_items"
+        ]
+      },
+      {
+        "db_id": "restaurants",
+        "type": "table",
+        "before": [
+          "GEOGRAPHIC",
+          "RESTAURANT",
+          "LOCATION"
+        ],
+        "after": [
+          "geographic",
+          "restaurant",
+          "location"
+        ]
+      },
+      {
+        "db_id": "cre_Doc_Control_Systems",
+        "type": "table",
+        "before": [
+          "Ref_Document_Types",
+          "Roles",
+          "Addresses",
+          "Ref_Document_Status",
+          "Ref_Shipping_Agents",
+          "Documents",
+          "Employees",
+          "Document_Drafts",
+          "Draft_Copies",
+          "Circulation_History",
+          "Documents_Mailed"
+        ],
+        "after": [
+          "ref_document_types",
+          "roles",
+          "addresses",
+          "ref_document_status",
+          "ref_shipping_agents",
+          "documents",
+          "employees",
+          "document_drafts",
+          "draft_copies",
+          "circulation_history",
+          "documents_mailed"
+        ]
+      },
+      {
+        "db_id": "tracking_share_transactions",
+        "type": "table",
+        "before": [
+          "Investors",
+          "Lots",
+          "Ref_Transaction_Types",
+          "Transactions",
+          "Sales",
+          "Purchases",
+          "Transactions_Lots"
+        ],
+        "after": [
+          "investors",
+          "lots",
+          "ref_transaction_types",
+          "transactions",
+          "sales",
+          "purchases",
+          "transactions_lots"
+        ]
+      },
+      {
+        "db_id": "apartment_rentals",
+        "type": "table",
+        "before": [
+          "Apartment_Buildings",
+          "Apartments",
+          "Apartment_Facilities",
+          "Guests",
+          "Apartment_Bookings",
+          "View_Unit_Status"
+        ],
+        "after": [
+          "apartment_buildings",
+          "apartments",
+          "apartment_facilities",
+          "guests",
+          "apartment_bookings",
+          "view_unit_status"
+        ]
+      },
+      {
+        "db_id": "student_transcripts_tracking",
+        "type": "table",
+        "before": [
+          "Addresses",
+          "Courses",
+          "Departments",
+          "Degree_Programs",
+          "Sections",
+          "Semesters",
+          "Students",
+          "Student_Enrolment",
+          "Student_Enrolment_Courses",
+          "Transcripts",
+          "Transcript_Contents"
+        ],
+        "after": [
+          "addresses",
+          "courses",
+          "departments",
+          "degree_programs",
+          "sections",
+          "semesters",
+          "students",
+          "student_enrolment",
+          "student_enrolment_courses",
+          "transcripts",
+          "transcript_contents"
+        ]
+      },
+      {
+        "db_id": "cre_Docs_and_Epenses",
+        "type": "table",
+        "before": [
+          "Ref_Document_Types",
+          "Ref_Budget_Codes",
+          "Projects",
+          "Documents",
+          "Statements",
+          "Documents_with_Expenses",
+          "Accounts"
+        ],
+        "after": [
+          "ref_document_types",
+          "ref_budget_codes",
+          "projects",
+          "documents",
+          "statements",
+          "documents_with_expenses",
+          "accounts"
+        ]
+      },
+      {
+        "db_id": "company_office",
+        "type": "table",
+        "before": [
+          "buildings",
+          "Companies",
+          "Office_locations"
+        ],
+        "after": [
+          "buildings",
+          "companies",
+          "office_locations"
+        ]
+      },
+      {
+        "db_id": "tracking_software_problems",
+        "type": "table",
+        "before": [
+          "Problem_Category_Codes",
+          "Problem_Log",
+          "Problem_Status_Codes",
+          "Product",
+          "Staff",
+          "Problems"
+        ],
+        "after": [
+          "problem_category_codes",
+          "problem_log",
+          "problem_status_codes",
+          "product",
+          "staff",
+          "problems"
+        ]
+      },
+      {
+        "db_id": "products_gen_characteristics",
+        "type": "table",
+        "before": [
+          "Ref_Characteristic_Types",
+          "Ref_Colors",
+          "Ref_Product_Categories",
+          "Characteristics",
+          "Products",
+          "Product_Characteristics"
+        ],
+        "after": [
+          "ref_characteristic_types",
+          "ref_colors",
+          "ref_product_categories",
+          "characteristics",
+          "products",
+          "product_characteristics"
+        ]
+      },
+      {
+        "db_id": "customers_card_transactions",
+        "type": "table",
+        "before": [
+          "Accounts",
+          "Customers",
+          "Customers_Cards",
+          "Financial_Transactions"
+        ],
+        "after": [
+          "accounts",
+          "customers",
+          "customers_cards",
+          "financial_transactions"
+        ]
+      },
+      {
+        "db_id": "club_1",
+        "type": "table",
+        "before": [
+          "Student",
+          "Club",
+          "Member_of_club"
+        ],
+        "after": [
+          "student",
+          "club",
+          "member_of_club"
+        ]
+      },
+      {
+        "db_id": "cre_Doc_Template_Mgt",
+        "type": "table",
+        "before": [
+          "Ref_Template_Types",
+          "Templates",
+          "Documents",
+          "Paragraphs"
+        ],
+        "after": [
+          "ref_template_types",
+          "templates",
+          "documents",
+          "paragraphs"
+        ]
+      },
+      {
+        "db_id": "tracking_grants_for_research",
+        "type": "table",
+        "before": [
+          "Document_Types",
+          "Documents",
+          "Grants",
+          "Organisation_Types",
+          "Organisations",
+          "Project_Outcomes",
+          "Project_Staff",
+          "Projects",
+          "Research_Outcomes",
+          "Research_Staff",
+          "Staff_Roles",
+          "Tasks"
+        ],
+        "after": [
+          "document_types",
+          "documents",
+          "grants",
+          "organisation_types",
+          "organisations",
+          "project_outcomes",
+          "project_staff",
+          "projects",
+          "research_outcomes",
+          "research_staff",
+          "staff_roles",
+          "tasks"
+        ]
+      },
+      {
+        "db_id": "movie_1",
+        "type": "table",
+        "before": [
+          "Movie",
+          "Reviewer",
+          "Rating"
+        ],
+        "after": [
+          "movie",
+          "reviewer",
+          "rating"
+        ]
+      },
+      {
+        "db_id": "network_1",
+        "type": "table",
+        "before": [
+          "Highschooler",
+          "Friend",
+          "Likes"
+        ],
+        "after": [
+          "highschooler",
+          "friend",
+          "likes"
+        ]
+      },
+      {
+        "db_id": "restaurant_1",
+        "type": "table",
+        "before": [
+          "Student",
+          "Restaurant",
+          "Type_Of_Restaurant",
+          "Restaurant_Type",
+          "Visits_Restaurant"
+        ],
+        "after": [
+          "student",
+          "restaurant",
+          "type_of_restaurant",
+          "restaurant_type",
+          "visits_restaurant"
+        ]
+      },
+      {
+        "db_id": "customers_and_invoices",
+        "type": "table",
+        "before": [
+          "Customers",
+          "Orders",
+          "Invoices",
+          "Accounts",
+          "Product_Categories",
+          "Products",
+          "Financial_Transactions",
+          "Order_Items",
+          "Invoice_Line_Items"
+        ],
+        "after": [
+          "customers",
+          "orders",
+          "invoices",
+          "accounts",
+          "product_categories",
+          "products",
+          "financial_transactions",
+          "order_items",
+          "invoice_line_items"
+        ]
+      },
+      {
+        "db_id": "insurance_and_eClaims",
+        "type": "table",
+        "before": [
+          "Customers",
+          "Staff",
+          "Policies",
+          "Claim_Headers",
+          "Claims_Documents",
+          "Claims_Processing_Stages",
+          "Claims_Processing"
+        ],
+        "after": [
+          "customers",
+          "staff",
+          "policies",
+          "claim_headers",
+          "claims_documents",
+          "claims_processing_stages",
+          "claims_processing"
+        ]
+      },
+      {
+        "db_id": "college_1",
+        "type": "table",
+        "before": [
+          "CLASS",
+          "COURSE",
+          "DEPARTMENT",
+          "EMPLOYEE",
+          "ENROLL",
+          "PROFESSOR",
+          "STUDENT"
+        ],
+        "after": [
+          "class",
+          "course",
+          "department",
+          "employee",
+          "enroll",
+          "professor",
+          "student"
+        ]
+      },
+      {
+        "db_id": "local_govt_mdm",
+        "type": "table",
+        "before": [
+          "Customer_Master_Index",
+          "CMI_Cross_References",
+          "Council_Tax",
+          "Business_Rates",
+          "Benefits_Overpayments",
+          "Parking_Fines",
+          "Rent_Arrears",
+          "Electoral_Register"
+        ],
+        "after": [
+          "customer_master_index",
+          "cmi_cross_references",
+          "council_tax",
+          "business_rates",
+          "benefits_overpayments",
+          "parking_fines",
+          "rent_arrears",
+          "electoral_register"
+        ]
+      },
+      {
+        "db_id": "soccer_1",
+        "type": "table",
+        "before": [
+          "Player_Attributes",
+          "sqlite_sequence",
+          "Player",
+          "League",
+          "Country",
+          "Team",
+          "Team_Attributes"
+        ],
+        "after": [
+          "player_attributes",
+          "sqlite_sequence",
+          "player",
+          "league",
+          "country",
+          "team",
+          "team_attributes"
+        ]
+      },
+      {
+        "db_id": "real_estate_properties",
+        "type": "table",
+        "before": [
+          "Ref_Feature_Types",
+          "Ref_Property_Types",
+          "Other_Available_Features",
+          "Properties",
+          "Other_Property_Features"
+        ],
+        "after": [
+          "ref_feature_types",
+          "ref_property_types",
+          "other_available_features",
+          "properties",
+          "other_property_features"
+        ]
+      },
+      {
+        "db_id": "college_3",
+        "type": "table",
+        "before": [
+          "Student",
+          "Faculty",
+          "Department",
+          "Member_of",
+          "Course",
+          "Minor_in",
+          "Enrolled_in",
+          "Gradeconversion"
+        ],
+        "after": [
+          "student",
+          "faculty",
+          "department",
+          "member_of",
+          "course",
+          "minor_in",
+          "enrolled_in",
+          "gradeconversion"
+        ]
+      },
+      {
+        "db_id": "customer_deliveries",
+        "type": "table",
+        "before": [
+          "Products",
+          "Addresses",
+          "Customers",
+          "Regular_Orders",
+          "Regular_Order_Products",
+          "Actual_Orders",
+          "Actual_Order_Products",
+          "Customer_Addresses",
+          "Delivery_Routes",
+          "Delivery_Route_Locations",
+          "Trucks",
+          "Employees",
+          "Order_Deliveries"
+        ],
+        "after": [
+          "products",
+          "addresses",
+          "customers",
+          "regular_orders",
+          "regular_order_products",
+          "actual_orders",
+          "actual_order_products",
+          "customer_addresses",
+          "delivery_routes",
+          "delivery_route_locations",
+          "trucks",
+          "employees",
+          "order_deliveries"
+        ]
+      },
+      {
+        "db_id": "school_finance",
+        "type": "table",
+        "before": [
+          "School",
+          "budget",
+          "endowment"
+        ],
+        "after": [
+          "school",
+          "budget",
+          "endowment"
+        ]
+      },
+      {
+        "db_id": "scholar",
+        "type": "table",
+        "before": [
+          "venue",
+          "author",
+          "dataset",
+          "journal",
+          "keyphrase",
+          "paper",
+          "cite",
+          "paperDataset",
+          "paperKeyphrase",
+          "writes"
+        ],
+        "after": [
+          "venue",
+          "author",
+          "dataset",
+          "journal",
+          "keyphrase",
+          "paper",
+          "cite",
+          "paperdataset",
+          "paperkeyphrase",
+          "writes"
+        ]
+      },
+      {
+        "db_id": "voter_1",
+        "type": "table",
+        "before": [
+          "AREA_CODE_STATE",
+          "CONTESTANTS",
+          "VOTES"
+        ],
+        "after": [
+          "area_code_state",
+          "contestants",
+          "votes"
+        ]
+      },
+      {
+        "db_id": "small_bank_1",
+        "type": "table",
+        "before": [
+          "ACCOUNTS",
+          "SAVINGS",
+          "CHECKING"
+        ],
+        "after": [
+          "accounts",
+          "savings",
+          "checking"
+        ]
+      },
+      {
+        "db_id": "document_management",
+        "type": "table",
+        "before": [
+          "Roles",
+          "Users",
+          "Document_Structures",
+          "Functional_Areas",
+          "Images",
+          "Documents",
+          "Document_Functional_Areas",
+          "Document_Sections",
+          "Document_Sections_Images"
+        ],
+        "after": [
+          "roles",
+          "users",
+          "document_structures",
+          "functional_areas",
+          "images",
+          "documents",
+          "document_functional_areas",
+          "document_sections",
+          "document_sections_images"
+        ]
+      },
+      {
+        "db_id": "formula_1",
+        "type": "table",
+        "before": [
+          "circuits",
+          "races",
+          "drivers",
+          "status",
+          "seasons",
+          "constructors",
+          "constructorStandings",
+          "results",
+          "driverStandings",
+          "constructorResults",
+          "qualifying",
+          "pitStops",
+          "lapTimes"
+        ],
+        "after": [
+          "circuits",
+          "races",
+          "drivers",
+          "status",
+          "seasons",
+          "constructors",
+          "constructorstandings",
+          "results",
+          "driverstandings",
+          "constructorresults",
+          "qualifying",
+          "pitstops",
+          "laptimes"
+        ]
+      },
+      {
+        "db_id": "game_1",
+        "type": "table",
+        "before": [
+          "Student",
+          "Video_Games",
+          "Plays_Games",
+          "SportsInfo"
+        ],
+        "after": [
+          "student",
+          "video_games",
+          "plays_games",
+          "sportsinfo"
+        ]
+      },
+      {
+        "db_id": "cre_Drama_Workshop_Groups",
+        "type": "table",
+        "before": [
+          "Ref_Payment_Methods",
+          "Ref_Service_Types",
+          "Addresses",
+          "Products",
+          "Marketing_Regions",
+          "Clients",
+          "Drama_Workshop_Groups",
+          "Performers",
+          "Customers",
+          "Stores",
+          "Bookings",
+          "Performers_in_Bookings",
+          "Customer_Orders",
+          "Order_Items",
+          "Invoices",
+          "Services",
+          "Bookings_Services",
+          "Invoice_Items"
+        ],
+        "after": [
+          "ref_payment_methods",
+          "ref_service_types",
+          "addresses",
+          "products",
+          "marketing_regions",
+          "clients",
+          "drama_workshop_groups",
+          "performers",
+          "customers",
+          "stores",
+          "bookings",
+          "performers_in_bookings",
+          "customer_orders",
+          "order_items",
+          "invoices",
+          "services",
+          "bookings_services",
+          "invoice_items"
+        ]
+      },
+      {
+        "db_id": "behavior_monitoring",
+        "type": "table",
+        "before": [
+          "Ref_Address_Types",
+          "Ref_Detention_Type",
+          "Ref_Incident_Type",
+          "Addresses",
+          "Students",
+          "Teachers",
+          "Assessment_Notes",
+          "Behavior_Incident",
+          "Detention",
+          "Student_Addresses",
+          "Students_in_Detention"
+        ],
+        "after": [
+          "ref_address_types",
+          "ref_detention_type",
+          "ref_incident_type",
+          "addresses",
+          "students",
+          "teachers",
+          "assessment_notes",
+          "behavior_incident",
+          "detention",
+          "student_addresses",
+          "students_in_detention"
+        ]
+      },
+      {
+        "db_id": "cre_Doc_Tracking_DB",
+        "type": "table",
+        "before": [
+          "Ref_Document_Types",
+          "Ref_Calendar",
+          "Ref_Locations",
+          "Roles",
+          "All_Documents",
+          "Employees",
+          "Document_Locations",
+          "Documents_to_be_Destroyed"
+        ],
+        "after": [
+          "ref_document_types",
+          "ref_calendar",
+          "ref_locations",
+          "roles",
+          "all_documents",
+          "employees",
+          "document_locations",
+          "documents_to_be_destroyed"
+        ]
+      },
+      {
+        "db_id": "soccer_2",
+        "type": "table",
+        "before": [
+          "College",
+          "Player",
+          "Tryout"
+        ],
+        "after": [
+          "college",
+          "player",
+          "tryout"
+        ]
+      },
+      {
+        "db_id": "activity_1",
+        "type": "table",
+        "before": [
+          "Activity",
+          "Participates_in",
+          "Faculty_Participates_in",
+          "Student",
+          "Faculty"
+        ],
+        "after": [
+          "activity",
+          "participates_in",
+          "faculty_participates_in",
+          "student",
+          "faculty"
+        ]
+      },
+      {
+        "db_id": "cre_Theme_park",
+        "type": "table",
+        "before": [
+          "Ref_Hotel_Star_Ratings",
+          "Locations",
+          "Ref_Attraction_Types",
+          "Visitors",
+          "Features",
+          "Hotels",
+          "Tourist_Attractions",
+          "Street_Markets",
+          "Shops",
+          "Museums",
+          "Royal_Family",
+          "Theme_Parks",
+          "Visits",
+          "Photos",
+          "Staff",
+          "Tourist_Attraction_Features"
+        ],
+        "after": [
+          "ref_hotel_star_ratings",
+          "locations",
+          "ref_attraction_types",
+          "visitors",
+          "features",
+          "hotels",
+          "tourist_attractions",
+          "street_markets",
+          "shops",
+          "museums",
+          "royal_family",
+          "theme_parks",
+          "visits",
+          "photos",
+          "staff",
+          "tourist_attraction_features"
+        ]
+      },
+      {
+        "db_id": "voter_2",
+        "type": "table",
+        "before": [
+          "Student",
+          "Voting_record"
+        ],
+        "after": [
+          "student",
+          "voting_record"
+        ]
+      },
+      {
+        "db_id": "customers_and_addresses",
+        "type": "table",
+        "before": [
+          "Addresses",
+          "Products",
+          "Customers",
+          "Customer_Addresses",
+          "Customer_Contact_Channels",
+          "Customer_Orders",
+          "Order_Items"
+        ],
+        "after": [
+          "addresses",
+          "products",
+          "customers",
+          "customer_addresses",
+          "customer_contact_channels",
+          "customer_orders",
+          "order_items"
+        ]
+      },
+      {
+        "db_id": "protein_institute",
+        "type": "table",
+        "before": [
+          "building",
+          "Institution",
+          "protein"
+        ],
+        "after": [
+          "building",
+          "institution",
+          "protein"
+        ]
+      },
+      {
+        "db_id": "tvshow",
+        "type": "table",
+        "before": [
+          "TV_Channel",
+          "TV_series",
+          "Cartoon"
+        ],
+        "after": [
+          "tv_channel",
+          "tv_series",
+          "cartoon"
+        ]
+      },
+      {
+        "db_id": "wrestler",
+        "type": "table",
+        "before": [
+          "wrestler",
+          "Elimination"
+        ],
+        "after": [
+          "wrestler",
+          "elimination"
+        ]
+      },
+      {
+        "db_id": "customer_complaints",
+        "type": "table",
+        "before": [
+          "Staff",
+          "Customers",
+          "Products",
+          "Complaints"
+        ],
+        "after": [
+          "staff",
+          "customers",
+          "products",
+          "complaints"
+        ]
+      },
+      {
+        "db_id": "customers_and_products_contacts",
+        "type": "table",
+        "before": [
+          "Addresses",
+          "Products",
+          "Customers",
+          "Contacts",
+          "Customer_Address_History",
+          "Customer_Orders",
+          "Order_Items"
+        ],
+        "after": [
+          "addresses",
+          "products",
+          "customers",
+          "contacts",
+          "customer_address_history",
+          "customer_orders",
+          "order_items"
+        ]
+      },
+      {
+        "db_id": "workshop_paper",
+        "type": "table",
+        "before": [
+          "workshop",
+          "submission",
+          "Acceptance"
+        ],
+        "after": [
+          "workshop",
+          "submission",
+          "acceptance"
+        ]
+      },
+      {
+        "db_id": "product_catalog",
+        "type": "table",
+        "before": [
+          "Attribute_Definitions",
+          "Catalogs",
+          "Catalog_Structure",
+          "Catalog_Contents",
+          "Catalog_Contents_Additional_Attributes"
+        ],
+        "after": [
+          "attribute_definitions",
+          "catalogs",
+          "catalog_structure",
+          "catalog_contents",
+          "catalog_contents_additional_attributes"
+        ]
+      }
+    ]
+  },
+  "dev": {
+    "missing_db": [],
+    "encoding_fixed": 9,
+    "sql_normalized": 911,
+    "duplicates_removed": 0
+  },
+  "train": {
+    "missing_db": [],
+    "encoding_fixed": 35,
+    "sql_normalized": 5871,
+    "duplicates_removed": 10
+  },
+  "execution_spot_check": {
+    "sample_size": 20,
+    "passed": 20,
+    "failed": 0,
+    "failures": []
+  }
+}

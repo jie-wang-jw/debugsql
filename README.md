@@ -38,6 +38,38 @@ data/benchmarks/
 
 Only `.gitkeep` files are committed. Raw benchmark files, processed metadata, and SQLite databases should stay out of Git.
 
+## Spider Dataset Setup
+
+1. Download the Spider dataset from https://yale-lily.github.io/spider
+2. Unzip and copy these files into the correct folders:
+
+| File/Folder | Destination |
+|---|---|
+| `dev.json` | `data/benchmarks/spider/raw/` |
+| `tables.json` | `data/benchmarks/spider/raw/` |
+| `train_spider.json` | `data/benchmarks/spider/raw/` |
+| `database/` | `data/benchmarks/spider/sqlite/` |
+
+3. Set up a virtual environment:
+
+```bash
+python -m venv venv
+# Windows
+venv\Scripts\activate
+# Mac/Linux
+source venv/bin/activate
+```
+
+4. Run the cleaning script:
+
+```bash
+python clean_spider.py
+```
+
+5. Cleaned files will be saved to `data/benchmarks/spider/processed/`
+
+> Note: Raw Spider files and SQLite databases are excluded from Git due to size limits.
+
 ## Quick Start
 
 Create local environment variables:
