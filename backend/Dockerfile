@@ -2,6 +2,9 @@ FROM python:3.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
+ENV PIP_INDEX_URL=https://mirrors.aliyun.com/pypi/simple/
+ENV UV_DEFAULT_INDEX=https://mirrors.aliyun.com/pypi/simple/
+ENV UV_LINK_MODE=copy
 
 WORKDIR /app
 
