@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { FiBarChart2, FiFilter, FiGitMerge, FiList, FiZap } from 'react-icons/fi';
+import { FiArrowRight, FiBarChart2, FiFilter, FiGitMerge, FiList, FiZap } from 'react-icons/fi';
 import type { SuggestedPrompt } from './chat.types';
 
 interface SuggestedPromptsProps {
@@ -93,6 +93,7 @@ export function SuggestedPrompts({ onSelect }: SuggestedPromptsProps) {
                   <span className="sp-card__label">{prompt.label}</span>
                   <span className="sp-card__desc">{prompt.description}</span>
                 </div>
+                <FiArrowRight size={12} className="sp-card__arrow" />
               </motion.button>
             );
           })}

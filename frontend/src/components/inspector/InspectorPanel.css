@@ -1,6 +1,7 @@
 /* ================================================
    InspectorPanel – Bottom-right node editor panel
-   Phase 4: empty state, node banner, sections, applied state
+   Phase 6: accent border strips, section polish,
+            apply button pulse, empty state glow ring
    ================================================ */
 
 .inspector {
@@ -16,10 +17,15 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 18px;
+  padding: 11px 16px;
   border-bottom: 1px solid var(--border-default);
   flex-shrink: 0;
   gap: 10px;
+  background: linear-gradient(
+    180deg,
+    rgba(20, 20, 40, 0.9) 0%,
+    rgba(12, 12, 24, 0.7) 100%
+  );
 }
 
 .inspector__header-left {
@@ -35,14 +41,15 @@
   width: 24px;
   height: 24px;
   background: var(--accent-purple-dim);
-  border: 1px solid rgba(139, 92, 246, 0.25);
+  border: 1px solid rgba(139, 92, 246, 0.28);
   border-radius: var(--r-sm);
-  color: var(--accent-purple);
+  color: var(--accent-purple-light);
   flex-shrink: 0;
+  box-shadow: 0 0 10px rgba(139, 92, 246, 0.12);
 }
 
 .inspector__title {
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 600;
   color: var(--text-primary);
   letter-spacing: -0.005em;
@@ -61,7 +68,7 @@
   display: flex;
   flex-direction: column;
   padding: 14px 14px 16px;
-  gap: 14px;
+  gap: 12px;
 }
 
 /* ---- Selected info ---- */
@@ -87,7 +94,7 @@
 .inspector__fields {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 0;
   background: var(--bg-card);
   border: 1px solid var(--border-default);
   border-radius: var(--r-lg);
@@ -102,8 +109,8 @@
   gap: 10px;
   padding: 9px 12px;
   border-bottom: 1px solid var(--border-subtle);
-  transition: background var(--t-fast);
-  border-radius: var(--r-sm);
+  transition: background var(--t-fast), border-left-color var(--t-fast);
+  border-left: 2px solid transparent;
 }
 
 .field-row:last-child {
@@ -112,6 +119,8 @@
 
 .field-row--editable:hover {
   cursor: text;
+  background: rgba(255, 255, 255, 0.022);
+  border-left-color: rgba(139, 92, 246, 0.4);
 }
 
 .field-row__label-wrap {
@@ -131,14 +140,14 @@
 }
 
 .field-row__edit-icon {
-  color: var(--text-muted);
+  color: var(--accent-purple-light);
   flex-shrink: 0;
   opacity: 0;
   transition: opacity var(--t-fast);
 }
 
 .field-row--editable:hover .field-row__edit-icon {
-  opacity: 1;
+  opacity: 0.7;
 }
 
 .field-row__value {
@@ -166,7 +175,7 @@
   padding: 4px 8px;
   outline: none;
   width: 100%;
-  transition: border-color var(--t-fast), box-shadow var(--t-fast);
+  transition: border-color var(--t-fast), box-shadow var(--t-fast), background var(--t-fast);
 }
 
 .field-row__input--mono {
@@ -176,8 +185,9 @@
 }
 
 .field-row__input:focus {
-  border-color: var(--border-accent);
-  box-shadow: 0 0 0 2px var(--accent-blue-dim);
+  border-color: rgba(139, 92, 246, 0.5);
+  box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.12);
+  background: rgba(9, 9, 26, 0.98);
 }
 
 /* ---- Actions ---- */
@@ -185,6 +195,12 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  margin-top: 2px;
+}
+
+@keyframes apply-pulse {
+  0%, 100% { box-shadow: var(--shadow-glow-blue); }
+  50%       { box-shadow: 0 0 28px rgba(59, 130, 246, 0.35); }
 }
 
 .inspector__apply-btn {
@@ -194,7 +210,7 @@
   gap: 7px;
   padding: 8px 16px;
   border-radius: var(--r-md);
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 500;
   cursor: pointer;
   border: 1px solid var(--border-default);
@@ -206,15 +222,17 @@
 
 .inspector__apply-btn--active {
   background: var(--accent-blue-dim);
-  border-color: var(--border-accent);
+  border-color: rgba(59, 130, 246, 0.45);
   color: var(--accent-blue-light);
-  box-shadow: var(--shadow-glow-blue);
+  animation: apply-pulse 2s ease-in-out infinite;
 }
 
 .inspector__apply-btn--active:hover {
   background: var(--accent-blue);
   color: #fff;
   border-color: var(--accent-blue);
+  animation: none;
+  box-shadow: var(--shadow-glow-blue);
 }
 
 .inspector__apply-btn:disabled {
@@ -247,14 +265,25 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   background: var(--bg-card);
   border: 1px solid var(--border-default);
   border-radius: var(--r-lg);
   color: var(--text-muted);
   margin-bottom: 4px;
   box-shadow: var(--shadow-sm);
+  position: relative;
+}
+
+/* Animated ring behind empty-state icon */
+.inspector__empty-icon::before {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: calc(var(--r-lg) + 4px);
+  border: 1px solid var(--border-subtle);
+  opacity: 0.5;
 }
 
 .inspector__empty-title {
@@ -268,11 +297,11 @@
   font-size: 11px;
   color: var(--text-muted);
   line-height: 1.6;
-  max-width: 200px;
+  max-width: 210px;
 }
 
 /* ================================================
-   Node identity banner
+   Node identity banner  — with accent left strip
    ================================================ */
 
 .inspector__node-banner {
@@ -284,6 +313,21 @@
   border: 1px solid var(--border-default);
   background: var(--bg-card);
   transition: border-color var(--t-default), box-shadow var(--t-default);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Left accent strip */
+.inspector__node-banner::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 3px;
+  height: 100%;
+  background: var(--banner-accent-color, var(--text-muted));
+  border-radius: 0 2px 2px 0;
+  opacity: 0.8;
 }
 
 .inspector__node-banner-icon {
@@ -296,6 +340,7 @@
   flex-shrink: 0;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid var(--border-subtle);
+  margin-left: 4px;
 }
 
 .inspector__node-banner-body {
@@ -335,10 +380,11 @@
   border-radius: var(--r-full);
 }
 
-/* Accent colour variants for node banner */
+/* Accent colour variants */
 .inspector__node-banner--blue {
+  --banner-accent-color: var(--accent-blue);
   border-color: rgba(59, 130, 246, 0.28);
-  box-shadow: 0 0 16px rgba(59, 130, 246, 0.08);
+  box-shadow: 0 0 18px rgba(59, 130, 246, 0.07);
 }
 .inspector__node-banner--blue .inspector__node-banner-icon {
   color: var(--accent-blue-light);
@@ -347,26 +393,28 @@
 }
 .inspector__node-banner--blue .inspector__node-kind {
   color: var(--accent-blue-light);
-  opacity: 0.8;
+  opacity: 0.85;
 }
 
 .inspector__node-banner--purple {
+  --banner-accent-color: var(--accent-purple);
   border-color: rgba(139, 92, 246, 0.28);
-  box-shadow: 0 0 16px rgba(139, 92, 246, 0.07);
+  box-shadow: 0 0 18px rgba(139, 92, 246, 0.07);
 }
 .inspector__node-banner--purple .inspector__node-banner-icon {
-  color: var(--accent-purple);
+  color: var(--accent-purple-light);
   background: var(--accent-purple-dim);
   border-color: rgba(139, 92, 246, 0.25);
 }
 .inspector__node-banner--purple .inspector__node-kind {
-  color: var(--accent-purple);
+  color: var(--accent-purple-light);
   opacity: 0.85;
 }
 
 .inspector__node-banner--green {
+  --banner-accent-color: var(--accent-green);
   border-color: rgba(16, 185, 129, 0.28);
-  box-shadow: 0 0 16px rgba(16, 185, 129, 0.07);
+  box-shadow: 0 0 18px rgba(16, 185, 129, 0.07);
 }
 .inspector__node-banner--green .inspector__node-banner-icon {
   color: var(--accent-green);
@@ -397,7 +445,11 @@
   align-items: center;
   gap: 7px;
   padding: 7px 12px;
-  background: var(--bg-elevated);
+  background: linear-gradient(
+    90deg,
+    rgba(20, 20, 40, 0.9) 0%,
+    var(--bg-elevated) 100%
+  );
   border-bottom: 1px solid var(--border-subtle);
 }
 
@@ -407,13 +459,14 @@
   border-radius: 50%;
   background: var(--section-accent, var(--text-muted));
   flex-shrink: 0;
-  opacity: 0.85;
+  opacity: 0.9;
+  box-shadow: 0 0 5px var(--section-accent, transparent);
 }
 
 .inspector__section-title {
   font-size: 9.5px;
   font-weight: 700;
-  letter-spacing: 0.07em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-muted);
 }
@@ -427,4 +480,6 @@
   border-color: rgba(16, 185, 129, 0.4) !important;
   color: var(--accent-green) !important;
   cursor: default !important;
+  animation: none !important;
+  box-shadow: var(--shadow-glow-green) !important;
 }

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { FiSliders, FiTerminal } from 'react-icons/fi';
 import { FadeIn }             from '../animations/FadeIn';
 import { ChatPanel }          from '../chat/ChatPanel';
@@ -85,12 +85,33 @@ function AppShellInner() {
                 />
               </div>
 
-              {/* Panel content */}
+              {/* Panel content — AnimatePresence for smooth tab switching */}
               <div className="bottom-tabs__content" role="tabpanel">
-                {activeTab === 'inspector'
-                  ? <InspectorPanel />
-                  : <ExecutionPanel />
-                }
+                <AnimatePresence mode="wait" initial={false}>
+                  {activeTab === 'inspector' ? (
+                    <motion.div
+                      key="inspector"
+                      className="bottom-tabs__panel"
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -4 }}
+                      transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                    >
+                      <InspectorPanel />
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="execution"
+                      className="bottom-tabs__panel"
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -4 }}
+                      transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                    >
+                      <ExecutionPanel />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             </div>
           </FadeIn>
