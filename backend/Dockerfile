@@ -10,7 +10,7 @@ WORKDIR /app
 
 COPY pyproject.toml uv.lock requirements.txt ./
 RUN pip install --no-cache-dir uv \
-    && uv sync --frozen --no-dev --system
+    && uv pip install --system --no-cache -r requirements.txt
 
 COPY app ./app
 COPY alembic.ini ./alembic.ini
