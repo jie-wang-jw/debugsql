@@ -6,7 +6,7 @@ import { ChatMessage as ChatMessageItem } from './ChatMessage';
 import { ChatInput } from './ChatInput';
 import { TypingIndicator } from './TypingIndicator';
 import { SuggestedPrompts } from './SuggestedPrompts';
-import { getMockResponse } from '../../services/mocks/mockChatService';
+import { sendChatMessage } from '../../services/adapters/chatAdapter';
 import { useExecutionContext } from '../../store/ExecutionContext';
 import { generateId } from '../../utils';
 import './ChatPanel.css';
@@ -48,9 +48,10 @@ export function ChatPanel() {
       setMessages((prev) => [...prev, userMsg]);
       setStatus('thinking');
 
-      // TODO: POST /api/query — replace getMockResponse with real API call
+      // TODO: POST /api/query — replace sendChatMessage mock with real backend call
+      // TODO: Pass real sessionId once authentication/session handling is integrated
       try {
-        const aiContent = await getMockResponse(trimmed);
+        const { content: aiContent } = await sendChatMessage({ message: trimmed, sessionId: '' });
 
         const aiMsg: ChatMessage = {
           id: generateId(),

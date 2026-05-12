@@ -19,7 +19,7 @@ import {
   type ReactNode,
 } from 'react';
 import type { ExecutionStatus, ExecutionResult } from '../types/execution.types';
-import { runMockExecution } from '../services/mocks/mockExecutionService';
+import { executeQuery } from '../services/adapters/executionAdapter';
 
 // ---- Context shape ----
 
@@ -68,8 +68,7 @@ export function ExecutionProvider({ children }: { children: ReactNode }) {
     setError(null);
 
     try {
-      // TODO: Replace with: await fetch('/api/execute', { method: 'POST', body: ... })
-      const execResult = await runMockExecution(query);
+      const execResult = await executeQuery(query);
       setResult(execResult);
       setStatus('success');
     } catch (err) {

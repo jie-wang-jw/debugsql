@@ -18,11 +18,11 @@ import type {
   FlowNodeData,
   QueryPlanGraph,
 } from '../components/query-plan/queryPlan.types';
-import { generateDemoQueryPlan } from '../utils/mockQueryPlanGenerator';
+import { getInitialPlan } from '../services/adapters/queryPlanAdapter';
 
 // TODO: Replace INITIAL_GRAPH with a real fetch (GET /api/query-plan/:planId)
 // TODO: Persist graph state across sessions via backend storage
-const INITIAL_GRAPH: QueryPlanGraph = generateDemoQueryPlan();
+const INITIAL_GRAPH: QueryPlanGraph = getInitialPlan();
 
 // ---- Context shape ----
 
