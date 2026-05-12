@@ -14,6 +14,14 @@ Browser -> Frontend -> Backend -> PostgreSQL
 - `backend`: FastAPI service with health checks
 - `postgres`: PostgreSQL 16 system database
 
+PostgreSQL data is persisted in:
+
+```text
+data/postgres/
+```
+
+This directory is ignored by Git and survives normal container restarts and rebuilds.
+
 ## Quick Start
 
 Create local environment variables:
@@ -78,6 +86,8 @@ debugsql/
     package.json
   docker-compose.yml
   .env.example
+  data/
+    .gitkeep
   README.md
 ```
 

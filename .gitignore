@@ -10,9 +10,12 @@ venv/
 node_modules/
 dist/
 .vite/
+.idea/
 
 postgres_data/
 debugsql_data/
+data/*
+!data/.gitkeep
 
 .DS_Store
 Thumbs.db
