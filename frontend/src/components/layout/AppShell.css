@@ -69,3 +69,82 @@
 .app-shell__bottom-right > div {
   height: 100%;
 }
+
+/* ---- Bottom tab container ---- */
+.bottom-tabs {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* ---- Tab bar ---- */
+.bottom-tabs__bar {
+  display: flex;
+  align-items: center;
+  height: 32px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border-default);
+  background: var(--bg-card);
+  padding: 0 var(--sp-2);
+  gap: 2px;
+}
+
+/* ---- Individual tab button ---- */
+.bottom-tabs__tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 var(--sp-3);
+  height: 28px;
+  border: none;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: color var(--t-fast), background var(--t-fast);
+  white-space: nowrap;
+  overflow: visible;
+}
+
+.bottom-tabs__tab:hover {
+  color: var(--text-secondary);
+  background: var(--bg-hover);
+}
+
+.bottom-tabs__tab--active {
+  color: var(--text-primary);
+}
+
+.bottom-tabs__tab-icon {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.bottom-tabs__tab-label {
+  flex-shrink: 0;
+}
+
+/* Animated underline indicator */
+.bottom-tabs__tab-indicator {
+  position: absolute;
+  bottom: -2px;
+  left: var(--sp-3);
+  right: var(--sp-3);
+  height: 2px;
+  border-radius: var(--r-full) var(--r-full) 0 0;
+  background: var(--accent-blue);
+}
+
+/* ---- Panel content area ---- */
+.bottom-tabs__content {
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}

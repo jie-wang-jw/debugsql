@@ -7,6 +7,7 @@ import { ChatInput } from './ChatInput';
 import { TypingIndicator } from './TypingIndicator';
 import { SuggestedPrompts } from './SuggestedPrompts';
 import { getMockResponse } from '../../services/mocks/mockChatService';
+import { useExecutionContext } from '../../store/ExecutionContext';
 import { generateId } from '../../utils';
 import './ChatPanel.css';
 
@@ -25,6 +26,7 @@ export function ChatPanel() {
   const [messages, setMessages] = useState<ChatMessage[]>(INITIAL_MESSAGES);
   const [status, setStatus] = useState<ChatStatus>('idle');
   const bottomRef = useRef<HTMLDivElement>(null);
+  const { triggerExecution } = useExecutionContext();
 
   // Auto-scroll to latest message whenever messages or typing state changes
   useEffect(() => {
@@ -60,6 +62,11 @@ export function ChatPanel() {
 
         // TODO: Extract planId from response and update QueryPlanArea state
         // TODO: Trigger query plan graph refresh here
+
+        // Kick off the mock execution pipeline with the user's original query.
+        // TODO: Replace with real backend execution — pass planId from AI response
+        // TODO: Wait for query plan to be fully rendered before executing
+        triggerExecution(trimmed);
       } catch {
         // TODO: Surface real API errors to the user (toast/inline error)
         const errorMsg: ChatMessage = {

@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import ReactFlow, {
   Background,
   BackgroundVariant,
@@ -42,10 +42,7 @@ function getMinimapColor(node: Node): string {
 
 export interface QueryPlanFlowProps {
   graph: QueryPlanGraph;
-  /**
-   * Currently selected node ID passed down from QueryPlanPanel.
-   * TODO: Forward to InspectorPanel via shared context (Phase 4)
-   */
+  /** Currently selected node ID — synced into React Flow's internal selection. */
   selectedNodeId: string | null;
   /** Fired when the user clicks a node. */
   onNodeSelect: (id: string) => void;
@@ -54,16 +51,40 @@ export interface QueryPlanFlowProps {
 /**
  * Inner canvas — must live inside ReactFlowProvider.
  *
+ * Phase 4: Two sync effects are added:
+ *  1. selectedNodeId → node.selected  (keeps external toggle in sync with RF)
+ *  2. graph.nodes data → node.data    (reflects inspector edits visually)
+ *
  * TODO: Load query plan graph from backend API instead of static mock
  * TODO: Enable real query execution pipeline visualization with step-by-step replay
  */
-function QueryPlanFlowInner({ graph, onNodeSelect }: QueryPlanFlowProps) {
-  const [nodes, , onNodesChange] = useNodesState(graph.nodes);
-  const [edges, , onEdgesChange] = useEdgesState(graph.edges);
+function QueryPlanFlowInner({ graph, selectedNodeId, onNodeSelect }: QueryPlanFlowProps) {
+  const [nodes, setNodes, onNodesChange] = useNodesState(graph.nodes);
+  const [edges, , onEdgesChange]         = useEdgesState(graph.edges);
+
+  /**
+   * Sync selectedNodeId and graph.nodes data into the React Flow node array.
+   *
+   * - `selected` is overridden so external deselect (second click) is reflected.
+   * - `data` is overridden so inspector edits appear in the node card immediately.
+   * - All other properties (position, dragging, etc.) are preserved via spread.
+   */
+  useEffect(() => {
+    setNodes((prev) =>
+      prev.map((n) => {
+        const graphNode = graph.nodes.find((gn) => gn.id === n.id);
+        return {
+          ...n,
+          selected: n.id === selectedNodeId,
+          data: graphNode?.data ?? n.data,
+        };
+      })
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedNodeId, graph.nodes]);
 
   const handleNodeClick: NodeMouseHandler = useCallback(
     (_, node) => {
-      // TODO: Connect selected node state to Inspector panel (Phase 4)
       onNodeSelect(node.id);
     },
     [onNodeSelect]

@@ -1,0 +1,466 @@
+/* ================================================
+   ExecutionPanel + sub-component styles  (Phase 5)
+
+   Class prefix map:
+     .exec-panel      → ExecutionPanel
+     .exec-status     → ExecutionStatus
+     .exec-metrics    → metrics bar
+     .exec-metric     → individual metric chip
+     .sql-preview     → SQLPreview
+     .results-table   → ResultsTable
+   ================================================ */
+
+/* ------------------------------------------------------------------ */
+/* ExecutionPanel                                                       */
+/* ------------------------------------------------------------------ */
+
+.exec-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg-surface);
+}
+
+/* ---- Header ---- */
+.exec-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--sp-3);
+  height: 36px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border-default);
+  background: var(--bg-card);
+}
+
+.exec-panel__header-left {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.exec-panel__header-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--r-sm);
+  background: var(--accent-blue-dim);
+  color: var(--accent-blue-light);
+}
+
+.exec-panel__title {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+
+.exec-panel__header-right {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+/* ---- Body ---- */
+.exec-panel__body {
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+  position: relative;
+}
+
+.exec-panel__state-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+}
+
+.exec-panel__results {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto;
+  padding: var(--sp-3);
+  gap: var(--sp-3);
+}
+
+/* ---- Idle state ---- */
+.exec-panel__idle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-6);
+  text-align: center;
+}
+
+.exec-panel__idle-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--r-md);
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  margin-bottom: var(--sp-2);
+}
+
+.exec-panel__idle-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.exec-panel__idle-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  max-width: 260px;
+  line-height: 1.55;
+}
+
+/* ---- Running state ---- */
+.exec-panel__running {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-6);
+  width: 100%;
+  max-width: 380px;
+  position: relative;
+}
+
+.exec-panel__run-glow {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 240px;
+  height: 2px;
+  border-radius: var(--r-full);
+  background: linear-gradient(90deg,
+    transparent,
+    var(--accent-blue) 30%,
+    var(--accent-cyan) 70%,
+    transparent
+  );
+  transform-origin: center;
+}
+
+.exec-panel__run-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  letter-spacing: 0.01em;
+  margin-top: var(--sp-3);
+}
+
+.exec-panel__run-steps {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--sp-2);
+  margin-top: var(--sp-1);
+}
+
+.exec-panel__run-step {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: var(--r-full);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+}
+
+/* ---- Failed state ---- */
+.exec-panel__failed {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-6);
+  text-align: center;
+}
+
+.exec-panel__failed-icon {
+  color: var(--accent-red);
+  margin-bottom: var(--sp-1);
+}
+
+.exec-panel__failed-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent-red);
+}
+
+.exec-panel__failed-msg {
+  font-size: 11px;
+  color: var(--text-muted);
+  max-width: 280px;
+  font-family: var(--font-mono);
+}
+
+/* ------------------------------------------------------------------ */
+/* ExecutionStatus indicator                                           */
+/* ------------------------------------------------------------------ */
+
+.exec-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  padding: 3px 8px;
+  border-radius: var(--r-full);
+  background: color-mix(in srgb, var(--status-color) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--status-color) 28%, transparent);
+  position: relative;
+  overflow: hidden;
+}
+
+.exec-status__icon {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.exec-status__label {
+  white-space: nowrap;
+}
+
+.exec-status__pulse {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--status-color);
+  pointer-events: none;
+}
+
+.exec-status__timing {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  opacity: 0.75;
+  margin-left: 2px;
+}
+
+/* Compact dot (tab bar) */
+.exec-status-dot {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  margin-left: 4px;
+  flex-shrink: 0;
+}
+
+/* ------------------------------------------------------------------ */
+/* Metrics bar                                                          */
+/* ------------------------------------------------------------------ */
+
+.exec-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  flex-shrink: 0;
+}
+
+.exec-metric {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 9px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border-default);
+  background: var(--bg-elevated);
+  font-size: 10.5px;
+  white-space: nowrap;
+}
+
+.exec-metric__icon {
+  display: inline-flex;
+  align-items: center;
+  opacity: 0.7;
+}
+
+.exec-metric__value {
+  font-weight: 600;
+  font-family: var(--font-mono);
+}
+
+.exec-metric__label {
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.exec-metric--blue   { color: var(--accent-blue-light); }
+.exec-metric--green  { color: var(--accent-green); }
+.exec-metric--cyan   { color: var(--accent-cyan); }
+.exec-metric--purple { color: var(--accent-purple); }
+.exec-metric--orange { color: var(--accent-orange); }
+
+/* ------------------------------------------------------------------ */
+/* SQLPreview                                                           */
+/* ------------------------------------------------------------------ */
+
+.sql-preview {
+  flex-shrink: 0;
+  border: 1px solid var(--border-default);
+  border-radius: var(--r-md);
+  overflow: hidden;
+  background: var(--bg-input);
+}
+
+.sql-preview__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px var(--sp-3);
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-elevated);
+}
+
+.sql-preview__header-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+  font-size: 10.5px;
+}
+
+.sql-preview__title {
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.sql-preview__copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10.5px;
+  font-family: var(--font-sans);
+  padding: 3px 9px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border-default);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color var(--t-fast), border-color var(--t-fast), background var(--t-fast);
+}
+
+.sql-preview__copy-btn:hover {
+  color: var(--text-secondary);
+  border-color: var(--border-strong);
+  background: var(--bg-hover);
+}
+
+.sql-preview__copy-btn--done {
+  color: var(--accent-green);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.sql-preview__code {
+  margin: 0;
+  padding: var(--sp-3);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  line-height: 1.7;
+  color: var(--text-primary);
+  white-space: pre;
+  overflow-x: auto;
+  tab-size: 2;
+}
+
+/* SQL syntax tokens */
+.sql-kw  { color: var(--accent-blue-light); font-weight: 600; }
+.sql-fn  { color: var(--accent-cyan); }
+.sql-str { color: var(--accent-green); opacity: 0.85; }
+.sql-num { color: var(--accent-orange); }
+.sql-cmt { color: var(--text-muted); font-style: italic; }
+.sql-op  { color: var(--text-secondary); }
+
+/* ------------------------------------------------------------------ */
+/* ResultsTable                                                         */
+/* ------------------------------------------------------------------ */
+
+.results-table-wrap {
+  flex: 1;
+  min-height: 0;
+  border: 1px solid var(--border-default);
+  border-radius: var(--r-md);
+  overflow: hidden;
+  background: var(--bg-input);
+}
+
+.results-table-scroll {
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+}
+
+.results-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11.5px;
+  white-space: nowrap;
+}
+
+/* Header */
+.results-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--bg-elevated);
+}
+
+.results-table__th {
+  padding: 7px var(--sp-3);
+  text-align: left;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-default);
+  user-select: none;
+}
+
+.results-table__th--num { text-align: right; }
+
+/* Body */
+.results-table__row {
+  border-bottom: 1px solid var(--border-subtle);
+  transition: background var(--t-fast);
+}
+
+.results-table__row:hover {
+  background: var(--bg-hover);
+}
+
+.results-table__row:last-child {
+  border-bottom: none;
+}
+
+.results-table__td {
+  padding: 7px var(--sp-3);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+}
+
+.results-table__td--num {
+  text-align: right;
+  color: var(--accent-cyan);
+}
+
+.results-table__td--null {
+  color: var(--text-muted);
+  font-style: italic;
+}
