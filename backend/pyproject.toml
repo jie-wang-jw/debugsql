@@ -1,0 +1,29 @@
+[project]
+name = "debugsql-backend"
+version = "0.1.0"
+description = "FastAPI backend for DebugSQL."
+requires-python = ">=3.11,<3.13"
+dependencies = [
+  "fastapi==0.115.12",
+  "uvicorn[standard]==0.34.2",
+  "pydantic-settings==2.9.1",
+  "sqlalchemy==2.0.40",
+  "psycopg[binary]==3.2.9",
+  "alembic==1.15.2",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest==8.3.5",
+  "ruff==0.11.8",
+]
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

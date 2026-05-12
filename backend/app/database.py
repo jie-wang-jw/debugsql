@@ -1,9 +1,14 @@
 from sqlalchemy import text
+from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import create_engine
 
 from app.config import get_settings
+
+
+class Base(DeclarativeBase):
+    pass
 
 
 def create_db_engine() -> Engine:

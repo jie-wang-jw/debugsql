@@ -11,7 +11,7 @@ Browser -> Frontend -> Backend -> PostgreSQL
 ## Services
 
 - `frontend`: React + Vite hello-world status page
-- `backend`: FastAPI service with health checks
+- `backend`: FastAPI service with health checks, uv-managed Python dependencies, and Alembic migration scaffolding
 - `postgres`: PostgreSQL 16 system database
 
 PostgreSQL data is persisted in:
@@ -57,16 +57,10 @@ If deploying to a remote Linux server, update `.env` before building:
 ```env
 FRONTEND_PORT=80
 VITE_API_BASE_URL=/api
-CORS_ORIGINS=http://SERVER_IP:5173,http://localhost:5173,http://127.0.0.1:5173
+CORS_ORIGINS=http://SERVER_IP,http://SERVER_IP:80,http://localhost:5173,http://127.0.0.1:5173
 ```
 
 Then open:
-
-```text
-http://SERVER_IP:5173
-```
-
-If `FRONTEND_PORT=80`, open:
 
 ```text
 http://SERVER_IP
@@ -97,6 +91,32 @@ debugsql/
 GET /health
 GET /db-health
 GET /hello
+```
+
+## Backend Development
+
+The backend keeps `requirements.txt` for Docker compatibility and also includes `pyproject.toml` for the intended `uv` workflow.
+
+Install backend dependencies without Docker:
+
+```bash
+cd backend
+uv venv
+source .venv/bin/activate
+uv pip install -r requirements.txt
+```
+
+Run the backend locally:
+
+```bash
+uv run uvicorn app.main:app --reload
+```
+
+Alembic is already scaffolded for future database migrations:
+
+```bash
+uv run alembic revision --autogenerate -m "init schema"
+uv run alembic upgrade head
 ```
 
 ## Next Steps

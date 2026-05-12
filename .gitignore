@@ -11,6 +11,7 @@ node_modules/
 dist/
 .vite/
 .idea/
+.uv-cache/
 
 postgres_data/
 debugsql_data/
