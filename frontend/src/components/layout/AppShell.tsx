@@ -1,6 +1,6 @@
 import { FadeIn } from '../animations/FadeIn';
 import { ChatPanel } from '../chat/ChatPanel';
-import { QueryPlanArea } from '../query-plan/QueryPlanArea';
+import { QueryPlanPanel } from '../query-plan/QueryPlanPanel';
 import { InspectorPanel } from '../inspector/InspectorPanel';
 import './AppShell.css';
 
@@ -27,7 +27,7 @@ export function AppShell() {
       {/* Right: Query plan + Inspector stacked */}
       <div className="app-shell__right">
         <FadeIn direction="up" delay={0.12} className="app-shell__top-right">
-          <QueryPlanArea />
+          <QueryPlanPanel />
         </FadeIn>
 
         <FadeIn direction="up" delay={0.2} className="app-shell__bottom-right">
