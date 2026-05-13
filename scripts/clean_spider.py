@@ -4,7 +4,7 @@ clean_spider.py
 Spider dataset cleaning pipeline for DebugSQL.
 
 Usage:
-    python clean_spider.py --spider_dir ./data/spider --output_dir ./data/spider_clean
+    python scripts/clean_spider.py
 
 Outputs:
     - clean_schema.json      : cleaned + validated schema index keyed by db_id
@@ -328,10 +328,11 @@ def spot_check_execution(
 
 def main():
     parser = argparse.ArgumentParser(description="Clean Spider dataset for DebugSQL")
-    parser.add_argument("--spider_dir", default="./data/benchmarks/spider/raw",
-                        help="Path to raw Spider directory")
-    parser.add_argument("--output_dir", default="./data/benchmarks/spider/processed",
-                        help="Where to write cleaned outputs")
+    _ROOT = Path(__file__).parent.parent
+    parser.add_argument("--spider_dir", default=str(_ROOT / "data/benchmarks/spider/raw"),
+                    help="Path to raw Spider directory")
+    parser.add_argument("--output_dir", default=str(_ROOT / "data/benchmarks/spider/processed"),
+                    help="Where to write cleaned outputs")
     parser.add_argument("--spot_check", type=int, default=20,
                         help="Number of queries to spot-check execution (0 to skip)")
     args = parser.parse_args()
@@ -343,7 +344,7 @@ def main():
     # SQLite files live in a separate tree from the JSON annotation files;
     # spider_dir contains tables.json / dev.json, while database_dir holds the
     # actual .sqlite files.  Keep them decoupled so either can be swapped.
-    database_dir = Path("./data/benchmarks/spider/sqlite/database")
+    database_dir = Path(__file__).parent.parent / "data/benchmarks/spider/sqlite/database"
     tables_path  = spider_dir / "tables.json"
     dev_path     = spider_dir / "dev.json"
     train_path   = spider_dir / "train_spider.json"
