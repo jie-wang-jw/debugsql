@@ -63,7 +63,7 @@ source venv/bin/activate
 4. Run the cleaning script:
 
 ```bash
-python clean_spider.py
+python scripts/clean_spider.py
 ```
 
 5. Cleaned files will be saved to `data/benchmarks/spider/processed/`
@@ -250,3 +250,4 @@ uv run alembic upgrade head
 8. Add Inspector node editing.
 9. Add SQLite benchmark execution.
 10. Add real NL-to-IR provider integration.
+
