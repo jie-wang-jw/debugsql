@@ -27,6 +27,8 @@ data/*
 !data/benchmarks/bird/processed/.gitkeep
 !data/benchmarks/bird/sqlite/
 !data/benchmarks/bird/sqlite/.gitkeep
+data/benchmarks/bird/sqlite/*
+!data/benchmarks/bird/sqlite/.gitkeep
 !data/benchmarks/spider/
 !data/benchmarks/spider/.gitkeep
 !data/benchmarks/spider/raw/
@@ -34,6 +36,8 @@ data/*
 !data/benchmarks/spider/processed/
 !data/benchmarks/spider/processed/.gitkeep
 !data/benchmarks/spider/sqlite/
+!data/benchmarks/spider/sqlite/.gitkeep
+data/benchmarks/spider/sqlite/*
 !data/benchmarks/spider/sqlite/.gitkeep
 
 .DS_Store
