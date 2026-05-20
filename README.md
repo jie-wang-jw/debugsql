@@ -108,6 +108,76 @@ debugsql/
 GET /health
 GET /db-health
 GET /hello
+POST /planning/generate
+```
+
+## IR-to-Plan Provider
+
+The IR-to-query-plan layer is intentionally replaceable. The backend exposes a stable internal contract:
+
+```text
+generate_plan(intent_ir, schema_context, options) -> QueryPlan
+```
+
+Provider selection is controlled by environment variables:
+
+```env
+IR_TO_PLAN_PROVIDER=stub
+IR_TO_PLAN_API_URL=
+IR_TO_PLAN_API_KEY=
+IR_TO_PLAN_TIMEOUT_SECONDS=30
+```
+
+Supported provider slots:
+
+```text
+stub      local deterministic baseline for frontend/backend development
+http      future external API owned by another team
+internal  future in-process Python package or algorithm module
+```
+
+The first implementation uses `StubIRToPlanProvider`. It generates a simple relational plan chain:
+
+```text
+Intent -> Scan -> Filter -> Join -> Group By -> Aggregate -> Sort -> Limit -> Result Data
+```
+
+Only nodes implied by the Intent IR are included. All providers must return the same normalized `QueryPlan` shape:
+
+```json
+{
+  "plan_id": "plan_stub_001",
+  "plan_type": "tree",
+  "data_source_type": "relational",
+  "nodes": [],
+  "edges": [],
+  "executable": {
+    "type": "sql",
+    "dialect": "sqlite",
+    "content": "SELECT ..."
+  },
+  "warnings": [],
+  "metadata": {}
+}
+```
+
+Example request:
+
+```bash
+curl -X POST http://localhost:8000/planning/generate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "intent_ir": {
+      "intent_type": "aggregation",
+      "table": "sales",
+      "target_columns": ["amount"],
+      "group_by": ["region"],
+      "aggregation": "sum",
+      "filters": [{"column": "year", "op": "=", "value": 2024}]
+    },
+    "schema_context": {"tables": [{"name": "sales"}]},
+    "options": {"data_source_type": "relational", "plan_type": "tree", "dialect": "sqlite"}
+  }'
 ```
 
 ## Backend Development
