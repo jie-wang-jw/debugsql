@@ -85,6 +85,12 @@ def generate_plan_for_message(
         PLAN_STORE[stored["plan"]["plan_id"]] = stored
         return stored
 
+    gold_sql = find_spider_gold_sql(db_id, message) if benchmark == "spider" else None
+    if benchmark == "spider" and db_id and not gold_sql:
+        stored = _build_spider_guidance_plan(message, session_id, dataset_context)
+        PLAN_STORE[stored["plan"]["plan_id"]] = stored
+        return stored
+
     intent_ir = build_demo_ir(message)
     if dataset_context:
         intent_ir["dataset_context"] = dataset_context
@@ -108,7 +114,6 @@ def generate_plan_for_message(
     }
     request = PlanningRequest(intent_ir=intent_ir, schema_context=schema_context)
     plan = get_ir_to_plan_provider().generate_plan(request)
-    gold_sql = find_spider_gold_sql(db_id, message) if benchmark == "spider" else None
     if gold_sql and plan.executable:
         plan.executable.content = gold_sql
         plan.metadata["template"] = "spider_gold_sql"
@@ -150,6 +155,11 @@ def update_plan_node(plan_id: str, node_id: str, data: dict[str, Any]) -> dict[s
 
 def run_demo_execution(sql_or_query: str, session_id: str | None = None, plan_id: str | None = None) -> dict[str, Any]:
     run_id = _stable_id("run", {"sql": sql_or_query, "session": session_id, "plan": plan_id, "time": time.time()})
+    if _plan_template(plan_id) == "spider_guidance":
+        result = _guidance_execution_result(plan_id)
+        RUN_STORE[run_id] = result
+        return {"runId": run_id, "status": "running"}
+
     sql = _execution_sql(sql_or_query, plan_id)
     dataset_context = _plan_dataset_context(plan_id)
     if dataset_context and dataset_context.get("benchmark") == "spider" and dataset_context.get("dbId"):
@@ -193,6 +203,12 @@ def _plan_dataset_context(plan_id: str | None) -> dict[str, Any] | None:
         return context
     metadata = stored.get("plan", {}).get("metadata", {})
     return metadata.get("dataset_context")
+
+
+def _plan_template(plan_id: str | None) -> str | None:
+    if not plan_id or plan_id not in PLAN_STORE:
+        return None
+    return PLAN_STORE[plan_id].get("plan", {}).get("metadata", {}).get("template")
 
 
 def query_plan_to_graph(plan: QueryPlan, query_label: str) -> dict[str, Any]:
@@ -319,6 +335,83 @@ def _build_schema_overview_plan(
         },
         "graph": graph,
         "assistant_content": _schema_overview_assistant_content(db_id, tables, sql),
+        "created_at": time.time(),
+    }
+
+
+def _build_spider_guidance_plan(
+    message: str,
+    session_id: str | None,
+    dataset_context: dict[str, Any] | None,
+) -> dict[str, Any]:
+    benchmark = (dataset_context or {}).get("benchmark")
+    db_id = (dataset_context or {}).get("dbId")
+    plan_id = _stable_id("plan_guidance", {"message": message, "dataset": dataset_context})
+    graph = {
+        "queryLabel": message,
+        "totalCost": 0.0,
+        "nodes": [
+            _intent_node(
+                "intent",
+                80,
+                80,
+                "Clarification Needed",
+                "NO_SQL_GENERATED",
+                [],
+                [],
+                ["benchmark", "db_id", "question"],
+            ),
+            _op_node(
+                "op_guidance",
+                360,
+                80,
+                "GUIDANCE",
+                "Unsupported request",
+                "No matching Spider sample question or schema overview intent",
+                0,
+                0.0,
+            ),
+            _data_node(
+                "data_result",
+                690,
+                80,
+                "Guidance",
+                "result",
+                1,
+                0.0,
+                ["status", "message"],
+            ),
+        ],
+        "edges": [
+            _edge("intent", "op_guidance"),
+            _edge("op_guidance", "data_result"),
+        ],
+    }
+    return {
+        "message": message,
+        "session_id": session_id,
+        "dataset_context": dataset_context,
+        "ir": {
+            "intent_type": "clarification_needed",
+            "raw_query": message,
+            "dataset_context": dataset_context,
+            "needs_clarification": True,
+        },
+        "plan": {
+            "plan_id": plan_id,
+            "plan_type": "tree",
+            "data_source_type": "relational",
+            "executable": {"type": "none", "dialect": "sqlite", "content": ""},
+            "metadata": {
+                "provider": "backend_demo_template",
+                "template": "spider_guidance",
+                "dataset_context": dataset_context,
+                "benchmark": benchmark,
+                "db_id": db_id,
+            },
+        },
+        "graph": graph,
+        "assistant_content": _spider_guidance_content(db_id),
         "created_at": time.time(),
     }
 
@@ -459,6 +552,42 @@ def _schema_overview_assistant_content(db_id: str | None, tables: list[dict[str,
         f"{preview}{more}\n\n"
         f"```sql\n{sql}\n```"
     )
+
+
+def _spider_guidance_content(db_id: str | None) -> str:
+    return (
+        f"I cannot generate a reliable SQL query for **{db_id}** from this request yet.\n\n"
+        "Current MVP behavior:\n"
+        "- Click one of the Spider example questions for the selected database.\n"
+        "- Ask what tables/columns are inside the selected database.\n"
+        "- Use exact Spider dev questions to test real SQLite execution.\n\n"
+        "The next step is to connect the real NL2SQL provider so arbitrary benchmark questions "
+        "can be converted into IR and SQL."
+    )
+
+
+def _guidance_execution_result(plan_id: str | None) -> dict[str, Any]:
+    stored = PLAN_STORE.get(plan_id or "", {})
+    db_id = ((stored.get("dataset_context") or {}).get("dbId")) or "selected database"
+    return {
+        "sql": "",
+        "columns": [
+            {"key": "status", "label": "status"},
+            {"key": "message", "label": "message"},
+        ],
+        "rows": [
+            {
+                "status": "not_executable",
+                "message": f"No SQL was generated for {db_id}. Use a Spider sample question or ask for schema overview.",
+            }
+        ],
+        "metrics": {
+            "planningTimeMs": 0,
+            "executionTimeMs": 0,
+            "rowCount": 1,
+            "estimatedRows": 0,
+        },
+    }
 
 
 def _intent_node(
