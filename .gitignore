@@ -10,6 +10,8 @@ venv/
 node_modules/
 dist/
 .vite/
+.npm-cache/
+*.tsbuildinfo
 .idea/
 .uv-cache/
 
@@ -35,6 +37,8 @@ data/*
 !data/benchmarks/spider/processed/.gitkeep
 !data/benchmarks/spider/sqlite/
 !data/benchmarks/spider/sqlite/.gitkeep
+data/benchmarks/spider/sqlite/database/
+data/benchmarks/spider/sqlite/test_database/
 
 .DS_Store
 Thumbs.db
