@@ -23,7 +23,7 @@ import { getMockResponse } from '../mocks/mockChatService';
 // Defaults to true (mock) unless VITE_USE_MOCK_SERVICES is explicitly 'false'.
 // ---------------------------------------------------------------------------
 
-const USE_MOCK_SERVICES = import.meta.env.VITE_USE_MOCK_SERVICES !== 'false';
+const USE_MOCK_SERVICES = import.meta.env.VITE_USE_MOCK_SERVICES === 'true';
 
 // ---------------------------------------------------------------------------
 // Adapter
@@ -52,10 +52,6 @@ export async function sendChatMessage(
     };
   }
 
-  // TODO: Replace with real API call:
-  // const { postChatQuery } = await import('../api/chatApi');
-  // return postChatQuery(request, { signal: _signal });
-  throw new Error(
-    '[chatAdapter] Real backend is not implemented yet. Set VITE_USE_MOCK_SERVICES=true.',
-  );
+  const { postChatQuery } = await import('../api/chatApi');
+  return postChatQuery(request, { signal: _signal });
 }

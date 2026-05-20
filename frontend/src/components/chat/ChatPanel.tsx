@@ -8,6 +8,7 @@ import { TypingIndicator } from './TypingIndicator';
 import { SuggestedPrompts } from './SuggestedPrompts';
 import { sendChatMessage } from '../../services/adapters/chatAdapter';
 import { useExecutionContext } from '../../store/ExecutionContext';
+import { useQueryPlanContext } from '../../store/QueryPlanContext';
 import { generateId } from '../../utils';
 import './ChatPanel.css';
 
@@ -27,6 +28,7 @@ export function ChatPanel() {
   const [status, setStatus] = useState<ChatStatus>('idle');
   const bottomRef = useRef<HTMLDivElement>(null);
   const { triggerExecution } = useExecutionContext();
+  const { loadPlan } = useQueryPlanContext();
 
   // Auto-scroll to latest message whenever messages or typing state changes
   useEffect(() => {
@@ -51,7 +53,10 @@ export function ChatPanel() {
       // TODO: POST /api/query — replace sendChatMessage mock with real backend call
       // TODO: Pass real sessionId once authentication/session handling is integrated
       try {
-        const { content: aiContent } = await sendChatMessage({ message: trimmed, sessionId: '' });
+        const { content: aiContent, planId } = await sendChatMessage({
+          message: trimmed,
+          sessionId: 'dev-session',
+        });
 
         const aiMsg: ChatMessage = {
           id: generateId(),
@@ -61,8 +66,7 @@ export function ChatPanel() {
         };
         setMessages((prev) => [...prev, aiMsg]);
 
-        // TODO: Extract planId from response and update QueryPlanArea state
-        // TODO: Trigger query plan graph refresh here
+        await loadPlan(planId);
 
         // Kick off the mock execution pipeline with the user's original query.
         // TODO: Replace with real backend execution — pass planId from AI response

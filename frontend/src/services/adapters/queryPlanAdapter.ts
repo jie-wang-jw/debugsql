@@ -26,7 +26,7 @@ import {
 // Feature flag
 // ---------------------------------------------------------------------------
 
-const USE_MOCK_SERVICES = import.meta.env.VITE_USE_MOCK_SERVICES !== 'false';
+const USE_MOCK_SERVICES = import.meta.env.VITE_USE_MOCK_SERVICES === 'true';
 
 // ---------------------------------------------------------------------------
 // Adapter
@@ -54,12 +54,8 @@ export async function fetchQueryPlan(planId: string): Promise<QueryPlanGraph> {
     return fetchMockQueryPlan(planId);
   }
 
-  // TODO: Replace with real API call:
-  // const { getQueryPlan } = await import('../api/queryPlanApi');
-  // return getQueryPlan(planId);
-  throw new Error(
-    '[queryPlanAdapter] Real backend is not implemented yet. Set VITE_USE_MOCK_SERVICES=true.',
-  );
+  const { getQueryPlan } = await import('../api/queryPlanApi');
+  return getQueryPlan(planId);
 }
 
 /**
@@ -80,10 +76,6 @@ export async function updateQueryPlanNode(
     return saveMockNodeUpdate(planId, nodeId);
   }
 
-  // TODO: Replace with real API call:
-  // const { patchQueryPlanNode } = await import('../api/queryPlanApi');
-  // return patchQueryPlanNode(planId, nodeId, { nodeId, data: _data });
-  throw new Error(
-    '[queryPlanAdapter] Real backend is not implemented yet. Set VITE_USE_MOCK_SERVICES=true.',
-  );
+  const { patchQueryPlanNode } = await import('../api/queryPlanApi');
+  return patchQueryPlanNode(planId, nodeId, { nodeId, data: _data });
 }

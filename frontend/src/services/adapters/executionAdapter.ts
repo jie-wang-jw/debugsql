@@ -22,7 +22,7 @@ import { runMockExecution }     from '../mocks/mockExecutionService';
 // Feature flag
 // ---------------------------------------------------------------------------
 
-const USE_MOCK_SERVICES = import.meta.env.VITE_USE_MOCK_SERVICES !== 'false';
+const USE_MOCK_SERVICES = import.meta.env.VITE_USE_MOCK_SERVICES === 'true';
 
 // ---------------------------------------------------------------------------
 // Adapter
@@ -49,14 +49,10 @@ export async function executeQuery(
     return runMockExecution(query);
   }
 
-  // TODO: Replace with real API call:
-  // const { postExecutionRun, getExecutionResult } = await import('../api/executionApi');
-  // const { runId } = await postExecutionRun(
-  //   { sql: query, sessionId: getSessionId(), planId: getActivePlanId() },
-  //   { signal: _signal },
-  // );
-  // return getExecutionResult(runId, { signal: _signal });
-  throw new Error(
-    '[executionAdapter] Real backend is not implemented yet. Set VITE_USE_MOCK_SERVICES=true.',
+  const { postExecutionRun, getExecutionResult } = await import('../api/executionApi');
+  const { runId } = await postExecutionRun(
+    { sql: query, sessionId: 'dev-session' },
+    { signal: _signal },
   );
+  return getExecutionResult(runId, { signal: _signal });
 }

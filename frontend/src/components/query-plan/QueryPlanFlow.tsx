@@ -60,7 +60,7 @@ export interface QueryPlanFlowProps {
  */
 function QueryPlanFlowInner({ graph, selectedNodeId, onNodeSelect }: QueryPlanFlowProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState(graph.nodes);
-  const [edges, , onEdgesChange]         = useEdgesState(graph.edges);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(graph.edges);
 
   /**
    * Sync selectedNodeId and graph.nodes data into the React Flow node array.
@@ -70,18 +70,13 @@ function QueryPlanFlowInner({ graph, selectedNodeId, onNodeSelect }: QueryPlanFl
    * - All other properties (position, dragging, etc.) are preserved via spread.
    */
   useEffect(() => {
-    setNodes((prev) =>
-      prev.map((n) => {
-        const graphNode = graph.nodes.find((gn) => gn.id === n.id);
-        return {
-          ...n,
-          selected: n.id === selectedNodeId,
-          data: graphNode?.data ?? n.data,
-        };
-      })
-    );
+    setNodes(graph.nodes.map((node) => ({
+      ...node,
+      selected: node.id === selectedNodeId,
+    })));
+    setEdges(graph.edges);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedNodeId, graph.nodes]);
+  }, [selectedNodeId, graph.nodes, graph.edges]);
 
   const handleNodeClick: NodeMouseHandler = useCallback(
     (_, node) => {
