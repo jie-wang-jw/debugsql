@@ -98,6 +98,93 @@ Open frontend:
 http://localhost:5173
 ```
 
+## Local Development Without Docker
+
+Use this mode when developing in PyCharm, VS Code, or a local terminal. Run the
+backend and frontend in two separate terminals.
+
+### Windows / PyCharm
+
+From the repository root:
+
+```powershell
+.\scripts\start_backend.ps1
+```
+
+Open a second terminal:
+
+```powershell
+.\scripts\start_frontend.ps1
+```
+
+Then open:
+
+```text
+http://127.0.0.1:5173
+```
+
+The frontend dev server proxies `/api/*` requests to:
+
+```text
+http://127.0.0.1:8000
+```
+
+If you prefer to run commands manually:
+
+```powershell
+cd backend
+$env:PYTHONPATH="C:\projects\CP683\debugsql\backend"
+.\.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+```
+
+```powershell
+cd frontend
+$env:VITE_DEV_API_TARGET="http://127.0.0.1:8000"
+npm run dev -- --host 127.0.0.1
+```
+
+### macOS / Linux
+
+From the repository root:
+
+```bash
+./scripts/start_backend.sh
+```
+
+Open a second terminal:
+
+```bash
+./scripts/start_frontend.sh
+```
+
+Then open:
+
+```text
+http://127.0.0.1:5173
+```
+
+Manual commands:
+
+```bash
+cd backend
+export PYTHONPATH="$(pwd)"
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+```
+
+```bash
+cd frontend
+export VITE_DEV_API_TARGET="http://127.0.0.1:8000"
+npm run dev -- --host 127.0.0.1
+```
+
+### Notes
+
+- Backend: `http://127.0.0.1:8000`
+- Frontend: `http://127.0.0.1:5173`
+- API proxy: frontend `/api/*` -> backend `http://127.0.0.1:8000`
+- Mock services are disabled by default. Set `VITE_USE_MOCK_SERVICES=true` only for isolated frontend testing.
+- Spider SQLite execution requires the Spider files under `data/benchmarks/spider/`.
+
 ## Remote Linux Server
 
 If deploying to a remote Linux server, update `.env` before building:
@@ -140,6 +227,13 @@ debugsql/
 GET /health
 GET /db-health
 GET /hello
+GET /benchmarks
+GET /benchmarks/spider/databases
+POST /query
+GET /query-plan/{plan_id}
+PATCH /query-plan/{plan_id}/nodes/{node_id}
+POST /execute
+GET /execute/{run_id}/result
 POST /planning/generate
 ```
 
@@ -240,14 +334,11 @@ uv run alembic upgrade head
 
 ## Next Steps
 
-1. Add dev-mode auto-login.
-2. Add user/session database tables.
-3. Add conversation API.
-4. Add chat UI.
-5. Add dataset listing.
-6. Add `NL2IR_PROVIDER=stub`.
-7. Add query-plan tree UI.
-8. Add Inspector node editing.
-9. Add SQLite benchmark execution.
-10. Add real NL-to-IR provider integration.
+1. Replace the deterministic demo NL2SQL path with a real NL-to-IR provider.
+2. Expand Spider/BIRD benchmark execution beyond exact sample-question matching.
+3. Persist users, conversations, query plans, and operation logs in PostgreSQL.
+4. Add email OTP authentication and dev-mode auto-login.
+5. Add evaluation scripts for Execution Accuracy, DRR, IRR, and edit counts.
+6. Add richer Inspector JSON editing and downstream plan regeneration.
+7. Add streaming execution progress and cancellation.
 
