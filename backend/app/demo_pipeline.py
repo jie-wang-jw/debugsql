@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import time
 from typing import Any
 
@@ -546,6 +547,7 @@ def _sales_store_sql(
 
 
 def _execution_rows(sql: str) -> tuple[list[dict[str, Any]], list[dict[str, str]]]:
+    limit = _extract_limit(sql)
     if "total_sales" in sql or "sales_transactions" in sql:
         columns = [
             {"key": "store_id", "label": "store_id"},
@@ -558,7 +560,7 @@ def _execution_rows(sql: str) -> tuple[list[dict[str, Any]], list[dict[str, str]
             {"store_id": "S-022", "store_name": "West End", "total_sales": 10895},
             {"store_id": "S-145", "store_name": "East Point", "total_sales": 9850},
         ]
-        return rows, columns
+        return _apply_limit(rows, limit), columns
 
     columns = [
         {"key": "dimension", "label": "dimension"},
@@ -570,7 +572,21 @@ def _execution_rows(sql: str) -> tuple[list[dict[str, Any]], list[dict[str, str]
         {"dimension": "West", "value": 10895},
         {"dimension": "East", "value": 9850},
     ]
-    return rows, columns
+    return _apply_limit(rows, limit), columns
+
+
+def _extract_limit(sql: str) -> int | None:
+    match = re.search(r"\bLIMIT\s+(\d+)\b", sql, flags=re.IGNORECASE)
+    if not match:
+        return None
+    limit = int(match.group(1))
+    return limit if limit >= 0 else None
+
+
+def _apply_limit(rows: list[dict[str, Any]], limit: int | None) -> list[dict[str, Any]]:
+    if limit is None:
+        return rows
+    return rows[:limit]
 
 
 def _stable_id(prefix: str, payload: dict[str, Any]) -> str:
