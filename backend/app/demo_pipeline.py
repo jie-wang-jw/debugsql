@@ -118,6 +118,11 @@ def generate_plan_for_message(
         plan.executable.content = gold_sql
         plan.metadata["template"] = "spider_gold_sql"
     graph = query_plan_to_graph(plan, message)
+    assistant_content = (
+        _benchmark_query_content(plan.executable.content, graph)
+        if gold_sql and plan.executable
+        else _assistant_content((plan.executable.content if plan.executable else ""), graph)
+    )
 
     PLAN_STORE[plan.plan_id] = {
         "message": message,
@@ -126,7 +131,7 @@ def generate_plan_for_message(
         "ir": intent_ir,
         "plan": _plan_with_dataset_metadata(plan, dataset_context),
         "graph": graph,
-        "assistant_content": _assistant_content((plan.executable.content if plan.executable else ""), graph),
+        "assistant_content": assistant_content,
         "created_at": time.time(),
     }
     return PLAN_STORE[plan.plan_id]
@@ -538,6 +543,14 @@ def _assistant_content(sql: str, graph: dict[str, Any]) -> str:
         f"```sql\n{sql}\n```\n\n"
         "The plan includes table scan, filter, join, group-by, aggregate, sort, "
         f"and result nodes. Total cost: **{graph['totalCost']:.1f}**."
+    )
+
+
+def _benchmark_query_content(sql: str, graph: dict[str, Any]) -> str:
+    return (
+        "I matched this question to a Spider benchmark example and generated an executable plan.\n\n"
+        f"```sql\n{sql}\n```\n\n"
+        f"The plan can be inspected and executed against the selected SQLite database. Total cost: **{graph['totalCost']:.1f}**."
     )
 
 

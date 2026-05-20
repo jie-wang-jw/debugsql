@@ -75,7 +75,12 @@ export function ChatPanel() {
       setStatus('thinking');
 
       try {
-        const { content: aiContent, planId } = await sendChatMessage({
+        const {
+          content: aiContent,
+          planId,
+          requiresPlan = Boolean(planId),
+          requiresExecution = Boolean(planId),
+        } = await sendChatMessage({
           message: trimmed,
           sessionId: 'dev-session',
           datasetContext: selectedDbId
@@ -91,10 +96,13 @@ export function ChatPanel() {
         };
         setMessages((prev) => [...prev, aiMsg]);
 
-        await loadPlan(planId);
+        if (requiresPlan && planId) {
+          await loadPlan(planId);
 
-        // Execute against the backend using the planId returned by /query.
-        triggerExecution(trimmed, planId);
+          if (requiresExecution) {
+            triggerExecution(trimmed, planId);
+          }
+        }
       } catch {
         const errorMsg: ChatMessage = {
           id: generateId(),

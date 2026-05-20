@@ -25,8 +25,14 @@ export interface ChatQueryRequest {
 export interface ChatQueryResponse {
   /** The assistant's markdown response text. */
   content: string;
+  /** Classified backend intent for routing/debugging. */
+  intentType?: 'help' | 'schema_overview' | 'benchmark_query' | 'edit_plan' | 'unsupported';
+  /** Whether the backend created a query plan for this response. */
+  requiresPlan?: boolean;
+  /** Whether the frontend should trigger execution after loading the plan. */
+  requiresExecution?: boolean;
   /** Backend-generated query plan ID used to fetch the full plan graph. */
-  planId: string;
+  planId?: string | null;
   /** Generated SQL, if the backend exposes it directly. */
   sql?: string;
   /** Human-readable explanation of the plan choices. */
