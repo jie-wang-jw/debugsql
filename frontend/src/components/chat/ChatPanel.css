@@ -77,6 +77,70 @@
 }
 
 /* ================================================
+   Benchmark / database selector
+   ================================================ */
+.dataset-selector {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.4fr) auto;
+  align-items: end;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-default);
+  background: var(--bg-surface);
+  flex-shrink: 0;
+}
+
+.dataset-selector__field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.dataset-selector__label {
+  font-size: 9px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.dataset-selector__pill,
+.dataset-selector__select,
+.dataset-selector__meta {
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--border-default);
+  border-radius: var(--r-sm);
+  background: var(--bg-input);
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
+.dataset-selector__pill {
+  padding: 0 9px;
+  font-family: var(--font-mono);
+  color: var(--accent-blue-light);
+}
+
+.dataset-selector__select {
+  width: 100%;
+  padding: 0 8px;
+  outline: none;
+}
+
+.dataset-selector__select:focus {
+  border-color: var(--border-accent);
+  box-shadow: 0 0 0 2px var(--accent-blue-dim);
+}
+
+.dataset-selector__meta {
+  padding: 0 8px;
+  white-space: nowrap;
+}
+
+/* ================================================
    Message scroll area
    ================================================ */
 .chat-panel__messages {

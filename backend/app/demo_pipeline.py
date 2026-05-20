@@ -6,6 +6,7 @@ import re
 import time
 from typing import Any
 
+from app.benchmark_registry import execute_spider_sql, find_spider_gold_sql, get_schema_context
 from app.planning.provider import get_ir_to_plan_provider
 from app.planning.schemas import PlanNode, PlanningRequest, QueryPlan
 
@@ -66,14 +67,24 @@ def build_demo_ir(message: str) -> dict[str, Any]:
     }
 
 
-def generate_plan_for_message(message: str, session_id: str | None = None) -> dict[str, Any]:
-    if _is_sales_store_demo(message):
+def generate_plan_for_message(
+    message: str,
+    session_id: str | None = None,
+    dataset_context: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    benchmark = (dataset_context or {}).get("benchmark")
+    db_id = (dataset_context or {}).get("dbId")
+
+    if not benchmark and _is_sales_store_demo(message):
         stored = _build_sales_store_demo(message, session_id)
         PLAN_STORE[stored["plan"]["plan_id"]] = stored
         return stored
 
     intent_ir = build_demo_ir(message)
-    schema_context = {
+    if dataset_context:
+        intent_ir["dataset_context"] = dataset_context
+
+    schema_context = get_schema_context(benchmark, db_id) or {
         "tables": [
             {
                 "name": intent_ir["table"],
@@ -92,13 +103,18 @@ def generate_plan_for_message(message: str, session_id: str | None = None) -> di
     }
     request = PlanningRequest(intent_ir=intent_ir, schema_context=schema_context)
     plan = get_ir_to_plan_provider().generate_plan(request)
+    gold_sql = find_spider_gold_sql(db_id, message) if benchmark == "spider" else None
+    if gold_sql and plan.executable:
+        plan.executable.content = gold_sql
+        plan.metadata["template"] = "spider_gold_sql"
     graph = query_plan_to_graph(plan, message)
 
     PLAN_STORE[plan.plan_id] = {
         "message": message,
         "session_id": session_id,
+        "dataset_context": dataset_context,
         "ir": intent_ir,
-        "plan": plan.model_dump(),
+        "plan": _plan_with_dataset_metadata(plan, dataset_context),
         "graph": graph,
         "assistant_content": _assistant_content((plan.executable.content if plan.executable else ""), graph),
         "created_at": time.time(),
@@ -130,24 +146,48 @@ def update_plan_node(plan_id: str, node_id: str, data: dict[str, Any]) -> dict[s
 def run_demo_execution(sql_or_query: str, session_id: str | None = None, plan_id: str | None = None) -> dict[str, Any]:
     run_id = _stable_id("run", {"sql": sql_or_query, "session": session_id, "plan": plan_id, "time": time.time()})
     sql = _execution_sql(sql_or_query, plan_id)
-    rows, columns = _execution_rows(sql)
-    result = {
-        "sql": sql,
-        "columns": columns,
-        "rows": rows,
-        "metrics": {
-            "planningTimeMs": 42,
-            "executionTimeMs": 86,
-            "rowCount": len(rows),
-            "estimatedRows": 1200,
-        },
-    }
+    dataset_context = _plan_dataset_context(plan_id)
+    if dataset_context and dataset_context.get("benchmark") == "spider" and dataset_context.get("dbId"):
+        result = execute_spider_sql(dataset_context["dbId"], sql)
+    else:
+        rows, columns = _execution_rows(sql)
+        result = {
+            "sql": sql,
+            "columns": columns,
+            "rows": rows,
+            "metrics": {
+                "planningTimeMs": 42,
+                "executionTimeMs": 86,
+                "rowCount": len(rows),
+                "estimatedRows": 1200,
+            },
+        }
     RUN_STORE[run_id] = result
     return {"runId": run_id, "status": "running"}
 
 
 def get_execution_result(run_id: str) -> dict[str, Any] | None:
     return RUN_STORE.get(run_id)
+
+
+def _plan_with_dataset_metadata(plan: QueryPlan, dataset_context: dict[str, Any] | None) -> dict[str, Any]:
+    dumped = plan.model_dump()
+    if dataset_context:
+        dumped.setdefault("metadata", {})["dataset_context"] = dataset_context
+        dumped["metadata"]["benchmark"] = dataset_context.get("benchmark")
+        dumped["metadata"]["db_id"] = dataset_context.get("dbId")
+    return dumped
+
+
+def _plan_dataset_context(plan_id: str | None) -> dict[str, Any] | None:
+    if not plan_id or plan_id not in PLAN_STORE:
+        return None
+    stored = PLAN_STORE[plan_id]
+    context = stored.get("dataset_context")
+    if context:
+        return context
+    metadata = stored.get("plan", {}).get("metadata", {})
+    return metadata.get("dataset_context")
 
 
 def query_plan_to_graph(plan: QueryPlan, query_label: str) -> dict[str, Any]:

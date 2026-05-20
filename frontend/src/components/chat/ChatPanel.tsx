@@ -7,6 +7,10 @@ import { ChatInput } from './ChatInput';
 import { TypingIndicator } from './TypingIndicator';
 import { SuggestedPrompts } from './SuggestedPrompts';
 import { sendChatMessage } from '../../services/adapters/chatAdapter';
+import {
+  getBenchmarkDatabases,
+  type BenchmarkDatabaseInfo,
+} from '../../services/api/benchmarkApi';
 import { useExecutionContext } from '../../store/ExecutionContext';
 import { useQueryPlanContext } from '../../store/QueryPlanContext';
 import { generateId } from '../../utils';
@@ -25,6 +29,9 @@ const INITIAL_MESSAGES: ChatMessage[] = [];
 export function ChatPanel() {
   const [messages, setMessages] = useState<ChatMessage[]>(INITIAL_MESSAGES);
   const [status, setStatus] = useState<ChatStatus>('idle');
+  const [databases, setDatabases] = useState<BenchmarkDatabaseInfo[]>([]);
+  const [selectedBenchmark] = useState('spider');
+  const [selectedDbId, setSelectedDbId] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
   const { triggerExecution } = useExecutionContext();
   const { loadPlan } = useQueryPlanContext();
@@ -32,6 +39,26 @@ export function ChatPanel() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, status]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    getBenchmarkDatabases(selectedBenchmark)
+      .then((items) => {
+        if (!isMounted) return;
+        setDatabases(items);
+        setSelectedDbId((prev) => prev || items.find((item) => item.hasSQLite)?.dbId || items[0]?.dbId || '');
+      })
+      .catch(() => {
+        if (isMounted) {
+          setDatabases([]);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedBenchmark]);
 
   const sendMessage = useCallback(
     async (text: string) => {
@@ -51,6 +78,9 @@ export function ChatPanel() {
         const { content: aiContent, planId } = await sendChatMessage({
           message: trimmed,
           sessionId: 'dev-session',
+          datasetContext: selectedDbId
+            ? { benchmark: selectedBenchmark, dbId: selectedDbId }
+            : undefined,
         });
 
         const aiMsg: ChatMessage = {
@@ -79,7 +109,7 @@ export function ChatPanel() {
 
       setStatus('idle');
     },
-    [loadPlan, status, triggerExecution],
+    [loadPlan, selectedBenchmark, selectedDbId, status, triggerExecution],
   );
 
   const isEmpty = messages.length === 0 && status === 'idle';
@@ -87,6 +117,12 @@ export function ChatPanel() {
   return (
     <div className="chat-panel">
       <ChatHeader status={status} />
+      <DatasetSelector
+        benchmark={selectedBenchmark}
+        databases={databases}
+        selectedDbId={selectedDbId}
+        onDbChange={setSelectedDbId}
+      />
 
       <div
         className="chat-panel__messages"
@@ -118,6 +154,48 @@ export function ChatPanel() {
       </div>
 
       <ChatInput onSend={sendMessage} isDisabled={status === 'thinking'} />
+    </div>
+  );
+}
+
+interface DatasetSelectorProps {
+  benchmark: string;
+  databases: BenchmarkDatabaseInfo[];
+  selectedDbId: string;
+  onDbChange: (dbId: string) => void;
+}
+
+function DatasetSelector({
+  benchmark,
+  databases,
+  selectedDbId,
+  onDbChange,
+}: DatasetSelectorProps) {
+  const selected = databases.find((item) => item.dbId === selectedDbId);
+
+  return (
+    <div className="dataset-selector">
+      <div className="dataset-selector__field">
+        <span className="dataset-selector__label">Benchmark</span>
+        <span className="dataset-selector__pill">{benchmark.toUpperCase()}</span>
+      </div>
+      <label className="dataset-selector__field">
+        <span className="dataset-selector__label">Database</span>
+        <select
+          className="dataset-selector__select"
+          value={selectedDbId}
+          onChange={(event) => onDbChange(event.target.value)}
+        >
+          {databases.map((database) => (
+            <option key={database.dbId} value={database.dbId}>
+              {database.dbId}
+            </option>
+          ))}
+        </select>
+      </label>
+      <span className="dataset-selector__meta">
+        {selected ? `${selected.tableCount} tables` : 'loading'}
+      </span>
     </div>
   );
 }

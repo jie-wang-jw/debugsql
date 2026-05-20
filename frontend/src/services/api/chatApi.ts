@@ -18,6 +18,8 @@ export interface ChatQueryRequest {
   message: string;
   /** Active session ID for conversation continuity. */
   sessionId: string;
+  /** Optional benchmark/database selection for schema-aware planning. */
+  datasetContext?: DatasetContext;
 }
 
 export interface ChatQueryResponse {
@@ -37,6 +39,11 @@ export interface SessionMessage {
   content: string;
   timestamp: string;
   planId?: string;
+}
+
+export interface DatasetContext {
+  benchmark: string;
+  dbId: string;
 }
 
 /**

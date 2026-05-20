@@ -10,11 +10,12 @@ router = APIRouter(tags=["chat"])
 class ChatQueryRequest(BaseModel):
     message: str
     sessionId: str = "dev-session"
+    datasetContext: dict | None = None
 
 
 @router.post("/query")
 def query(request: ChatQueryRequest) -> dict:
-    stored = generate_plan_for_message(request.message, request.sessionId)
+    stored = generate_plan_for_message(request.message, request.sessionId, request.datasetContext)
     plan = stored["plan"]
     sql = (plan.get("executable") or {}).get("content", "")
     return {
