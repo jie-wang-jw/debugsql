@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import ReactFlow, {
   Background,
   BackgroundVariant,
@@ -61,6 +61,7 @@ export interface QueryPlanFlowProps {
 function QueryPlanFlowInner({ graph, selectedNodeId, onNodeSelect }: QueryPlanFlowProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState(graph.nodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(graph.edges);
+  const nodeTypes = useMemo(() => NODE_TYPES, []);
 
   /**
    * Sync selectedNodeId and graph.nodes data into the React Flow node array.
@@ -91,7 +92,7 @@ function QueryPlanFlowInner({ graph, selectedNodeId, onNodeSelect }: QueryPlanFl
       edges={edges}
       onNodesChange={onNodesChange}
       onEdgesChange={onEdgesChange}
-      nodeTypes={NODE_TYPES}
+      nodeTypes={nodeTypes}
       onNodeClick={handleNodeClick}
       fitView
       fitViewOptions={{ padding: 0.18, minZoom: 0.35, maxZoom: 1 }}
