@@ -6,13 +6,9 @@ import { useQueryPlanContext } from '../../store/QueryPlanContext';
 import './queryPlan.styles.css';
 
 /**
- * QueryPlanPanel – Top-right panel housing the React Flow visualization.
- *
- * Phase 4: selectedNodeId and onNodeSelect are now sourced from
- * QueryPlanContext so the InspectorPanel can react to selection changes.
- *
- * TODO: Load query plan graph from backend API (GET /api/query-plan/:planId)
- * TODO: Sync graph with assistant-generated query plans from chat panel
+ * Top-right panel that renders the backend-provided query plan graph.
+ * Node selection is shared through QueryPlanContext so InspectorPanel can
+ * inspect and edit the selected node.
  */
 export function QueryPlanPanel() {
   const { graph, selectedNodeId, activePlanId, loadPlan, onNodeSelect } = useQueryPlanContext();
@@ -46,7 +42,6 @@ export function QueryPlanPanel() {
         onToggleExpanded={() => setIsExpanded((prev) => !prev)}
       />
 
-      {/* React Flow canvas fills remaining height */}
       <div className="qplan__canvas">
         <QueryPlanFlow
           graph={graph}
@@ -58,7 +53,6 @@ export function QueryPlanPanel() {
   );
 }
 
-/* ---- Header ---- */
 interface HeaderProps {
   queryLabel: string;
   nodeCount: number;

@@ -1,14 +1,13 @@
 // ================================================
-// DebugSQL – Execution Context  (Phase 5)
+// DebugSQL - Execution Context
 //
-// Provides execution state + triggerExecution to all panels.
-// Wraps the entire AppShell so both ChatPanel (left) and
-// InspectorPanel (right) can trigger and observe execution.
+// Provides execution state and triggerExecution to all panels.
+// Uses executionAdapter, which calls the real backend API by default and can
+// still run isolated frontend mocks when VITE_USE_MOCK_SERVICES=true.
 //
-// TODO: Replace runMockExecution with real backend API calls
-// TODO: Add query cancellation via AbortController
-// TODO: Persist execution history for session replay
-// TODO: Stream execution step progress from backend
+// TODO: Add query cancellation via AbortController.
+// TODO: Persist execution history for session replay.
+// TODO: Stream execution step progress from backend.
 // ================================================
 
 import {
@@ -21,26 +20,19 @@ import {
 import type { ExecutionStatus, ExecutionResult } from '../types/execution.types';
 import { executeQuery } from '../services/adapters/executionAdapter';
 
-// ---- Context shape ----
-
 export interface ExecutionContextValue {
   /** Current pipeline status. */
-  status:  ExecutionStatus;
+  status: ExecutionStatus;
   /** Populated on success; null otherwise. */
-  result:  ExecutionResult | null;
+  result: ExecutionResult | null;
   /** Populated on failure; null otherwise. */
-  error:   string | null;
+  error: string | null;
   /**
-   * Kick off a mock execution for the given natural-language query.
-   * Sets status → 'running', then resolves to 'success' or 'failed'.
-   *
-   * TODO: POST /api/execute { query, sessionId } and stream progress
-   * TODO: Integrate with backend query validation before execution
+   * Kick off backend execution for the given query/plan.
+   * Sets status to "running", then resolves to "success" or "failed".
    */
   triggerExecution: (query: string, planId?: string | null) => Promise<void>;
 }
-
-// ---- Context + hook ----
 
 const ExecutionContext = createContext<ExecutionContextValue | null>(null);
 
@@ -52,15 +44,12 @@ export function useExecutionContext(): ExecutionContextValue {
   return ctx;
 }
 
-// ---- Provider ----
-
 export function ExecutionProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<ExecutionStatus>('idle');
   const [result, setResult] = useState<ExecutionResult | null>(null);
-  const [error,  setError]  = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const triggerExecution = useCallback(async (query: string, planId?: string | null) => {
-    // Ignore concurrent runs
     if (!query.trim()) return;
 
     setStatus('running');

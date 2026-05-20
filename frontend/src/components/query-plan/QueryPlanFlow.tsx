@@ -12,64 +12,42 @@ import ReactFlow, {
   type Node,
 } from 'reactflow';
 
-// React Flow base styles — overridden in queryPlan.styles.css
+// React Flow base styles; overridden in queryPlan.styles.css.
 import 'reactflow/dist/style.css';
 
-import { IntentNode }    from './nodes/IntentNode';
+import { IntentNode } from './nodes/IntentNode';
 import { OperationNode } from './nodes/OperationNode';
-import { DataNode }      from './nodes/DataNode';
+import { DataNode } from './nodes/DataNode';
 import type { QueryPlanGraph } from './queryPlan.types';
 
-/**
- * nodeTypes MUST be defined outside the component (module scope) to maintain
- * a stable reference across renders and avoid React Flow's nodeTypes warning.
- */
 const NODE_TYPES: NodeTypes = {
-  intent:    IntentNode,
+  intent: IntentNode,
   operation: OperationNode,
-  data:      DataNode,
+  data: DataNode,
 };
 
-/** Derive minimap node dot colour from its type string. */
 function getMinimapColor(node: Node): string {
   const map: Record<string, string> = {
-    intent:    '#6b8fbf',
+    intent: '#6b8fbf',
     operation: '#8878c0',
-    data:      '#67a07a',
+    data: '#67a07a',
   };
   return map[node.type ?? ''] ?? '#3a3a3f';
 }
 
 export interface QueryPlanFlowProps {
   graph: QueryPlanGraph;
-  /** Currently selected node ID — synced into React Flow's internal selection. */
+  /** Currently selected node ID; synced into React Flow's internal selection. */
   selectedNodeId: string | null;
   /** Fired when the user clicks a node. */
   onNodeSelect: (id: string) => void;
 }
 
-/**
- * Inner canvas — must live inside ReactFlowProvider.
- *
- * Phase 4: Two sync effects are added:
- *  1. selectedNodeId → node.selected  (keeps external toggle in sync with RF)
- *  2. graph.nodes data → node.data    (reflects inspector edits visually)
- *
- * TODO: Load query plan graph from backend API instead of static mock
- * TODO: Enable real query execution pipeline visualization with step-by-step replay
- */
 function QueryPlanFlowInner({ graph, selectedNodeId, onNodeSelect }: QueryPlanFlowProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState(graph.nodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(graph.edges);
   const nodeTypes = useMemo(() => NODE_TYPES, []);
 
-  /**
-   * Sync selectedNodeId and graph.nodes data into the React Flow node array.
-   *
-   * - `selected` is overridden so external deselect (second click) is reflected.
-   * - `data` is overridden so inspector edits appear in the node card immediately.
-   * - All other properties (position, dragging, etc.) are preserved via spread.
-   */
   useEffect(() => {
     setNodes(graph.nodes.map((node) => ({
       ...node,
@@ -83,7 +61,7 @@ function QueryPlanFlowInner({ graph, selectedNodeId, onNodeSelect }: QueryPlanFl
     (_, node) => {
       onNodeSelect(node.id);
     },
-    [onNodeSelect]
+    [onNodeSelect],
   );
 
   return (
@@ -122,7 +100,6 @@ function QueryPlanFlowInner({ graph, selectedNodeId, onNodeSelect }: QueryPlanFl
   );
 }
 
-/** Public wrapper — provides ReactFlowProvider context. */
 export function QueryPlanFlow(props: QueryPlanFlowProps) {
   return (
     <ReactFlowProvider>

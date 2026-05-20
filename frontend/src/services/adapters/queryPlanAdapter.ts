@@ -1,42 +1,29 @@
 // ================================================
-// DebugSQL – Query Plan Adapter  (Phase 7)
+// DebugSQL - Query Plan Adapter
 //
 // Single injection point for query plan fetch and node-update persistence.
-// Components and contexts import ONLY from this file.
+// Components and contexts import only from this file.
 //
-// To connect the real backend:
-//   1. Set VITE_USE_MOCK_SERVICES=false in your .env
-//   2. Uncomment the real API calls below
-//   3. Remove the mock branches
+// Default mode calls the real backend API. Set VITE_USE_MOCK_SERVICES=true
+// only when intentionally running isolated frontend mock services.
 //
-// TODO: Replace mock adapter with real backend API
-// TODO: Sync query plan edits to backend
-// TODO: Connect websocket/live execution updates after node changes
+// TODO: Connect websocket/live execution updates after node changes.
+// TODO: Add persisted session restore for the initial plan.
 // ================================================
 
 import type { QueryPlanGraph } from '../../components/query-plan/queryPlan.types';
-import type { FlowNodeData }   from '../../components/query-plan/queryPlan.types';
+import type { FlowNodeData } from '../../components/query-plan/queryPlan.types';
 import {
   getInitialQueryPlan,
   fetchMockQueryPlan,
   saveMockNodeUpdate,
 } from '../mocks/mockQueryPlanService';
 
-// ---------------------------------------------------------------------------
-// Feature flag
-// ---------------------------------------------------------------------------
-
 const USE_MOCK_SERVICES = import.meta.env.VITE_USE_MOCK_SERVICES === 'true';
 
-// ---------------------------------------------------------------------------
-// Adapter
-// ---------------------------------------------------------------------------
-
 /**
- * Returns the initial query plan synchronously for app bootstrap.
- * Used by QueryPlanProvider as the useState initial value.
- *
- * TODO: Replace with async session-restore fetch once backend is ready
+ * Returns the initial placeholder plan synchronously for app bootstrap.
+ * Real backend plans are loaded later via fetchQueryPlan(planId).
  */
 export function getInitialPlan(): QueryPlanGraph {
   return getInitialQueryPlan();
@@ -44,10 +31,7 @@ export function getInitialPlan(): QueryPlanGraph {
 
 /**
  * Fetches a query plan graph by plan ID.
- * Called after the chat API returns a new planId.
- *
- * TODO: Replace mock adapter with getQueryPlan() from queryPlanApi.ts
- * TODO: Trigger on every AI response that returns a new planId
+ * Called after the chat API returns a backend-generated planId.
  */
 export async function fetchQueryPlan(planId: string): Promise<QueryPlanGraph> {
   if (USE_MOCK_SERVICES) {
@@ -59,18 +43,14 @@ export async function fetchQueryPlan(planId: string): Promise<QueryPlanGraph> {
 }
 
 /**
- * Persists a node data edit to the backend.
- * Called by QueryPlanContext after the Inspector applies changes.
- *
- * Currently a no-op — local state is managed by QueryPlanContext.
- *
- * TODO: Sync query plan edits to backend via patchQueryPlanNode()
- * TODO: Trigger query-regeneration pipeline after applying node changes
+ * Persists a node data edit.
+ * In real-backend mode this PATCHes the node to the backend; in mock mode it
+ * intentionally does not persist beyond local frontend state.
  */
 export async function updateQueryPlanNode(
   planId: string,
   nodeId: string,
-  _data:  FlowNodeData,
+  _data: FlowNodeData,
 ): Promise<void> {
   if (USE_MOCK_SERVICES) {
     return saveMockNodeUpdate(planId, nodeId);

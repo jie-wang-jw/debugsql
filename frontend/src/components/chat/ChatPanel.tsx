@@ -12,16 +12,15 @@ import { useQueryPlanContext } from '../../store/QueryPlanContext';
 import { generateId } from '../../utils';
 import './ChatPanel.css';
 
-// TODO: Initialize messages from server session (GET /api/sessions/:id/messages)
+// TODO: Initialize messages from server session history.
 const INITIAL_MESSAGES: ChatMessage[] = [];
 
 /**
  * Left-panel AI chat orchestrator.
- * Manages conversation state, mock AI response lifecycle, and scroll behaviour.
+ * Manages conversation state, backend AI/demo response lifecycle, and scrolling.
  *
- * TODO: Connect chat messages to backend conversation API
- * TODO: Trigger query plan generation after AI response arrives
- * TODO: Sync query plan visualization with assistant responses
+ * TODO: Persist messages to backend conversation history.
+ * TODO: Restore previous session messages on page load.
  */
 export function ChatPanel() {
   const [messages, setMessages] = useState<ChatMessage[]>(INITIAL_MESSAGES);
@@ -30,7 +29,6 @@ export function ChatPanel() {
   const { triggerExecution } = useExecutionContext();
   const { loadPlan } = useQueryPlanContext();
 
-  // Auto-scroll to latest message whenever messages or typing state changes
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, status]);
@@ -40,7 +38,6 @@ export function ChatPanel() {
       const trimmed = text.trim();
       if (!trimmed || status === 'thinking') return;
 
-      // Append user message immediately
       const userMsg: ChatMessage = {
         id: generateId(),
         role: 'user',
@@ -50,8 +47,6 @@ export function ChatPanel() {
       setMessages((prev) => [...prev, userMsg]);
       setStatus('thinking');
 
-      // TODO: POST /api/query — replace sendChatMessage mock with real backend call
-      // TODO: Pass real sessionId once authentication/session handling is integrated
       try {
         const { content: aiContent, planId } = await sendChatMessage({
           message: trimmed,
@@ -68,12 +63,9 @@ export function ChatPanel() {
 
         await loadPlan(planId);
 
-        // Kick off the mock execution pipeline with the user's original query.
-        // TODO: Replace with real backend execution — pass planId from AI response
-        // TODO: Wait for query plan to be fully rendered before executing
+        // Execute against the backend using the planId returned by /query.
         triggerExecution(trimmed, planId);
       } catch {
-        // TODO: Surface real API errors to the user (toast/inline error)
         const errorMsg: ChatMessage = {
           id: generateId(),
           role: 'assistant',
@@ -87,7 +79,7 @@ export function ChatPanel() {
 
       setStatus('idle');
     },
-    [status]
+    [loadPlan, status, triggerExecution],
   );
 
   const isEmpty = messages.length === 0 && status === 'idle';
@@ -96,7 +88,6 @@ export function ChatPanel() {
     <div className="chat-panel">
       <ChatHeader status={status} />
 
-      {/* Conversation area */}
       <div
         className="chat-panel__messages"
         role="log"
@@ -119,12 +110,10 @@ export function ChatPanel() {
           )}
         </AnimatePresence>
 
-        {/* Typing indicator rendered outside AnimatePresence list for clean entry/exit */}
         <AnimatePresence>
           {status === 'thinking' && <TypingIndicator key="typing" />}
         </AnimatePresence>
 
-        {/* Scroll anchor */}
         <div ref={bottomRef} />
       </div>
 
