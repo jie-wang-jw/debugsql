@@ -80,6 +80,11 @@ def generate_plan_for_message(
         PLAN_STORE[stored["plan"]["plan_id"]] = stored
         return stored
 
+    if benchmark == "spider" and db_id and _is_schema_overview_request(message, db_id):
+        stored = _build_schema_overview_plan(message, session_id, dataset_context)
+        PLAN_STORE[stored["plan"]["plan_id"]] = stored
+        return stored
+
     intent_ir = build_demo_ir(message)
     if dataset_context:
         intent_ir["dataset_context"] = dataset_context
@@ -229,6 +234,95 @@ def _is_sales_store_demo(message: str) -> bool:
     )
 
 
+def _is_schema_overview_request(message: str, db_id: str) -> bool:
+    text = message.lower()
+    return (
+        "inside" in text
+        or "schema" in text
+        or "tables" in text
+        or "columns" in text
+        or "what is in" in text
+        or f"inside {db_id.lower()}" in text
+        or f"in {db_id.lower()}" in text
+    )
+
+
+def _build_schema_overview_plan(
+    message: str,
+    session_id: str | None,
+    dataset_context: dict[str, Any] | None,
+) -> dict[str, Any]:
+    benchmark = (dataset_context or {}).get("benchmark")
+    db_id = (dataset_context or {}).get("dbId")
+    schema_context = get_schema_context(benchmark, db_id) or {"tables": []}
+    tables = schema_context.get("tables", [])
+    plan_id = _stable_id("plan_schema", {"message": message, "dataset": dataset_context})
+    sql = (
+        "SELECT name AS table_name\n"
+        "FROM sqlite_master\n"
+        "WHERE type = 'table'\n"
+        "ORDER BY name;"
+    )
+    graph = {
+        "queryLabel": message,
+        "totalCost": 8.2,
+        "nodes": [
+            _intent_node(
+                "intent",
+                80,
+                80,
+                "Schema Overview",
+                "LIST_TABLES",
+                [],
+                [],
+                ["table_name", "columns"],
+            ),
+            _op_node("op_schema", 360, 80, "SELECT", "Read SQLite schema", "sqlite_master tables", len(tables), 8.2),
+            _data_node(
+                "data_result",
+                650,
+                80,
+                f"{db_id} schema",
+                "result",
+                len(tables),
+                8.2,
+                ["table_name", "columns"],
+            ),
+        ],
+        "edges": [
+            _edge("intent", "op_schema", animated=True),
+            _edge("op_schema", "data_result", animated=True),
+        ],
+    }
+    return {
+        "message": message,
+        "session_id": session_id,
+        "dataset_context": dataset_context,
+        "ir": {
+            "intent_type": "schema_overview",
+            "raw_query": message,
+            "dataset_context": dataset_context,
+            "table_count": len(tables),
+        },
+        "plan": {
+            "plan_id": plan_id,
+            "plan_type": "tree",
+            "data_source_type": "relational",
+            "executable": {"type": "sql", "dialect": "sqlite", "content": sql},
+            "metadata": {
+                "provider": "backend_demo_template",
+                "template": "spider_schema_overview",
+                "dataset_context": dataset_context,
+                "benchmark": benchmark,
+                "db_id": db_id,
+            },
+        },
+        "graph": graph,
+        "assistant_content": _schema_overview_assistant_content(db_id, tables, sql),
+        "created_at": time.time(),
+    }
+
+
 def _build_sales_store_demo(message: str, session_id: str | None) -> dict[str, Any]:
     has_texas_filter = "texas" in message.lower() or " tx" in f" {message.lower()}"
     plan_id = _stable_id("plan_demo", {"message": message})
@@ -351,6 +445,19 @@ def _assistant_content(sql: str, graph: dict[str, Any]) -> str:
         f"```sql\n{sql}\n```\n\n"
         "The plan includes table scan, filter, join, group-by, aggregate, sort, "
         f"and result nodes. Total cost: **{graph['totalCost']:.1f}**."
+    )
+
+
+def _schema_overview_assistant_content(db_id: str | None, tables: list[dict[str, Any]], sql: str) -> str:
+    preview = "\n".join(
+        f"- {table.get('name')}: {', '.join((table.get('columns') or [])[:6])}"
+        for table in tables[:8]
+    )
+    more = f"\n- ... {len(tables) - 8} more tables" if len(tables) > 8 else ""
+    return (
+        f"I found the Spider database **{db_id}**. It contains **{len(tables)} tables**.\n\n"
+        f"{preview}{more}\n\n"
+        f"```sql\n{sql}\n```"
     )
 
 
