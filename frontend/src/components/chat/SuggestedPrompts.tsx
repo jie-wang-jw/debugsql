@@ -1,50 +1,45 @@
 import { motion } from 'framer-motion';
-import { FiArrowRight, FiBarChart2, FiFilter, FiGitMerge, FiList, FiZap } from 'react-icons/fi';
+import {
+  FiArrowRight,
+  FiBarChart2,
+  FiFilter,
+  FiGitMerge,
+  FiHelpCircle,
+  FiList,
+  FiZap,
+} from 'react-icons/fi';
 import type { SuggestedPrompt } from './chat.types';
 
 interface SuggestedPromptsProps {
+  prompts?: SuggestedPrompt[];
+  databaseLabel?: string;
   onSelect: (prompt: string) => void;
 }
 
-const PROMPTS: SuggestedPrompt[] = [
+const DEFAULT_PROMPTS: SuggestedPrompt[] = [
   {
     id: 'p1',
-    label: 'Total sales by region',
-    description: 'Show total sales grouped by region',
-    icon: 'chart',
-  },
-  {
-    id: 'p2',
-    label: 'Top 10 selling stores',
-    description: 'Rank stores by revenue in the last 30 days',
-    icon: 'sort',
-  },
-  {
-    id: 'p3',
-    label: 'Customers with recent orders',
-    description: 'Find users who placed more than 5 orders',
-    icon: 'join',
-  },
-  {
-    id: 'p4',
-    label: 'Products low in stock',
-    description: 'Filter active products where quantity < 10',
-    icon: 'filter',
+    label: 'Write a Spider question',
+    description: 'Ask a question about the selected database schema',
+    icon: 'question',
   },
 ];
 
 const PROMPT_ICONS: Record<SuggestedPrompt['icon'], React.ComponentType<{ size?: number }>> = {
-  chart:  FiBarChart2,
+  chart: FiBarChart2,
   filter: FiFilter,
-  join:   FiGitMerge,
-  sort:   FiList,
+  join: FiGitMerge,
+  sort: FiList,
+  question: FiHelpCircle,
 };
 
-/**
- * Empty-state component displayed when there are no messages.
- * Shows a welcome screen and clickable prompt suggestions.
- */
-export function SuggestedPrompts({ onSelect }: SuggestedPromptsProps) {
+export function SuggestedPrompts({
+  prompts,
+  databaseLabel,
+  onSelect,
+}: SuggestedPromptsProps) {
+  const visiblePrompts = prompts?.length ? prompts : DEFAULT_PROMPTS;
+
   return (
     <motion.div
       className="suggested-prompts"
@@ -53,7 +48,6 @@ export function SuggestedPrompts({ onSelect }: SuggestedPromptsProps) {
       exit={{ opacity: 0, transition: { duration: 0.15 } }}
       transition={{ duration: 0.35 }}
     >
-      {/* Hero area */}
       <div className="sp-hero">
         <motion.div
           className="sp-hero__icon"
@@ -64,16 +58,17 @@ export function SuggestedPrompts({ onSelect }: SuggestedPromptsProps) {
         </motion.div>
         <h2 className="sp-hero__title">Start a SQL Conversation</h2>
         <p className="sp-hero__desc">
-          Describe your data question in plain English.<br />
-          I'll generate the SQL and build an editable query plan.
+          Ask a question for the selected database.<br />
+          I'll generate SQL and an editable query plan.
         </p>
       </div>
 
-      {/* Suggestion cards */}
       <div className="sp-cards">
-        <p className="sp-cards__label">Try a suggestion</p>
+        <p className="sp-cards__label">
+          {databaseLabel ? `Spider examples from ${databaseLabel}` : 'Try a suggestion'}
+        </p>
         <div className="sp-cards__grid">
-          {PROMPTS.map((prompt, i) => {
+          {visiblePrompts.map((prompt, i) => {
             const Icon = PROMPT_ICONS[prompt.icon];
             return (
               <motion.button

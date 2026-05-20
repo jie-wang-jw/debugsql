@@ -22,7 +22,7 @@ export interface SuggestedPrompt {
   id: string;
   label: string;
   description: string;
-  icon: 'chart' | 'filter' | 'join' | 'sort';
+  icon: 'chart' | 'filter' | 'join' | 'sort' | 'question';
 }
 
 /** Status of the chat AI (typing / idle / error). */

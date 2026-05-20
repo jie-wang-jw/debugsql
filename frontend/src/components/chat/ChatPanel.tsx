@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import type { ChatMessage, ChatStatus } from './chat.types';
+import type { ChatMessage, ChatStatus, SuggestedPrompt } from './chat.types';
 import { ChatHeader } from './ChatHeader';
 import { ChatMessage as ChatMessageItem } from './ChatMessage';
 import { ChatInput } from './ChatInput';
@@ -113,6 +113,13 @@ export function ChatPanel() {
   );
 
   const isEmpty = messages.length === 0 && status === 'idle';
+  const selectedDatabase = databases.find((item) => item.dbId === selectedDbId);
+  const databasePrompts: SuggestedPrompt[] = (selectedDatabase?.sampleQuestions ?? []).map((item, index) => ({
+    id: `${selectedDbId}-${index}`,
+    label: `Question ${index + 1}`,
+    description: item.question,
+    icon: 'question',
+  }));
 
   return (
     <div className="chat-panel">
@@ -132,7 +139,12 @@ export function ChatPanel() {
       >
         <AnimatePresence mode="wait">
           {isEmpty ? (
-            <SuggestedPrompts key="suggestions" onSelect={sendMessage} />
+            <SuggestedPrompts
+              key={`suggestions-${selectedDbId}`}
+              prompts={databasePrompts}
+              databaseLabel={selectedDbId}
+              onSelect={sendMessage}
+            />
           ) : (
             <div key="messages" className="chat-panel__message-list">
               {messages.map((msg, i) => (
