@@ -30,7 +30,9 @@ import './AppShell.css';
 export function AppShell() {
   return (
     <ExecutionProvider>
-      <AppShellInner />
+      <QueryPlanProvider>
+        <AppShellInner />
+      </QueryPlanProvider>
     </ExecutionProvider>
   );
 }
@@ -58,7 +60,7 @@ function AppShellInner() {
       </FadeIn>
 
       {/* Right: Query plan + tabbed bottom panel */}
-      <QueryPlanProvider>
+      <>
         <div className="app-shell__right">
           <FadeIn direction="up" delay={0.12} className="app-shell__top-right">
             <QueryPlanPanel />
@@ -116,7 +118,7 @@ function AppShellInner() {
             </div>
           </FadeIn>
         </div>
-      </QueryPlanProvider>
+      </>
     </div>
   );
 }

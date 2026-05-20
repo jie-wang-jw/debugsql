@@ -20,11 +20,8 @@ def query(request: ChatQueryRequest) -> dict:
     return {
         "success": True,
         "data": {
-            "content": (
-                "I generated a backend stub IR and query plan for this request. "
-                "The current provider is deterministic and can be replaced by an external "
-                "or internal algorithm provider later."
-            ),
+            "content": stored.get("assistant_content")
+            or "I generated a backend stub IR and query plan for this request.",
             "planId": plan["plan_id"],
             "sql": sql,
             "explanation": "Backend stub: NL -> IR -> Query Plan -> SQL preview.",

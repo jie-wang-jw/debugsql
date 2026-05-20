@@ -66,6 +66,11 @@ def build_demo_ir(message: str) -> dict[str, Any]:
 
 
 def generate_plan_for_message(message: str, session_id: str | None = None) -> dict[str, Any]:
+    if _is_sales_store_demo(message):
+        stored = _build_sales_store_demo(message, session_id)
+        PLAN_STORE[stored["plan"]["plan_id"]] = stored
+        return stored
+
     intent_ir = build_demo_ir(message)
     schema_context = {
         "tables": [
@@ -94,6 +99,7 @@ def generate_plan_for_message(message: str, session_id: str | None = None) -> di
         "ir": intent_ir,
         "plan": plan.model_dump(),
         "graph": graph,
+        "assistant_content": _assistant_content((plan.executable.content if plan.executable else ""), graph),
         "created_at": time.time(),
     }
     return PLAN_STORE[plan.plan_id]
@@ -177,6 +183,224 @@ def query_plan_to_graph(plan: QueryPlan, query_label: str) -> dict[str, Any]:
         "edges": edges,
         "queryLabel": query_label,
         "totalCost": round(18.5 + len(nodes) * 7.3, 1),
+    }
+
+
+def _is_sales_store_demo(message: str) -> bool:
+    text = message.lower()
+    return (
+        ("store" in text or "stores" in text)
+        and ("top" in text or "rank" in text or "sales" in text or "selling" in text)
+    )
+
+
+def _build_sales_store_demo(message: str, session_id: str | None) -> dict[str, Any]:
+    has_texas_filter = "texas" in message.lower() or " tx" in f" {message.lower()}"
+    plan_id = _stable_id("plan_demo", {"message": message})
+    filter_text = "state = 'TX'" if has_texas_filter else "sales_date >= CURRENT_DATE - 30"
+    sql = (
+        "SELECT\n"
+        "  s.store_id,\n"
+        "  s.store_name,\n"
+        "  SUM(t.amount) AS total_sales\n"
+        "FROM sales_transactions t\n"
+        "JOIN stores s ON t.store_id = s.store_id\n"
+        f"WHERE {filter_text}\n"
+        "GROUP BY s.store_id, s.store_name\n"
+        "ORDER BY total_sales DESC\n"
+        "LIMIT 10;"
+    )
+    intent_ir = {
+        "intent_type": "ranked_aggregation",
+        "table": "sales_transactions",
+        "target_columns": ["amount", "store_id", "store_name"],
+        "group_by": ["store_id", "store_name"],
+        "filters": [{"column": "state", "op": "=", "value": "TX"}] if has_texas_filter else [],
+        "aggregation": "sum",
+        "order_by": {"column": "total_sales", "direction": "DESC"},
+        "limit": 10,
+        "raw_query": message,
+    }
+    graph = {
+        "queryLabel": message,
+        "totalCost": 63.1,
+        "nodes": [
+            _intent_node(
+                "intent",
+                80,
+                40,
+                "Ranked Sales Query",
+                "SUM(amount)",
+                [filter_text],
+                ["store_id"],
+                ["amount", "store_id", "store_name"],
+            ),
+            _data_node(
+                "data_sales",
+                80,
+                270,
+                "sales_transactions",
+                "source",
+                284000,
+                18.9,
+                ["id", "store_id", "amount", "state", "sale_date"],
+            ),
+            _op_node("op_filter", 540, 80, "FILTER", "Filter", filter_text, 18400, 12.4),
+            _data_node(
+                "data_stores",
+                820,
+                270,
+                "stores",
+                "source",
+                420,
+                2.8,
+                ["store_id", "store_name", "region", "state"],
+            ),
+            _op_node(
+                "op_join",
+                590,
+                270,
+                "JOIN",
+                "Hash Join",
+                "sales.store_id = stores.store_id",
+                18400,
+                45.2,
+            ),
+            _op_node("op_group_by", 590, 450, "GROUP_BY", "Group By", "store_id, store_name", 28, 52.1),
+            _op_node("op_aggregate", 590, 600, "AGGREGATE", "Aggregate", "SUM(amount) AS total_sales", 28, 62.8),
+            _op_node("op_sort", 590, 760, "SORT", "Sort", "total_sales DESC", 28, 63.1),
+            _op_node("op_limit", 590, 900, "LIMIT", "Limit", "LIMIT 10", 10, 63.1),
+            _data_node(
+                "data_result",
+                590,
+                1040,
+                "Result",
+                "result",
+                10,
+                63.1,
+                ["store_id", "store_name", "total_sales"],
+            ),
+        ],
+        "edges": [
+            _edge("intent", "op_filter", animated=True),
+            _edge("data_sales", "op_join", animated=True),
+            _edge("op_filter", "op_join", animated=True),
+            _edge("data_stores", "op_join", animated=True),
+            _edge("op_join", "op_group_by"),
+            _edge("op_group_by", "op_aggregate"),
+            _edge("op_aggregate", "op_sort"),
+            _edge("op_sort", "op_limit"),
+            _edge("op_limit", "data_result", animated=True),
+        ],
+    }
+    return {
+        "message": message,
+        "session_id": session_id,
+        "ir": intent_ir,
+        "plan": {
+            "plan_id": plan_id,
+            "plan_type": "tree",
+            "data_source_type": "relational",
+            "executable": {"type": "sql", "dialect": "sqlite", "content": sql},
+            "metadata": {"provider": "backend_demo_template", "template": "sales_store_ranking"},
+        },
+        "graph": graph,
+        "assistant_content": _assistant_content(sql, graph),
+        "created_at": time.time(),
+    }
+
+
+def _assistant_content(sql: str, graph: dict[str, Any]) -> str:
+    return (
+        "I've created a backend-generated plan for your ranked/sorted query.\n\n"
+        f"```sql\n{sql}\n```\n\n"
+        "The plan includes table scan, filter, join, group-by, aggregate, sort, "
+        f"and result nodes. Total cost: **{graph['totalCost']:.1f}**."
+    )
+
+
+def _intent_node(
+    node_id: str,
+    x: int,
+    y: int,
+    label: str,
+    aggregation: str,
+    filters: list[str],
+    group_by: list[str],
+    target_columns: list[str],
+) -> dict[str, Any]:
+    return {
+        "id": node_id,
+        "type": "intent",
+        "position": {"x": x, "y": y},
+        "data": {
+            "kind": "intent",
+            "intentLabel": label,
+            "aggregation": aggregation,
+            "filters": filters,
+            "groupBy": group_by,
+            "targetColumns": target_columns,
+        },
+    }
+
+
+def _op_node(
+    node_id: str,
+    x: int,
+    y: int,
+    operation_type: str,
+    label: str,
+    detail: str,
+    rows: int,
+    cost: float,
+) -> dict[str, Any]:
+    return {
+        "id": node_id,
+        "type": "operation",
+        "position": {"x": x, "y": y},
+        "data": {
+            "kind": "operation",
+            "operationType": operation_type,
+            "label": label,
+            "detail": detail,
+            "estimatedRows": rows,
+            "cost": cost,
+            "executionState": "pending",
+        },
+    }
+
+
+def _data_node(
+    node_id: str,
+    x: int,
+    y: int,
+    table_name: str,
+    role: str,
+    rows: int,
+    cost: float,
+    columns: list[str],
+) -> dict[str, Any]:
+    return {
+        "id": node_id,
+        "type": "data",
+        "position": {"x": x, "y": y},
+        "data": {
+            "kind": "data",
+            "tableName": table_name,
+            "nodeRole": role,
+            "rowCount": rows,
+            "estimatedCost": cost,
+            "columns": columns,
+        },
+    }
+
+
+def _edge(source: str, target: str, animated: bool = False) -> dict[str, Any]:
+    return {
+        "id": f"{source}-{target}",
+        "source": source,
+        "target": target,
+        "animated": animated,
     }
 
 
