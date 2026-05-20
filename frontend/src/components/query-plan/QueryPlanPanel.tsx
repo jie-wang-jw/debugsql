@@ -1,4 +1,5 @@
-import { FiCpu, FiRefreshCw, FiMaximize2 } from 'react-icons/fi';
+import { useCallback, useState } from 'react';
+import { FiCpu, FiRefreshCw, FiMaximize2, FiMinimize2 } from 'react-icons/fi';
 import { StatusBadge } from '../ui/StatusBadge';
 import { QueryPlanFlow } from './QueryPlanFlow';
 import { useQueryPlanContext } from '../../store/QueryPlanContext';
@@ -14,15 +15,35 @@ import './queryPlan.styles.css';
  * TODO: Sync graph with assistant-generated query plans from chat panel
  */
 export function QueryPlanPanel() {
-  const { graph, selectedNodeId, onNodeSelect } = useQueryPlanContext();
+  const { graph, selectedNodeId, activePlanId, loadPlan, onNodeSelect } = useQueryPlanContext();
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = useCallback(async () => {
+    if (!activePlanId || isRefreshing) {
+      return;
+    }
+
+    setIsRefreshing(true);
+    try {
+      await loadPlan(activePlanId);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [activePlanId, isRefreshing, loadPlan]);
 
   return (
-    <div className="qplan">
+    <div className={`qplan ${isExpanded ? 'qplan--expanded' : ''}`}>
       <QueryPlanPanelHeader
         queryLabel={graph.queryLabel}
         nodeCount={graph.nodes.length}
         totalCost={graph.totalCost}
         selectedNodeId={selectedNodeId}
+        hasActivePlan={Boolean(activePlanId)}
+        isRefreshing={isRefreshing}
+        isExpanded={isExpanded}
+        onRefresh={handleRefresh}
+        onToggleExpanded={() => setIsExpanded((prev) => !prev)}
       />
 
       {/* React Flow canvas fills remaining height */}
@@ -43,9 +64,24 @@ interface HeaderProps {
   nodeCount: number;
   totalCost: number;
   selectedNodeId: string | null;
+  hasActivePlan: boolean;
+  isRefreshing: boolean;
+  isExpanded: boolean;
+  onRefresh: () => void;
+  onToggleExpanded: () => void;
 }
 
-function QueryPlanPanelHeader({ queryLabel, nodeCount, totalCost, selectedNodeId }: HeaderProps) {
+function QueryPlanPanelHeader({
+  queryLabel,
+  nodeCount,
+  totalCost,
+  selectedNodeId,
+  hasActivePlan,
+  isRefreshing,
+  isExpanded,
+  onRefresh,
+  onToggleExpanded,
+}: HeaderProps) {
   return (
     <div className="qplan__header">
       <div className="qplan__header-left">
@@ -66,11 +102,25 @@ function QueryPlanPanelHeader({ queryLabel, nodeCount, totalCost, selectedNodeId
         )}
         <StatusBadge label={`${nodeCount} nodes`} variant="gray" />
         <StatusBadge label={`cost ${totalCost.toFixed(1)}`} variant="orange" />
-        <button className="qplan__icon-btn" aria-label="Refresh plan" title="Refresh plan">
+        <button
+          className={`qplan__icon-btn ${isRefreshing ? 'qplan__icon-btn--spinning' : ''}`}
+          type="button"
+          aria-label="Refresh plan"
+          title={hasActivePlan ? 'Refresh current plan from backend' : 'No active backend plan to refresh'}
+          disabled={!hasActivePlan || isRefreshing}
+          onClick={onRefresh}
+        >
           <FiRefreshCw size={12} />
         </button>
-        <button className="qplan__icon-btn" aria-label="Expand view" title="Expand view">
-          <FiMaximize2 size={12} />
+        <button
+          className={`qplan__icon-btn ${isExpanded ? 'qplan__icon-btn--active' : ''}`}
+          type="button"
+          aria-label={isExpanded ? 'Exit expanded view' : 'Expand view'}
+          aria-pressed={isExpanded}
+          title={isExpanded ? 'Exit expanded view' : 'Expand query plan view'}
+          onClick={onToggleExpanded}
+        >
+          {isExpanded ? <FiMinimize2 size={12} /> : <FiMaximize2 size={12} />}
         </button>
       </div>
     </div>
