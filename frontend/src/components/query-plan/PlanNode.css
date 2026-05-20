@@ -1,0 +1,111 @@
+/* ================================================
+   PlanNode – Individual query plan node card
+   ================================================ */
+
+.plan-node {
+  position: relative;
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--r-lg);
+  padding: 10px 13px;
+  cursor: pointer;
+  min-width: 130px;
+  max-width: 170px;
+  user-select: none;
+  transition:
+    border-color var(--t-default),
+    box-shadow var(--t-default),
+    background var(--t-fast);
+}
+
+.plan-node:hover {
+  border-color: color-mix(in srgb, var(--node-color) 45%, transparent);
+  background: var(--bg-elevated);
+  box-shadow:
+    0 4px 14px rgba(0, 0, 0, 0.5),
+    0 0 0 1px color-mix(in srgb, var(--node-color) 20%, transparent);
+}
+
+.plan-node--selected {
+  border-color: var(--node-color);
+  background: var(--bg-elevated);
+  box-shadow:
+    0 0 18px color-mix(in srgb, var(--node-color) 25%, transparent),
+    0 4px 16px rgba(0, 0, 0, 0.5);
+}
+
+.plan-node--selected::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: color-mix(in srgb, var(--node-color) 6%, transparent);
+  pointer-events: none;
+}
+
+/* ---- Header ---- */
+.plan-node__header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 5px;
+}
+
+.plan-node__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--node-color) 15%, transparent);
+  color: var(--node-color);
+  flex-shrink: 0;
+}
+
+.plan-node__type {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--node-color);
+  letter-spacing: 0.01em;
+  font-family: var(--font-mono);
+}
+
+/* ---- Relation ---- */
+.plan-node__relation {
+  font-size: 10px;
+  color: var(--text-secondary);
+  margin-bottom: 7px;
+  font-family: var(--font-mono);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---- Stats ---- */
+.plan-node__stats {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.plan-node__stat {
+  display: flex;
+  gap: 3px;
+  align-items: center;
+}
+
+.plan-node__stat-label {
+  font-size: 9px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.plan-node__stat-value {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+  font-weight: 500;
+}

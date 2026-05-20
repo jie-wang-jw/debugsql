@@ -1,0 +1,63 @@
+// ================================================
+// DebugSQL – Query Plan Graph Types
+// ================================================
+import type { Node, Edge } from 'reactflow';
+
+// ---- Node data shapes ----
+
+export interface IntentNodeData {
+  kind: 'intent';
+  intentLabel: string;
+  aggregation?: string;
+  filters?: string[];
+  groupBy?: string[];
+  targetColumns?: string[];
+}
+
+export type OperationType =
+  | 'SELECT'
+  | 'FILTER'
+  | 'GROUP_BY'
+  | 'JOIN'
+  | 'SORT'
+  | 'AGGREGATE'
+  | 'LIMIT';
+
+export type ExecutionState = 'pending' | 'running' | 'done';
+
+export interface OperationNodeData {
+  kind: 'operation';
+  operationType: OperationType;
+  label: string;
+  detail?: string;
+  estimatedRows?: number;
+  cost?: number;
+  executionState?: ExecutionState;
+}
+
+export type DataNodeRole = 'source' | 'result';
+
+export interface DataNodeData {
+  kind: 'data';
+  tableName: string;
+  nodeRole: DataNodeRole;
+  rowCount?: number;
+  estimatedCost?: number;
+  columns?: string[];
+}
+
+// Union discriminated by `kind`
+export type FlowNodeData = IntentNodeData | OperationNodeData | DataNodeData;
+
+// Typed React Flow node / edge aliases
+export type FlowNode = Node<FlowNodeData>;
+export type FlowEdge = Edge;
+
+// ---- Graph container ----
+
+export interface QueryPlanGraph {
+  nodes: FlowNode[];
+  edges: FlowEdge[];
+  queryLabel: string;
+  totalCost: number;
+}
