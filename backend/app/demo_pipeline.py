@@ -122,28 +122,22 @@ def update_plan_node(plan_id: str, node_id: str, data: dict[str, Any]) -> dict[s
             node["data"] = data
             node["data"]["_lastEditedAt"] = int(time.time())
             break
+    _sync_executable_from_graph(plan_id)
     return graph
 
 
 def run_demo_execution(sql_or_query: str, session_id: str | None = None, plan_id: str | None = None) -> dict[str, Any]:
     run_id = _stable_id("run", {"sql": sql_or_query, "session": session_id, "plan": plan_id, "time": time.time()})
     sql = _execution_sql(sql_or_query, plan_id)
+    rows, columns = _execution_rows(sql)
     result = {
         "sql": sql,
-        "columns": [
-            {"key": "dimension", "label": "dimension"},
-            {"key": "value", "label": "value"},
-        ],
-        "rows": [
-            {"dimension": "North", "value": 12840},
-            {"dimension": "South", "value": 11720},
-            {"dimension": "West", "value": 10895},
-            {"dimension": "East", "value": 9850},
-        ],
+        "columns": columns,
+        "rows": rows,
         "metrics": {
             "planningTimeMs": 42,
             "executionTimeMs": 86,
-            "rowCount": 4,
+            "rowCount": len(rows),
             "estimatedRows": 1200,
         },
     }
@@ -476,6 +470,9 @@ def _node_levels(plan: QueryPlan) -> dict[str, int]:
 
 
 def _execution_sql(sql_or_query: str, plan_id: str | None) -> str:
+    if not plan_id and PLAN_STORE:
+        plan_id = max(PLAN_STORE.items(), key=lambda item: item[1].get("created_at", 0))[0]
+
     if plan_id and plan_id in PLAN_STORE:
         executable = PLAN_STORE[plan_id]["plan"].get("executable") or {}
         if executable.get("content"):
@@ -483,6 +480,97 @@ def _execution_sql(sql_or_query: str, plan_id: str | None) -> str:
     if sql_or_query.strip().lower().startswith("select"):
         return sql_or_query
     return "SELECT dimension, value FROM debugsql_stub_result ORDER BY value DESC"
+
+
+def _sync_executable_from_graph(plan_id: str) -> None:
+    stored = PLAN_STORE.get(plan_id)
+    if not stored:
+        return
+
+    metadata = stored.get("plan", {}).get("metadata", {})
+    if metadata.get("template") != "sales_store_ranking":
+        return
+
+    graph = stored["graph"]
+    filter_detail = (
+        _node_detail(graph, "intent")
+        or _node_detail(graph, "op_filter")
+        or "sales_date >= CURRENT_DATE - 30"
+    )
+    group_by = _node_detail(graph, "op_group_by") or "store_id, store_name"
+    aggregate = _node_detail(graph, "op_aggregate") or "SUM(amount) AS total_sales"
+    sort = _node_detail(graph, "op_sort") or "total_sales DESC"
+    limit = _node_detail(graph, "op_limit") or "LIMIT 10"
+
+    stored["plan"]["executable"]["content"] = _sales_store_sql(
+        filter_detail=filter_detail,
+        group_by=group_by,
+        aggregate=aggregate,
+        sort=sort,
+        limit=limit,
+    )
+
+
+def _node_detail(graph: dict[str, Any], node_id: str) -> str | None:
+    for node in graph.get("nodes", []):
+        if node.get("id") == node_id:
+            data = node.get("data", {})
+            if data.get("detail"):
+                return str(data["detail"])
+            if node_id == "intent" and data.get("filters"):
+                return str(data["filters"][0])
+    return None
+
+
+def _sales_store_sql(
+    filter_detail: str,
+    group_by: str,
+    aggregate: str,
+    sort: str,
+    limit: str,
+) -> str:
+    limit_clause = limit if limit.strip().upper().startswith("LIMIT") else f"LIMIT {limit}"
+    aggregate_expr = aggregate if " AS " in aggregate.upper() else f"{aggregate} AS total_sales"
+    return (
+        "SELECT\n"
+        "  s.store_id,\n"
+        "  s.store_name,\n"
+        f"  {aggregate_expr}\n"
+        "FROM sales_transactions t\n"
+        "JOIN stores s ON t.store_id = s.store_id\n"
+        f"WHERE {filter_detail}\n"
+        f"GROUP BY {group_by}\n"
+        f"ORDER BY {sort}\n"
+        f"{limit_clause};"
+    )
+
+
+def _execution_rows(sql: str) -> tuple[list[dict[str, Any]], list[dict[str, str]]]:
+    if "total_sales" in sql or "sales_transactions" in sql:
+        columns = [
+            {"key": "store_id", "label": "store_id"},
+            {"key": "store_name", "label": "store_name"},
+            {"key": "total_sales", "label": "total_sales"},
+        ]
+        rows = [
+            {"store_id": "S-104", "store_name": "North Market", "total_sales": 12840},
+            {"store_id": "S-087", "store_name": "South Plaza", "total_sales": 11720},
+            {"store_id": "S-022", "store_name": "West End", "total_sales": 10895},
+            {"store_id": "S-145", "store_name": "East Point", "total_sales": 9850},
+        ]
+        return rows, columns
+
+    columns = [
+        {"key": "dimension", "label": "dimension"},
+        {"key": "value", "label": "value"},
+    ]
+    rows = [
+        {"dimension": "North", "value": 12840},
+        {"dimension": "South", "value": 11720},
+        {"dimension": "West", "value": 10895},
+        {"dimension": "East", "value": 9850},
+    ]
+    return rows, columns
 
 
 def _stable_id(prefix: str, payload: dict[str, Any]) -> str:
