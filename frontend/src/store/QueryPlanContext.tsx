@@ -25,7 +25,7 @@ export interface QueryPlanContextValue {
   activePlanId: string | null;
   loadPlan: (planId: string) => Promise<void>;
   onNodeSelect: (id: string) => void;
-  onNodeDataUpdate: (nodeId: string, updatedData: FlowNodeData) => void;
+  onNodeDataUpdate: (nodeId: string, updatedData: FlowNodeData) => Promise<void>;
 }
 
 const QueryPlanContext = createContext<QueryPlanContextValue | null>(null);

@@ -37,7 +37,7 @@ export interface ExecutionContextValue {
    * TODO: POST /api/execute { query, sessionId } and stream progress
    * TODO: Integrate with backend query validation before execution
    */
-  triggerExecution: (query: string) => Promise<void>;
+  triggerExecution: (query: string, planId?: string | null) => Promise<void>;
 }
 
 // ---- Context + hook ----
@@ -59,7 +59,7 @@ export function ExecutionProvider({ children }: { children: ReactNode }) {
   const [result, setResult] = useState<ExecutionResult | null>(null);
   const [error,  setError]  = useState<string | null>(null);
 
-  const triggerExecution = useCallback(async (query: string) => {
+  const triggerExecution = useCallback(async (query: string, planId?: string | null) => {
     // Ignore concurrent runs
     if (!query.trim()) return;
 
@@ -68,7 +68,7 @@ export function ExecutionProvider({ children }: { children: ReactNode }) {
     setError(null);
 
     try {
-      const execResult = await executeQuery(query);
+      const execResult = await executeQuery(query, planId ?? undefined);
       setResult(execResult);
       setStatus('success');
     } catch (err) {

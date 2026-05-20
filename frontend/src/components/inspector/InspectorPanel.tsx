@@ -68,7 +68,7 @@ function getNodeIcon(data: FlowNodeData) {
 // ---- Main component ----
 
 export function InspectorPanel() {
-  const { selectedNode, selectedNodeId, onNodeDataUpdate } = useQueryPlanContext();
+  const { activePlanId, selectedNode, selectedNodeId, onNodeDataUpdate } = useQueryPlanContext();
   const { triggerExecution } = useExecutionContext();
 
   // Flat list of all editable/read-only fields — reset on each new selection
@@ -113,26 +113,28 @@ export function InspectorPanel() {
     setIsApplied(false);
   }, []);
 
-  const handleApply = useCallback(() => {
+  const handleApply = useCallback(async () => {
     if (!selectedNode || !selectedNodeId) return;
 
     // TODO: PATCH /api/query-plan/:planId/nodes/:nodeId — sync node edits to backend
     // TODO: Trigger query-regeneration pipeline after applying node changes
     // TODO: Show diff preview before applying (future enhancement)
     const updatedData = applyEditsToNodeData(selectedNode.data, editedFields);
-    onNodeDataUpdate(selectedNodeId, updatedData);
+    try {
+      await onNodeDataUpdate(selectedNodeId, updatedData);
 
-    setIsDirty(false);
-    setIsApplied(true);
-    // Revert "applied" confirmation after 2 s
-    setTimeout(() => setIsApplied(false), 2000);
+      setIsDirty(false);
+      setIsApplied(true);
+      // Revert "applied" confirmation after 2 s
+      setTimeout(() => setIsApplied(false), 2000);
 
-    // Re-execute after node parameters change so results reflect the edit.
-    // TODO: Pass the actual modified SQL or planId to the backend for re-execution
-    // TODO: Diff the updated parameters before triggering to avoid redundant runs
-    const nodeLabel = getNodeDisplayName(selectedNode.data);
-    triggerExecution(`re-execute after node update: ${nodeLabel}`);
-  }, [selectedNode, selectedNodeId, editedFields, onNodeDataUpdate, triggerExecution]);
+      // Re-execute after node parameters change so results reflect the edit.
+      const nodeLabel = getNodeDisplayName(updatedData);
+      await triggerExecution(`re-execute after node update: ${nodeLabel}`, activePlanId);
+    } catch (error) {
+      console.error('Failed to apply node changes', error);
+    }
+  }, [activePlanId, selectedNode, selectedNodeId, editedFields, onNodeDataUpdate, triggerExecution]);
 
   const accent: AccentVariant = selectedNode
     ? getNodeAccent(selectedNode.data)

@@ -43,6 +43,7 @@ const USE_MOCK_SERVICES = import.meta.env.VITE_USE_MOCK_SERVICES === 'true';
  */
 export async function executeQuery(
   query:   string,
+  planId?: string,
   _signal?: AbortSignal,
 ): Promise<ExecutionResult> {
   if (USE_MOCK_SERVICES) {
@@ -51,7 +52,7 @@ export async function executeQuery(
 
   const { postExecutionRun, getExecutionResult } = await import('../api/executionApi');
   const { runId } = await postExecutionRun(
-    { sql: query, sessionId: 'dev-session' },
+    { sql: query, sessionId: 'dev-session', planId },
     { signal: _signal },
   );
   return getExecutionResult(runId, { signal: _signal });

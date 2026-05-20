@@ -71,7 +71,7 @@ export function ChatPanel() {
         // Kick off the mock execution pipeline with the user's original query.
         // TODO: Replace with real backend execution — pass planId from AI response
         // TODO: Wait for query plan to be fully rendered before executing
-        triggerExecution(trimmed);
+        triggerExecution(trimmed, planId);
       } catch {
         // TODO: Surface real API errors to the user (toast/inline error)
         const errorMsg: ChatMessage = {
