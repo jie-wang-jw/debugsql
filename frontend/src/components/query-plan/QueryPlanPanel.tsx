@@ -55,7 +55,7 @@ function QueryPlanPanelHeader({ queryLabel, nodeCount, totalCost, selectedNodeId
         <div>
           <span className="qplan__title">Query Plan</span>
           <span className="qplan__query-preview" title={queryLabel}>
-            {queryLabel}
+            <span className="qplan__query-prefix">Question:</span> {queryLabel}
           </span>
         </div>
       </div>

@@ -70,6 +70,12 @@
   max-width: 280px;
 }
 
+.qplan__query-prefix {
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-weight: 600;
+}
+
 .qplan__icon-btn {
   display: flex;
   align-items: center;
