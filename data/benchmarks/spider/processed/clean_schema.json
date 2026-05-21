@@ -151,7 +151,7 @@
         9
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\perpetrator\\perpetrator.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\perpetrator\\perpetrator.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "perpetrator": [
@@ -725,7 +725,7 @@
         7
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\college_2\\college_2.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\college_2\\college_2.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "classroom": [
@@ -1020,7 +1020,7 @@
         1
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\flight_company\\flight_company.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\flight_company\\flight_company.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "airport": [
@@ -1208,7 +1208,7 @@
         4
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\icfp_1\\icfp_1.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\icfp_1\\icfp_1.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "inst": [
@@ -1367,7 +1367,7 @@
         6
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\body_builder\\body_builder.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\body_builder\\body_builder.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "body_builder": [
@@ -1537,7 +1537,7 @@
         7
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\storm_record\\storm_record.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\storm_record\\storm_record.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "storm": [
@@ -1773,7 +1773,7 @@
         8
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\pilot_record\\pilot_record.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\pilot_record\\pilot_record.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "aircraft": [
@@ -1928,7 +1928,7 @@
         6
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\race_track\\race_track.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\race_track\\race_track.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "race": [
@@ -2466,7 +2466,7 @@
         27
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\academic\\academic.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\academic\\academic.sqlite",
     "empty_tables": [
       "author",
       "conference",
@@ -3182,7 +3182,7 @@
         40
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\department_store\\department_store.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\department_store\\department_store.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "addresses": [
@@ -3466,7 +3466,7 @@
         6
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\music_4\\music_4.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\music_4\\music_4.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "artist": [
@@ -3766,7 +3766,7 @@
         16
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\insurance_fnol\\insurance_fnol.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\insurance_fnol\\insurance_fnol.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "customers": [
@@ -4002,7 +4002,7 @@
         1
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\cinema\\cinema.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\cinema\\cinema.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "film": [
@@ -4180,7 +4180,7 @@
         5
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\decoration_competition\\decoration_competition.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\decoration_competition\\decoration_competition.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "college": [
@@ -4362,7 +4362,7 @@
         6
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\phone_market\\phone_market.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\phone_market\\phone_market.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "phone": [
@@ -4636,7 +4636,7 @@
         8
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\store_product\\store_product.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\store_product\\store_product.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "product": [
@@ -5384,7 +5384,7 @@
         55
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\assets_maintenance\\assets_maintenance.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\assets_maintenance\\assets_maintenance.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "third_party_companies": [
@@ -5911,7 +5911,7 @@
         33
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\student_assessment\\student_assessment.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\student_assessment\\student_assessment.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "addresses": [
@@ -6490,7 +6490,7 @@
         8
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\dog_kennels\\dog_kennels.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\dog_kennels\\dog_kennels.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "breeds": [
@@ -6806,7 +6806,7 @@
         4
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\music_1\\music_1.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\music_1\\music_1.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "genre": [
@@ -7026,7 +7026,7 @@
         6
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\company_employee\\company_employee.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\company_employee\\company_employee.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "people": [
@@ -7318,7 +7318,7 @@
         17
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\farm\\farm.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\farm\\farm.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "city": [
@@ -7744,7 +7744,7 @@
         17
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\solvency_ii\\solvency_ii.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\solvency_ii\\solvency_ii.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "addresses": [
@@ -8097,7 +8097,7 @@
         1
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\city_record\\city_record.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\city_record\\city_record.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "city": [
@@ -8411,7 +8411,7 @@
         18
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\swimming\\swimming.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\swimming\\swimming.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "swimmer": [
@@ -8608,7 +8608,7 @@
         6
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\flight_2\\flight_2.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\flight_2\\flight_2.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "airlines": [
@@ -8845,7 +8845,7 @@
         5
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\election\\election.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\election\\election.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "county": [
@@ -8991,7 +8991,7 @@
         1
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\manufactory_1\\manufactory_1.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\manufactory_1\\manufactory_1.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "manufacturers": [
@@ -9172,7 +9172,7 @@
         6
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\debate\\debate.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\debate\\debate.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "people": [
@@ -9306,7 +9306,7 @@
         1
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\network_2\\network_2.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\network_2\\network_2.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "person": [
@@ -9462,7 +9462,7 @@
         3
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\local_govt_in_alabama\\local_govt_in_alabama.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\local_govt_in_alabama\\local_govt_in_alabama.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "services": [
@@ -9628,7 +9628,7 @@
         1
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\climbing\\climbing.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\climbing\\climbing.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "mountain": [
@@ -9999,7 +9999,7 @@
         25
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\e_learning\\e_learning.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\e_learning\\e_learning.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "course_authors_and_tutors": [
@@ -10153,7 +10153,7 @@
         1
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\scientist_1\\scientist_1.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\scientist_1\\scientist_1.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "scientists": [
@@ -10314,7 +10314,7 @@
         7
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\ship_1\\ship_1.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\ship_1\\ship_1.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "captain": [
@@ -10485,7 +10485,7 @@
         7
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\entertainment_awards\\entertainment_awards.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\entertainment_awards\\entertainment_awards.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "festival_detail": [
@@ -10657,7 +10657,7 @@
         5
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\allergy_1\\allergy_1.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\allergy_1\\allergy_1.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "allergy_type": [
@@ -11390,7 +11390,7 @@
         8
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\imdb\\imdb.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\imdb\\imdb.sqlite",
     "empty_tables": [
       "actor",
       "copyright",
@@ -11993,7 +11993,7 @@
         12
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\products_for_hire\\products_for_hire.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\products_for_hire\\products_for_hire.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "discount_coupons": [
@@ -12218,7 +12218,7 @@
         9
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\candidate_poll\\candidate_poll.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\candidate_poll\\candidate_poll.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "candidate": [
@@ -12919,7 +12919,7 @@
         1
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\chinook_1\\chinook_1.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\chinook_1\\chinook_1.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "album": [
@@ -13272,7 +13272,7 @@
         9
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\flight_4\\flight_4.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\flight_4\\flight_4.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "routes": [
@@ -13474,7 +13474,7 @@
         11
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\pets_1\\pets_1.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\pets_1\\pets_1.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "student": [
@@ -13722,7 +13722,7 @@
         1
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\dorm_1\\dorm_1.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\dorm_1\\dorm_1.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "student": [
@@ -13888,7 +13888,7 @@
         5
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\journal_committee\\journal_committee.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\journal_committee\\journal_committee.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "journal": [
@@ -14102,7 +14102,7 @@
         12
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\flight_1\\flight_1.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\flight_1\\flight_1.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "flight": [
@@ -14299,7 +14299,7 @@
         5
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\medicine_enzyme_interaction\\medicine_enzyme_interaction.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\medicine_enzyme_interaction\\medicine_enzyme_interaction.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "medicine": [
@@ -14874,7 +14874,7 @@
         26
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\local_govt_and_lot\\local_govt_and_lot.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\local_govt_and_lot\\local_govt_and_lot.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "customers": [
@@ -15169,7 +15169,7 @@
         8
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\station_weather\\station_weather.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\station_weather\\station_weather.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "train": [
@@ -15416,7 +15416,7 @@
         1
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\shop_membership\\shop_membership.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\shop_membership\\shop_membership.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "member": [
@@ -15874,7 +15874,7 @@
         16
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\driving_school\\driving_school.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\driving_school\\driving_school.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "addresses": [
@@ -16169,7 +16169,7 @@
         15
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\concert_singer\\concert_singer.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\concert_singer\\concert_singer.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "stadium": [
@@ -16479,7 +16479,7 @@
         1
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\music_2\\music_2.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\music_2\\music_2.sqlite",
     "empty_tables": [
       "Songs",
       "Albums",
@@ -16822,7 +16822,7 @@
         1
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\sports_competition\\sports_competition.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\sports_competition\\sports_competition.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "club": [
@@ -17110,7 +17110,7 @@
         14
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\railway\\railway.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\railway\\railway.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "railway": [
@@ -17324,7 +17324,7 @@
         1
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\inn_1\\inn_1.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\inn_1\\inn_1.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "rooms": [
@@ -17499,7 +17499,7 @@
         1
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\museum_visit\\museum_visit.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\museum_visit\\museum_visit.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "museum": [
@@ -17663,7 +17663,7 @@
         1
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\browser_web\\browser_web.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\browser_web\\browser_web.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "web_client_accelerator": [
@@ -21005,7 +21005,7 @@
         293
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\baseball_1\\baseball_1.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\baseball_1\\baseball_1.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "all_star": [
@@ -21609,7 +21609,7 @@
         1
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\architecture\\architecture.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\architecture\\architecture.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "architect": [
@@ -21906,7 +21906,7 @@
         1
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\csu_1\\csu_1.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\csu_1\\csu_1.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "campuses": [
@@ -22262,7 +22262,7 @@
         15
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\tracking_orders\\tracking_orders.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\tracking_orders\\tracking_orders.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "customers": [
@@ -22589,7 +22589,7 @@
         14
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\insurance_policies\\insurance_policies.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\insurance_policies\\insurance_policies.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "customers": [
@@ -22833,7 +22833,7 @@
         10
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\gas_company\\gas_company.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\gas_company\\gas_company.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "company": [
@@ -23402,7 +23402,7 @@
         7
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\e_government\\e_government.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\e_government\\e_government.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "addresses": [
@@ -23645,7 +23645,7 @@
         6
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\school_bus\\school_bus.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\school_bus\\school_bus.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "driver": [
@@ -23890,7 +23890,7 @@
         12
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\machine_repair\\machine_repair.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\machine_repair\\machine_repair.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "repair": [
@@ -24081,7 +24081,7 @@
         6
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\theme_gallery\\theme_gallery.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\theme_gallery\\theme_gallery.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "artist": [
@@ -24282,7 +24282,7 @@
         1
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\film_rank\\film_rank.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\film_rank\\film_rank.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "film": [
@@ -24541,7 +24541,7 @@
         7
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\party_people\\party_people.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\party_people\\party_people.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "region": [
@@ -25356,7 +25356,7 @@
         18
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\hospital_1\\hospital_1.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\hospital_1\\hospital_1.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "physician": [
@@ -25911,7 +25911,7 @@
         4
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\customers_campaigns_ecommerce\\customers_campaigns_ecommerce.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\customers_campaigns_ecommerce\\customers_campaigns_ecommerce.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "premises": [
@@ -26126,7 +26126,7 @@
         9
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\gymnast\\gymnast.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\gymnast\\gymnast.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "gymnast": [
@@ -26298,7 +26298,7 @@
         1
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\restaurants\\restaurants.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\restaurants\\restaurants.sqlite",
     "empty_tables": [
       "GEOGRAPHIC",
       "RESTAURANT",
@@ -26511,7 +26511,7 @@
         7
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\mountain_photos\\mountain_photos.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\mountain_photos\\mountain_photos.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "mountain": [
@@ -26742,7 +26742,7 @@
         8
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\battle_death\\battle_death.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\battle_death\\battle_death.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "battle": [
@@ -27196,7 +27196,7 @@
         12
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\cre_Doc_Control_Systems\\cre_Doc_Control_Systems.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\cre_Doc_Control_Systems\\cre_Doc_Control_Systems.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "ref_document_types": [
@@ -27510,7 +27510,7 @@
         3
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\tracking_share_transactions\\tracking_share_transactions.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\tracking_share_transactions\\tracking_share_transactions.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "investors": [
@@ -27895,7 +27895,7 @@
         8
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\apartment_rentals\\apartment_rentals.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\apartment_rentals\\apartment_rentals.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "apartment_buildings": [
@@ -28548,7 +28548,7 @@
         49
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\student_transcripts_tracking\\student_transcripts_tracking.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\student_transcripts_tracking\\student_transcripts_tracking.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "addresses": [
@@ -28899,7 +28899,7 @@
         15
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\cre_Docs_and_Epenses\\cre_Docs_and_Epenses.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\cre_Docs_and_Epenses\\cre_Docs_and_Epenses.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "ref_document_types": [
@@ -29083,7 +29083,7 @@
         8
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\ship_mission\\ship_mission.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\ship_mission\\ship_mission.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "mission": [
@@ -29299,7 +29299,7 @@
         1
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\company_office\\company_office.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\company_office\\company_office.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "buildings": [
@@ -29650,7 +29650,7 @@
         17
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\tracking_software_problems\\tracking_software_problems.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\tracking_software_problems\\tracking_software_problems.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "problem_category_codes": [
@@ -29964,7 +29964,7 @@
         8
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\products_gen_characteristics\\products_gen_characteristics.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\products_gen_characteristics\\products_gen_characteristics.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "ref_characteristic_types": [
@@ -30220,7 +30220,7 @@
         6
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\coffee_shop\\coffee_shop.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\coffee_shop\\coffee_shop.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "shop": [
@@ -30551,7 +30551,7 @@
         9
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\riding_club\\riding_club.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\riding_club\\riding_club.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "player": [
@@ -30880,7 +30880,7 @@
         12
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\customers_card_transactions\\customers_card_transactions.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\customers_card_transactions\\customers_card_transactions.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "accounts": [
@@ -31117,7 +31117,7 @@
         1
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\county_public_safety\\county_public_safety.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\county_public_safety\\county_public_safety.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "county_public_safety": [
@@ -31294,7 +31294,7 @@
         1
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\performance_attendance\\performance_attendance.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\performance_attendance\\performance_attendance.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "member": [
@@ -31493,7 +31493,7 @@
         1
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\club_1\\club_1.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\club_1\\club_1.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "student": [
@@ -31644,7 +31644,7 @@
         1
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\singer\\singer.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\singer\\singer.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "singer": [
@@ -31876,7 +31876,7 @@
         1
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\culture_company\\culture_company.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\culture_company\\culture_company.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "book_club": [
@@ -32108,7 +32108,7 @@
         9
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\cre_Doc_Template_Mgt\\cre_Doc_Template_Mgt.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\cre_Doc_Template_Mgt\\cre_Doc_Template_Mgt.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "ref_template_types": [
@@ -32290,7 +32290,7 @@
         8
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\musical\\musical.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\musical\\musical.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "musical": [
@@ -32590,7 +32590,7 @@
         8
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\world_1\\world_1.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\world_1\\world_1.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "city": [
@@ -32797,7 +32797,7 @@
         7
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\device\\device.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\device\\device.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "device": [
@@ -33304,7 +33304,7 @@
         29
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\tracking_grants_for_research\\tracking_grants_for_research.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\tracking_grants_for_research\\tracking_grants_for_research.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "document_types": [
@@ -33577,7 +33577,7 @@
         1
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\employee_hire_evaluation\\employee_hire_evaluation.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\employee_hire_evaluation\\employee_hire_evaluation.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "employee": [
@@ -33738,7 +33738,7 @@
         1
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\movie_1\\movie_1.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\movie_1\\movie_1.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "movie": [
@@ -33872,7 +33872,7 @@
         1
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\network_1\\network_1.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\network_1\\network_1.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "highschooler": [
@@ -34024,7 +34024,7 @@
         7
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\poker_player\\poker_player.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\poker_player\\poker_player.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "poker_player": [
@@ -34250,7 +34250,7 @@
         6
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\program_share\\program_share.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\program_share\\program_share.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "program": [
@@ -34588,7 +34588,7 @@
         17
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\aircraft\\aircraft.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\aircraft\\aircraft.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "pilot": [
@@ -34874,7 +34874,7 @@
         1
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\restaurant_1\\restaurant_1.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\restaurant_1\\restaurant_1.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "student": [
@@ -35508,7 +35508,7 @@
         43
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\customers_and_invoices\\customers_and_invoices.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\customers_and_invoices\\customers_and_invoices.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "customers": [
@@ -35927,7 +35927,7 @@
         10
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\insurance_and_eClaims\\insurance_and_eClaims.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\insurance_and_eClaims\\insurance_and_eClaims.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "customers": [
@@ -36443,7 +36443,7 @@
         11
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\college_1\\college_1.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\college_1\\college_1.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "class": [
@@ -36735,7 +36735,7 @@
         3
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\local_govt_mdm\\local_govt_mdm.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\local_govt_mdm\\local_govt_mdm.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "customer_master_index": [
@@ -36889,7 +36889,7 @@
         6
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\book_2\\book_2.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\book_2\\book_2.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "publication": [
@@ -37296,7 +37296,7 @@
         3
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\hr_1\\hr_1.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\hr_1\\hr_1.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "regions": [
@@ -38189,7 +38189,7 @@
         59
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\soccer_1\\soccer_1.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\soccer_1\\soccer_1.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "player_attributes": [
@@ -39252,7 +39252,7 @@
         75
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\sakila_1\\sakila_1.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\sakila_1\\sakila_1.sqlite",
     "empty_tables": [
       "film_text",
       "language",
@@ -39771,7 +39771,7 @@
         5
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\real_estate_properties\\real_estate_properties.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\real_estate_properties\\real_estate_properties.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "ref_feature_types": [
@@ -40256,7 +40256,7 @@
         1
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\college_3\\college_3.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\college_3\\college_3.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "student": [
@@ -40448,7 +40448,7 @@
         1
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\course_teach\\course_teach.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\course_teach\\course_teach.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "course": [
@@ -40630,7 +40630,7 @@
         10
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\roller_coaster\\roller_coaster.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\roller_coaster\\roller_coaster.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "roller_coaster": [
@@ -41232,7 +41232,7 @@
         39
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\customer_deliveries\\customer_deliveries.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\customer_deliveries\\customer_deliveries.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "products": [
@@ -41536,7 +41536,7 @@
         8
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\game_injury\\game_injury.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\game_injury\\game_injury.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "stadium": [
@@ -41780,7 +41780,7 @@
         1
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\school_finance\\school_finance.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\school_finance\\school_finance.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "school": [
@@ -42122,7 +42122,7 @@
         11
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\scholar\\scholar.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\scholar\\scholar.sqlite",
     "empty_tables": [
       "venue",
       "author",
@@ -42306,7 +42306,7 @@
         2
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\voter_1\\voter_1.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\voter_1\\voter_1.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "area_code_state": [
@@ -42564,7 +42564,7 @@
         5
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\match_season\\match_season.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\match_season\\match_season.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "country": [
@@ -42694,7 +42694,7 @@
         1
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\small_bank_1\\small_bank_1.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\small_bank_1\\small_bank_1.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "accounts": [
@@ -43142,7 +43142,7 @@
         1
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\wta_1\\wta_1.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\wta_1\\wta_1.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "players": [
@@ -43612,7 +43612,7 @@
         2
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\yelp\\yelp.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\yelp\\yelp.sqlite",
     "empty_tables": [
       "business",
       "category",
@@ -43770,7 +43770,7 @@
       5
     ],
     "foreign_keys": [],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\student_1\\student_1.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\student_1\\student_1.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "list": [
@@ -43936,7 +43936,7 @@
         1
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\manufacturer\\manufacturer.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\manufacturer\\manufacturer.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "manufacturer": [
@@ -44657,7 +44657,7 @@
         63
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\store_1\\store_1.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\store_1\\store_1.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "artists": [
@@ -44920,7 +44920,7 @@
         9
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\train_station\\train_station.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\train_station\\train_station.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "station": [
@@ -45303,7 +45303,7 @@
         25
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\document_management\\document_management.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\document_management\\document_management.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "roles": [
@@ -46335,7 +46335,7 @@
         10
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\formula_1\\formula_1.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\formula_1\\formula_1.sqlite",
     "empty_tables": [
       "pitStops",
       "lapTimes"
@@ -46681,7 +46681,7 @@
         1
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\game_1\\game_1.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\game_1\\game_1.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "student": [
@@ -46917,7 +46917,7 @@
         1
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\loan_1\\loan_1.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\loan_1\\loan_1.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "bank": [
@@ -47399,7 +47399,7 @@
         1
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\bike_1\\bike_1.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\bike_1\\bike_1.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "station": [
@@ -47583,7 +47583,7 @@
         6
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\entrepreneur\\entrepreneur.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\entrepreneur\\entrepreneur.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "entrepreneur": [
@@ -47857,7 +47857,7 @@
         12
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\orchestra\\orchestra.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\orchestra\\orchestra.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "conductor": [
@@ -48963,7 +48963,7 @@
         72
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\cre_Drama_Workshop_Groups\\cre_Drama_Workshop_Groups.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\cre_Drama_Workshop_Groups\\cre_Drama_Workshop_Groups.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "ref_payment_methods": [
@@ -49373,7 +49373,7 @@
         13
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\car_1\\car_1.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\car_1\\car_1.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "continents": [
@@ -49743,7 +49743,7 @@
         1
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\geo\\geo.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\geo\\geo.sqlite",
     "empty_tables": [
       "state",
       "city",
@@ -50482,7 +50482,7 @@
         41
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\behavior_monitoring\\behavior_monitoring.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\behavior_monitoring\\behavior_monitoring.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "ref_address_types": [
@@ -50967,7 +50967,7 @@
         18
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\cre_Doc_Tracking_DB\\cre_Doc_Tracking_DB.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\cre_Doc_Tracking_DB\\cre_Doc_Tracking_DB.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "ref_document_types": [
@@ -51236,7 +51236,7 @@
         13
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\university_basketball\\university_basketball.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\university_basketball\\university_basketball.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "basketball_match": [
@@ -51406,7 +51406,7 @@
         4
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\soccer_2\\soccer_2.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\soccer_2\\soccer_2.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "college": [
@@ -51680,7 +51680,7 @@
         15
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\activity_1\\activity_1.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\activity_1\\activity_1.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "activity": [
@@ -52314,7 +52314,7 @@
         18
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\cre_Theme_park\\cre_Theme_park.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\cre_Theme_park\\cre_Theme_park.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "ref_hotel_star_ratings": [
@@ -52548,7 +52548,7 @@
         7
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\twitter_1\\twitter_1.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\twitter_1\\twitter_1.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "follows": [
@@ -52713,7 +52713,7 @@
         8
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\election_representative\\election_representative.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\election_representative\\election_representative.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "election": [
@@ -52945,7 +52945,7 @@
         1
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\voter_2\\voter_2.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\voter_2\\voter_2.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "student": [
@@ -53143,7 +53143,7 @@
         6
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\wedding\\wedding.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\wedding\\wedding.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "people": [
@@ -53327,7 +53327,7 @@
         6
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\news_report\\news_report.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\news_report\\news_report.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "event": [
@@ -53572,7 +53572,7 @@
         2
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\wine_1\\wine_1.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\wine_1\\wine_1.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "grapes": [
@@ -53958,7 +53958,7 @@
         8
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\customers_and_addresses\\customers_and_addresses.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\customers_and_addresses\\customers_and_addresses.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "addresses": [
@@ -54249,7 +54249,7 @@
         7
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\protein_institute\\protein_institute.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\protein_institute\\protein_institute.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "building": [
@@ -54565,7 +54565,7 @@
         1
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\school_player\\school_player.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\school_player\\school_player.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "school": [
@@ -54835,7 +54835,7 @@
         8
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\phone_1\\phone_1.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\phone_1\\phone_1.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "chip_model": [
@@ -55134,7 +55134,7 @@
         1
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\tvshow\\tvshow.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\tvshow\\tvshow.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "tv_channel": [
@@ -55313,7 +55313,7 @@
         1
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\wrestler\\wrestler.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\wrestler\\wrestler.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "wrestler": [
@@ -55661,7 +55661,7 @@
         1
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\customer_complaints\\customer_complaints.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\customer_complaints\\customer_complaints.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "staff": [
@@ -55864,7 +55864,7 @@
         1
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\department_management\\department_management.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\department_management\\department_management.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "department": [
@@ -56267,7 +56267,7 @@
         7
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\customers_and_products_contacts\\customers_and_products_contacts.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\customers_and_products_contacts\\customers_and_products_contacts.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "addresses": [
@@ -56615,7 +56615,7 @@
       27
     ],
     "foreign_keys": [],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\company_1\\company_1.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\company_1\\company_1.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "works_on": [
@@ -56801,7 +56801,7 @@
         5
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\workshop_paper\\workshop_paper.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\workshop_paper\\workshop_paper.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "workshop": [
@@ -56983,7 +56983,7 @@
         8
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\epinions_1\\epinions_1.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\epinions_1\\epinions_1.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "item": [
@@ -57167,7 +57167,7 @@
         7
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\party_host\\party_host.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\party_host\\party_host.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "party": [
@@ -57507,7 +57507,7 @@
         12
       ]
     ],
-    "sqlite_path": "data\\benchmarks\\spider\\sqlite\\database\\product_catalog\\product_catalog.sqlite",
+    "sqlite_path": "C:\\projects\\CP683\\debugsql\\data\\benchmarks\\spider\\sqlite\\database\\product_catalog\\product_catalog.sqlite",
     "empty_tables": [],
     "actual_sqlite_schema": {
       "attribute_definitions": [
