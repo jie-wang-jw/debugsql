@@ -19,7 +19,7 @@ interface SuggestedPromptsProps {
 const DEFAULT_PROMPTS: SuggestedPrompt[] = [
   {
     id: 'p1',
-    label: 'Write a Spider question',
+    label: 'Write a benchmark question',
     description: 'Ask a question about the selected database schema',
     icon: 'question',
   },
@@ -65,7 +65,7 @@ export function SuggestedPrompts({
 
       <div className="sp-cards">
         <p className="sp-cards__label">
-          {databaseLabel ? `Spider examples from ${databaseLabel}` : 'Try a suggestion'}
+          {databaseLabel ? `Example questions from ${databaseLabel}` : 'Try a suggestion'}
         </p>
         <div className="sp-cards__grid">
           {visiblePrompts.map((prompt, i) => {

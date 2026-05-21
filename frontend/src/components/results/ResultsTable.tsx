@@ -10,7 +10,6 @@
 // TODO: Support infinite-scroll streaming rows from backend
 // ================================================
 
-import { motion } from 'framer-motion';
 import type { ExecutionColumn, ExecutionRow } from '../../types/execution.types';
 
 interface ResultsTableProps {
@@ -24,39 +23,43 @@ function isNumericColumn(rows: ExecutionRow[], key: string): boolean {
 }
 
 /** Formats a single cell value for display. */
-function formatCellValue(value: string | number | null): string {
+function formatCellValue(value: unknown): string {
   if (value === null || value === undefined) return '—';
   if (typeof value === 'number') {
-    // Use locale formatting for large numbers / decimals
     return value % 1 !== 0
       ? value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
       : value.toLocaleString('en-US');
   }
+  if (typeof value === 'boolean') return value ? 'true' : 'false';
   return String(value);
 }
 
-const ROW_VARIANTS = {
-  hidden:  { opacity: 0, y: 4 },
-  visible: (i: number) => ({
-    opacity: 1,
-    y: 0,
-    transition: { delay: i * 0.03, duration: 0.2, ease: 'easeOut' as const },
-  }),
-};
+/** Build column headers when API omits them but rows contain keys. */
+function resolveColumns(columns: ExecutionColumn[], rows: ExecutionRow[]): ExecutionColumn[] {
+  if (columns.length > 0) return columns;
+  const first = rows[0];
+  if (!first) return [];
+  return Object.keys(first).map((key) => ({ key, label: key }));
+}
 
 export function ResultsTable({ columns, rows }: ResultsTableProps) {
+  const resolvedColumns = resolveColumns(columns, rows);
+
+  if (resolvedColumns.length === 0) {
+    return (
+      <div className="results-table-wrap results-table-wrap--empty">
+        <p className="results-table__empty">No rows returned.</p>
+      </div>
+    );
+  }
+
   return (
-    <motion.div
-      className="results-table-wrap"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.3 }}
-    >
+    <div className="results-table-wrap">
       <div className="results-table-scroll">
         <table className="results-table" aria-label="Query results">
           <thead>
             <tr>
-              {columns.map((col) => (
+              {resolvedColumns.map((col) => (
                 <th
                   key={col.key}
                   className={`results-table__th ${isNumericColumn(rows, col.key) ? 'results-table__th--num' : ''}`}
@@ -68,15 +71,8 @@ export function ResultsTable({ columns, rows }: ResultsTableProps) {
           </thead>
           <tbody>
             {rows.map((row, rowIdx) => (
-              <motion.tr
-                key={rowIdx}
-                className="results-table__row"
-                custom={rowIdx}
-                variants={ROW_VARIANTS}
-                initial="hidden"
-                animate="visible"
-              >
-                {columns.map((col) => {
+              <tr key={rowIdx} className="results-table__row">
+                {resolvedColumns.map((col) => {
                   const value = row[col.key] ?? null;
                   const isNum = typeof value === 'number';
                   return (
@@ -92,11 +88,11 @@ export function ResultsTable({ columns, rows }: ResultsTableProps) {
                     </td>
                   );
                 })}
-              </motion.tr>
+              </tr>
             ))}
           </tbody>
         </table>
       </div>
-    </motion.div>
+    </div>
   );
 }

@@ -79,15 +79,18 @@
 /* ================================================
    Benchmark / database selector
    ================================================ */
+.dataset-selector-wrap {
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border-default);
+}
+
 .dataset-selector {
   display: grid;
   grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.4fr) auto;
   align-items: end;
   gap: 8px;
   padding: 10px 12px;
-  border-bottom: 1px solid var(--border-default);
   background: var(--bg-surface);
-  flex-shrink: 0;
 }
 
 .dataset-selector__field {
@@ -138,6 +141,22 @@
 .dataset-selector__meta {
   padding: 0 8px;
   white-space: nowrap;
+}
+
+.dataset-selector__warning {
+  margin: 0;
+  padding: 8px 12px 10px;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+  background: rgba(251, 191, 36, 0.08);
+  border-top: 1px solid rgba(251, 191, 36, 0.2);
+}
+
+.dataset-selector__warning code {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--accent-blue-light);
 }
 
 /* ================================================

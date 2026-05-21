@@ -11,10 +11,17 @@ from typing import Any
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 BENCHMARK_ROOT = PROJECT_ROOT / "data" / "benchmarks"
 SPIDER_ROOT = BENCHMARK_ROOT / "spider"
+BIRD_ROOT = BENCHMARK_ROOT / "bird"
+
+SQLITE_ROOTS: dict[str, Path] = {
+    "spider": SPIDER_ROOT / "sqlite" / "database",
+    "bird": BIRD_ROOT / "sqlite",
+}
 
 
 def list_benchmarks() -> list[dict[str, Any]]:
     spider_dbs = list_spider_databases()
+    bird_dbs = list_bird_databases()
     return [
         {
             "id": "spider",
@@ -25,30 +32,39 @@ def list_benchmarks() -> list[dict[str, Any]]:
         {
             "id": "bird",
             "label": "BIRD",
-            "status": "placeholder",
-            "databaseCount": 0,
+            "status": "ready" if bird_dbs else "missing",
+            "databaseCount": len(bird_dbs),
         },
     ]
 
 
 def list_databases(benchmark: str) -> list[dict[str, Any]]:
-    if benchmark != "spider":
-        return []
-    return list_spider_databases()
+    if benchmark == "spider":
+        return list_spider_databases()
+    if benchmark == "bird":
+        return list_bird_databases()
+    return []
 
 
-@lru_cache(maxsize=1)
 def list_spider_databases() -> list[dict[str, Any]]:
-    schemas = _load_spider_schema()
-    questions_by_db = _load_spider_questions_by_db()
-    database_root = SPIDER_ROOT / "sqlite" / "database"
+    return _list_benchmark_databases("spider")
+
+
+def list_bird_databases() -> list[dict[str, Any]]:
+    return _list_benchmark_databases("bird")
+
+
+def _list_benchmark_databases(benchmark: str) -> list[dict[str, Any]]:
+    schemas = _load_schema(benchmark)
+    questions_by_db = _load_questions_by_db(benchmark)
+    database_root = SQLITE_ROOTS[benchmark]
     databases: list[dict[str, Any]] = []
 
     for db_id in sorted(schemas):
         sqlite_path = database_root / db_id / f"{db_id}.sqlite"
         databases.append(
             {
-                "benchmark": "spider",
+                "benchmark": benchmark,
                 "dbId": db_id,
                 "label": db_id,
                 "hasSQLite": sqlite_path.exists(),
@@ -60,9 +76,9 @@ def list_spider_databases() -> list[dict[str, Any]]:
 
 
 def get_schema_context(benchmark: str | None, db_id: str | None) -> dict[str, Any] | None:
-    if benchmark != "spider" or not db_id:
+    if benchmark not in SQLITE_ROOTS or not db_id:
         return None
-    schema = _load_spider_schema().get(db_id)
+    schema = _load_schema(benchmark).get(db_id)
     if not schema:
         return None
 
@@ -84,22 +100,41 @@ def get_schema_context(benchmark: str | None, db_id: str | None) -> dict[str, An
 
 
 def find_spider_gold_sql(db_id: str | None, question: str) -> str | None:
-    if not db_id:
+    return find_benchmark_gold_sql("spider", db_id, question)
+
+
+def find_bird_gold_sql(db_id: str | None, question: str) -> str | None:
+    return find_benchmark_gold_sql("bird", db_id, question)
+
+
+def find_benchmark_gold_sql(benchmark: str, db_id: str | None, question: str) -> str | None:
+    if benchmark not in SQLITE_ROOTS or not db_id:
         return None
     normalized = _normalize_question(question)
-    for item in _load_spider_questions_by_db(full=True).get(db_id, []):
+    for item in _load_questions_by_db(benchmark, full=True).get(db_id, []):
         if _normalize_question(item.get("question", "")) == normalized:
             return item.get("query")
     return None
 
 
 def execute_spider_sql(db_id: str, sql: str) -> dict[str, Any]:
+    return execute_benchmark_sql("spider", db_id, sql)
+
+
+def execute_bird_sql(db_id: str, sql: str) -> dict[str, Any]:
+    return execute_benchmark_sql("bird", db_id, sql)
+
+
+def execute_benchmark_sql(benchmark: str, db_id: str, sql: str) -> dict[str, Any]:
     if not _is_safe_read_query(sql):
         return _error_result(sql, "Only read-only SELECT/WITH SQL can be executed against benchmark databases.")
 
-    sqlite_path = SPIDER_ROOT / "sqlite" / "database" / db_id / f"{db_id}.sqlite"
+    if benchmark not in SQLITE_ROOTS:
+        return _error_result(sql, f"Unknown benchmark '{benchmark}'.")
+
+    sqlite_path = SQLITE_ROOTS[benchmark] / db_id / f"{db_id}.sqlite"
     if not sqlite_path.exists():
-        return _error_result(sql, f"SQLite database was not found for Spider db_id '{db_id}'.")
+        return _error_result(sql, f"SQLite database was not found for {benchmark} db_id '{db_id}'.")
 
     start = time.perf_counter()
     try:
@@ -126,6 +161,14 @@ def execute_spider_sql(db_id: str, sql: str) -> dict[str, Any]:
     }
 
 
+def _load_schema(benchmark: str) -> dict[str, Any]:
+    if benchmark == "spider":
+        return _load_spider_schema()
+    if benchmark == "bird":
+        return _load_bird_schema()
+    return {}
+
+
 @lru_cache(maxsize=1)
 def _load_spider_schema() -> dict[str, Any]:
     path = SPIDER_ROOT / "processed" / "clean_schema.json"
@@ -134,9 +177,35 @@ def _load_spider_schema() -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+@lru_cache(maxsize=1)
+def _load_bird_schema() -> dict[str, Any]:
+    path = BIRD_ROOT / "processed" / "clean_schema.json"
+    if not path.exists():
+        return {}
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _load_questions_by_db(benchmark: str, full: bool = False) -> dict[str, list[dict[str, Any]]]:
+    if benchmark == "spider":
+        return _load_spider_questions_by_db(full=full)
+    if benchmark == "bird":
+        return _load_bird_questions_by_db(full=full)
+    return {}
+
+
 @lru_cache(maxsize=2)
 def _load_spider_questions_by_db(full: bool = False) -> dict[str, list[dict[str, Any]]]:
     path = SPIDER_ROOT / "processed" / "clean_dev.json"
+    return _group_questions_by_db(path, full)
+
+
+@lru_cache(maxsize=2)
+def _load_bird_questions_by_db(full: bool = False) -> dict[str, list[dict[str, Any]]]:
+    path = BIRD_ROOT / "processed" / "clean_dev.json"
+    return _group_questions_by_db(path, full)
+
+
+def _group_questions_by_db(path: Path, full: bool) -> dict[str, list[dict[str, Any]]]:
     if not path.exists():
         return {}
 

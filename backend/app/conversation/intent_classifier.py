@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from app.benchmark_registry import find_spider_gold_sql
+from app.benchmark_registry import SQLITE_ROOTS, find_benchmark_gold_sql
 from app.conversation.schemas import ConversationIntent
 
 
@@ -57,7 +57,7 @@ def classify_message(message: str, dataset_context: dict | None = None) -> Conve
             reason="Message is asking about system or benchmark usage.",
         )
 
-    if benchmark == "spider" and db_id and any(term in text for term in SCHEMA_TERMS):
+    if benchmark in SQLITE_ROOTS and db_id and any(term in text for term in SCHEMA_TERMS):
         return ConversationIntent(
             intent_type="schema_overview",
             confidence=0.85,
@@ -66,15 +66,15 @@ def classify_message(message: str, dataset_context: dict | None = None) -> Conve
             reason="Message asks about database structure.",
         )
 
-    if benchmark == "spider" and db_id:
-        gold_sql = find_spider_gold_sql(db_id, message)
+    if benchmark in SQLITE_ROOTS and db_id:
+        gold_sql = find_benchmark_gold_sql(benchmark, db_id, message)
         if gold_sql:
             return ConversationIntent(
                 intent_type="benchmark_query",
                 confidence=0.95,
                 requires_plan=True,
                 requires_execution=True,
-                reason="Message matches a Spider sample question.",
+                reason=f"Message matches a {benchmark.upper()} sample question.",
             )
 
         return ConversationIntent(
@@ -82,7 +82,9 @@ def classify_message(message: str, dataset_context: dict | None = None) -> Conve
             confidence=0.75,
             requires_plan=False,
             requires_execution=False,
-            reason="Spider question does not match a sample and no NL2SQL provider is connected.",
+            reason=(
+                f"{benchmark.upper()} question does not match a sample and no NL2SQL provider is connected."
+            ),
         )
 
     return ConversationIntent(

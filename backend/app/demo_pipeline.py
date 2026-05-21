@@ -6,7 +6,12 @@ import re
 import time
 from typing import Any
 
-from app.benchmark_registry import execute_spider_sql, find_spider_gold_sql, get_schema_context
+from app.benchmark_registry import (
+    SQLITE_ROOTS,
+    execute_benchmark_sql,
+    find_benchmark_gold_sql,
+    get_schema_context,
+)
 from app.planning.provider import get_ir_to_plan_provider
 from app.planning.schemas import PlanNode, PlanningRequest, QueryPlan
 
@@ -80,14 +85,14 @@ def generate_plan_for_message(
         PLAN_STORE[stored["plan"]["plan_id"]] = stored
         return stored
 
-    if benchmark == "spider" and db_id and _is_schema_overview_request(message, db_id):
+    if benchmark in SQLITE_ROOTS and db_id and _is_schema_overview_request(message, db_id):
         stored = _build_schema_overview_plan(message, session_id, dataset_context)
         PLAN_STORE[stored["plan"]["plan_id"]] = stored
         return stored
 
-    gold_sql = find_spider_gold_sql(db_id, message) if benchmark == "spider" else None
-    if benchmark == "spider" and db_id and not gold_sql:
-        stored = _build_spider_guidance_plan(message, session_id, dataset_context)
+    gold_sql = find_benchmark_gold_sql(benchmark, db_id, message) if benchmark in SQLITE_ROOTS else None
+    if benchmark in SQLITE_ROOTS and db_id and not gold_sql:
+        stored = _build_benchmark_guidance_plan(message, session_id, dataset_context)
         PLAN_STORE[stored["plan"]["plan_id"]] = stored
         return stored
 
@@ -116,10 +121,14 @@ def generate_plan_for_message(
     plan = get_ir_to_plan_provider().generate_plan(request)
     if gold_sql and plan.executable:
         plan.executable.content = gold_sql
-        plan.metadata["template"] = "spider_gold_sql"
+        plan.metadata["template"] = "benchmark_gold_sql"
     graph = query_plan_to_graph(plan, message)
     assistant_content = (
-        _benchmark_query_content(plan.executable.content, graph)
+        _benchmark_query_content(
+            plan.executable.content,
+            graph,
+            (dataset_context or {}).get("benchmark"),
+        )
         if gold_sql and plan.executable
         else _assistant_content((plan.executable.content if plan.executable else ""), graph)
     )
@@ -160,15 +169,17 @@ def update_plan_node(plan_id: str, node_id: str, data: dict[str, Any]) -> dict[s
 
 def run_demo_execution(sql_or_query: str, session_id: str | None = None, plan_id: str | None = None) -> dict[str, Any]:
     run_id = _stable_id("run", {"sql": sql_or_query, "session": session_id, "plan": plan_id, "time": time.time()})
-    if _plan_template(plan_id) == "spider_guidance":
+    if _plan_template(plan_id) in {"spider_guidance", "benchmark_guidance"}:
         result = _guidance_execution_result(plan_id)
         RUN_STORE[run_id] = result
         return {"runId": run_id, "status": "running"}
 
     sql = _execution_sql(sql_or_query, plan_id)
     dataset_context = _plan_dataset_context(plan_id)
-    if dataset_context and dataset_context.get("benchmark") == "spider" and dataset_context.get("dbId"):
-        result = execute_spider_sql(dataset_context["dbId"], sql)
+    benchmark = (dataset_context or {}).get("benchmark")
+    db_id = (dataset_context or {}).get("dbId")
+    if benchmark in SQLITE_ROOTS and db_id:
+        result = execute_benchmark_sql(benchmark, db_id, sql)
     else:
         rows, columns = _execution_rows(sql)
         result = {
@@ -332,7 +343,7 @@ def _build_schema_overview_plan(
             "executable": {"type": "sql", "dialect": "sqlite", "content": sql},
             "metadata": {
                 "provider": "backend_demo_template",
-                "template": "spider_schema_overview",
+                "template": "benchmark_schema_overview",
                 "dataset_context": dataset_context,
                 "benchmark": benchmark,
                 "db_id": db_id,
@@ -344,7 +355,7 @@ def _build_schema_overview_plan(
     }
 
 
-def _build_spider_guidance_plan(
+def _build_benchmark_guidance_plan(
     message: str,
     session_id: str | None,
     dataset_context: dict[str, Any] | None,
@@ -372,7 +383,7 @@ def _build_spider_guidance_plan(
                 80,
                 "GUIDANCE",
                 "Unsupported request",
-                "No matching Spider sample question or schema overview intent",
+                "No matching benchmark sample question or schema overview intent",
                 0,
                 0.0,
             ),
@@ -409,14 +420,14 @@ def _build_spider_guidance_plan(
             "executable": {"type": "none", "dialect": "sqlite", "content": ""},
             "metadata": {
                 "provider": "backend_demo_template",
-                "template": "spider_guidance",
+                "template": "benchmark_guidance",
                 "dataset_context": dataset_context,
                 "benchmark": benchmark,
                 "db_id": db_id,
             },
         },
         "graph": graph,
-        "assistant_content": _spider_guidance_content(db_id),
+        "assistant_content": _benchmark_guidance_content(benchmark, db_id),
         "created_at": time.time(),
     }
 
@@ -546,9 +557,14 @@ def _assistant_content(sql: str, graph: dict[str, Any]) -> str:
     )
 
 
-def _benchmark_query_content(sql: str, graph: dict[str, Any]) -> str:
+def _benchmark_query_content(
+    sql: str,
+    graph: dict[str, Any],
+    benchmark: str | None = None,
+) -> str:
+    label = (benchmark or "benchmark").upper()
     return (
-        "I matched this question to a Spider benchmark example and generated an executable plan.\n\n"
+        f"I matched this question to a {label} dev example and generated an executable plan.\n\n"
         f"```sql\n{sql}\n```\n\n"
         f"The plan can be inspected and executed against the selected SQLite database. Total cost: **{graph['totalCost']:.1f}**."
     )
@@ -561,19 +577,20 @@ def _schema_overview_assistant_content(db_id: str | None, tables: list[dict[str,
     )
     more = f"\n- ... {len(tables) - 8} more tables" if len(tables) > 8 else ""
     return (
-        f"I found the Spider database **{db_id}**. It contains **{len(tables)} tables**.\n\n"
+        f"I found the selected database **{db_id}**. It contains **{len(tables)} tables**.\n\n"
         f"{preview}{more}\n\n"
         f"```sql\n{sql}\n```"
     )
 
 
-def _spider_guidance_content(db_id: str | None) -> str:
+def _benchmark_guidance_content(benchmark: str | None, db_id: str | None) -> str:
+    label = (benchmark or "benchmark").upper()
     return (
-        f"I cannot generate a reliable SQL query for **{db_id}** from this request yet.\n\n"
+        f"I cannot generate a reliable SQL query for **{db_id}** ({label}) from this request yet.\n\n"
         "Current MVP behavior:\n"
-        "- Click one of the Spider example questions for the selected database.\n"
+        f"- Click one of the {label} example questions for the selected database.\n"
         "- Ask what tables/columns are inside the selected database.\n"
-        "- Use exact Spider dev questions to test real SQLite execution.\n\n"
+        f"- Use exact {label} dev questions to test real SQLite execution.\n\n"
         "The next step is to connect the real NL2SQL provider so arbitrary benchmark questions "
         "can be converted into IR and SQL."
     )
@@ -581,7 +598,9 @@ def _spider_guidance_content(db_id: str | None) -> str:
 
 def _guidance_execution_result(plan_id: str | None) -> dict[str, Any]:
     stored = PLAN_STORE.get(plan_id or "", {})
-    db_id = ((stored.get("dataset_context") or {}).get("dbId")) or "selected database"
+    dataset_context = stored.get("dataset_context") or {}
+    db_id = dataset_context.get("dbId") or "selected database"
+    benchmark_label = (dataset_context.get("benchmark") or "benchmark").upper()
     return {
         "sql": "",
         "columns": [
@@ -591,7 +610,10 @@ def _guidance_execution_result(plan_id: str | None) -> dict[str, Any]:
         "rows": [
             {
                 "status": "not_executable",
-                "message": f"No SQL was generated for {db_id}. Use a Spider sample question or ask for schema overview.",
+                "message": (
+                    f"No SQL was generated for {db_id}. "
+                    f"Use a {benchmark_label} sample question or ask for the schema overview."
+                ),
             }
         ],
         "metrics": {

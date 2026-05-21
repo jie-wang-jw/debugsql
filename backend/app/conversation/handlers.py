@@ -62,7 +62,7 @@ def _help_content(dataset_context: dict | None) -> str:
     return (
         "DebugSQL currently supports three MVP workflows:\n\n"
         f"1. Select a benchmark/database, currently **{benchmark} / {db_id}**.\n"
-        "2. Click a Spider example question to test real SQLite execution.\n"
+        "2. Click a Spider or BIRD example question to test real SQLite execution.\n"
         "3. Ask schema questions such as `what tables are inside this database?`.\n\n"
         "For arbitrary natural-language benchmark questions, the next step is connecting the "
         "real NL2SQL provider. Until then, unsupported questions return guidance instead of fake SQL."
@@ -74,7 +74,7 @@ def _unsupported_content(dataset_context: dict | None) -> str:
     return (
         f"I cannot generate reliable SQL for **{db_id}** from this question yet.\n\n"
         "Please try one of these:\n"
-        "- Click a Spider example question shown in the chat panel.\n"
+        "- Click a Spider or BIRD example question shown in the chat panel.\n"
         "- Ask what tables or columns are inside the selected database.\n"
         "- Wait until the real NL2SQL provider is connected for arbitrary questions.\n\n"
         "I did not create a query plan because doing so would risk showing incorrect SQL."

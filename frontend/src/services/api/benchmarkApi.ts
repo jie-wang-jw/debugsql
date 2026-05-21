@@ -1,8 +1,8 @@
 // ================================================
 // DebugSQL - Benchmark API
 //
-// Dataset/database registry used by the frontend selector. The current backend
-// exposes Spider metadata and leaves BIRD as a placeholder until downloaded.
+// Dataset/database registry used by the frontend selector. The backend exposes
+// Spider and BIRD metadata; SQLite execution works when databases are on disk.
 // ================================================
 
 import { apiGet } from './client';

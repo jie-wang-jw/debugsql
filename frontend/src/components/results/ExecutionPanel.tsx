@@ -207,18 +207,11 @@ export function ExecutionPanel() {
           )}
 
           {status === 'success' && result && (
-            <motion.div
-              key="success"
-              className="exec-panel__results"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-            >
+            <div key="success" className="exec-panel__results">
               <MetricsBar />
               <SQLPreview sql={result.sql} />
               <ResultsTable columns={result.columns} rows={result.rows} />
-            </motion.div>
+            </div>
           )}
 
         </AnimatePresence>
