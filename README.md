@@ -272,6 +272,9 @@ If deploying to a remote Linux server, update `.env` before building:
 FRONTEND_PORT=80
 VITE_API_BASE_URL=/api
 CORS_ORIGINS=http://SERVER_IP,http://SERVER_IP:80,http://localhost:5173,http://127.0.0.1:5173
+APP_BASE_URL=http://SERVER_IP/api
+FRONTEND_BASE_URL=http://SERVER_IP
+DEBUGSQL_AUTO_LOGIN=0
 ```
 
 Then open:
@@ -306,6 +309,12 @@ debugsql/
 GET /health
 GET /db-health
 GET /hello
+GET /auth/me
+POST /auth/logout
+GET /auth/github/login
+GET /auth/github/callback
+GET /auth/google/login
+GET /auth/google/callback
 GET /benchmarks
 GET /benchmarks/spider/databases
 POST /query
@@ -313,7 +322,21 @@ GET /query-plan/{plan_id}
 PATCH /query-plan/{plan_id}/nodes/{node_id}
 POST /execute
 GET /execute/{run_id}/result
+GET /history/summary
+GET /history/conversations/{conversation_id}
 POST /planning/generate
+```
+
+OAuth login uses cookie-backed sessions stored in the system database. Configure
+these variables before disabling dev auto-login:
+
+```env
+SESSION_SECRET=replace_with_a_long_random_value
+AUTH_COOKIE_NAME=debugsql_session
+GITHUB_CLIENT_ID=
+GITHUB_CLIENT_SECRET=
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
 ```
 
 ## IR-to-Plan Provider
@@ -429,9 +452,7 @@ curl http://127.0.0.1:8000/history/summary
 
 1. Replace the deterministic demo NL2SQL path with a real NL-to-IR provider.
 2. Expand Spider/BIRD benchmark execution beyond exact sample-question matching.
-3. Replace dev auto-login with GitHub OAuth for real users.
-4. Extend persistence from audit-log storage to DB-backed runtime state.
-5. Add evaluation scripts for Execution Accuracy, DRR, IRR, and edit counts.
-6. Add richer Inspector JSON editing and downstream plan regeneration.
-7. Add streaming execution progress and cancellation.
+3. Add evaluation scripts for Execution Accuracy, DRR, IRR, and edit counts.
+4. Add richer Inspector JSON editing for complex IR payloads.
+5. Add streaming execution progress and cancellation.
 

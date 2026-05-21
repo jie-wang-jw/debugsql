@@ -34,6 +34,15 @@ export interface QueryPlanRunStatus {
   totalSteps: number;
 }
 
+export interface QueryPlanEditResult {
+  status: 'regenerated' | 'graph_updated' | 'needs_replan' | 'missing_plan' | 'missing_node' | string;
+  message: string;
+  executableAvailable?: boolean;
+  needsReplan?: boolean;
+  downstreamNodeIds?: string[];
+  operationType?: string;
+}
+
 export interface OperationNodeData {
   kind: 'operation';
   operationType: OperationType;
@@ -72,4 +81,7 @@ export interface QueryPlanGraph {
   queryLabel: string;
   totalCost: number;
   runStatus?: QueryPlanRunStatus;
+  editStatus?: QueryPlanEditResult;
+  lastEditResult?: QueryPlanEditResult;
+  needsReplan?: boolean;
 }

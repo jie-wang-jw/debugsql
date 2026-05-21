@@ -28,3 +28,7 @@ export async function logout(): Promise<void> {
 export function githubLoginUrl(): string {
   return `${API_BASE_URL}/auth/github/login`;
 }
+
+export function googleLoginUrl(): string {
+  return `${API_BASE_URL}/auth/google/login`;
+}

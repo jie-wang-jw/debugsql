@@ -18,7 +18,7 @@ import {
   FiGitMerge,
 } from 'react-icons/fi';
 import type { InspectorField } from '../../types';
-import type { FlowNodeData } from '../query-plan/queryPlan.types';
+import type { FlowNodeData, QueryPlanEditResult } from '../query-plan/queryPlan.types';
 import { useQueryPlanContext } from '../../store/QueryPlanContext';
 import { useExecutionContext } from '../../store/ExecutionContext';
 import {
@@ -65,10 +65,30 @@ function getNodeIcon(data: FlowNodeData) {
   }
 }
 
+function resolveApplyHint(
+  isDirty: boolean,
+  isApplied: boolean,
+  editResult?: QueryPlanEditResult,
+): string {
+  if (isDirty) {
+    return 'Unsaved changes - click Apply to update the graph';
+  }
+  if (isApplied && editResult?.needsReplan) {
+    return `Needs full replan - ${editResult.message}`;
+  }
+  if (isApplied && editResult?.status === 'regenerated') {
+    return `Downstream replanned - ${editResult.message}`;
+  }
+  if (isApplied) {
+    return editResult?.message || 'Applied';
+  }
+  return 'Edit fields above to modify the query plan node';
+}
+
 // ---- Main component ----
 
 export function InspectorPanel() {
-  const { activePlanId, selectedNode, selectedNodeId, onNodeDataUpdate } = useQueryPlanContext();
+  const { activePlanId, graph, selectedNode, selectedNodeId, onNodeDataUpdate } = useQueryPlanContext();
   const { triggerExecution } = useExecutionContext();
 
   // Flat list of all editable/read-only fields — reset on each new selection
@@ -207,11 +227,7 @@ export function InspectorPanel() {
                 )}
               </motion.button>
               <p className="inspector__apply-hint">
-                {isDirty
-                  ? 'Unsaved changes — click Apply to update the graph'
-                  : isApplied
-                    ? 'Changes applied — graph updated'
-                    : 'Edit fields above to modify the query plan node'}
+                {resolveApplyHint(isDirty, isApplied, graph.lastEditResult)}
               </p>
             </div>
           </motion.div>

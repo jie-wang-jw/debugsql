@@ -1,7 +1,8 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
 from app.demo_pipeline import get_execution_result, run_demo_execution
+from app.request_auth import request_user_id
 
 
 router = APIRouter(prefix="/execute", tags=["execution"])
@@ -14,8 +15,13 @@ class ExecutionRequest(BaseModel):
 
 
 @router.post("")
-def execute(request: ExecutionRequest) -> dict:
-    run = run_demo_execution(request.sql, request.sessionId, request.planId)
+def execute(request: ExecutionRequest, http_request: Request) -> dict:
+    run = run_demo_execution(
+        request.sql,
+        request.sessionId,
+        request.planId,
+        user_id=request_user_id(http_request),
+    )
     return {"success": True, "data": run}
 
 

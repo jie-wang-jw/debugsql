@@ -78,6 +78,7 @@ async function request<T>(
 
   const response = await fetch(`${API_BASE_URL}${path}`, {
     method,
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
       // TODO: Add Authorization header once auth is implemented:

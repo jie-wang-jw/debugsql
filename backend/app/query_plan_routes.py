@@ -1,6 +1,6 @@
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
 from app.demo_pipeline import (
@@ -12,6 +12,7 @@ from app.demo_pipeline import (
     step_plan_run,
     update_plan_node,
 )
+from app.request_auth import request_user_id
 
 
 router = APIRouter(prefix="/query-plan", tags=["query-plan"])
@@ -31,8 +32,13 @@ def get_query_plan(plan_id: str) -> dict:
 
 
 @router.patch("/{plan_id}/nodes/{node_id}")
-def patch_query_plan_node(plan_id: str, node_id: str, request: NodeUpdateRequest) -> dict:
-    graph = update_plan_node(plan_id, node_id, request.data)
+def patch_query_plan_node(
+    plan_id: str,
+    node_id: str,
+    request: NodeUpdateRequest,
+    http_request: Request,
+) -> dict:
+    graph = update_plan_node(plan_id, node_id, request.data, user_id=request_user_id(http_request))
     if graph is None:
         raise HTTPException(status_code=404, detail=f"Query plan {plan_id} was not found")
     return {"success": True, "data": graph}
@@ -53,8 +59,8 @@ def save_query_plan_snapshot(plan_id: str) -> dict:
 
 
 @router.post("/{plan_id}/runs")
-def start_query_plan_run(plan_id: str) -> dict:
-    run = create_plan_run(plan_id)
+def start_query_plan_run(plan_id: str, request: Request) -> dict:
+    run = create_plan_run(plan_id, user_id=request_user_id(request))
     if run is None:
         raise HTTPException(status_code=404, detail=f"Query plan {plan_id} was not found")
     return {"success": True, "data": run}
@@ -69,24 +75,24 @@ def get_query_plan_run(plan_id: str, run_id: str) -> dict:
 
 
 @router.post("/{plan_id}/runs/{run_id}/step")
-def step_query_plan_run(plan_id: str, run_id: str) -> dict:
-    run = step_plan_run(plan_id, run_id)
+def step_query_plan_run(plan_id: str, run_id: str, request: Request) -> dict:
+    run = step_plan_run(plan_id, run_id, user_id=request_user_id(request))
     if run is None:
         raise HTTPException(status_code=404, detail=f"Plan run {run_id} was not found")
     return {"success": True, "data": run}
 
 
 @router.post("/{plan_id}/runs/{run_id}/full")
-def run_query_plan_to_completion(plan_id: str, run_id: str) -> dict:
-    run = run_full_plan(plan_id, run_id)
+def run_query_plan_to_completion(plan_id: str, run_id: str, request: Request) -> dict:
+    run = run_full_plan(plan_id, run_id, user_id=request_user_id(request))
     if run is None:
         raise HTTPException(status_code=404, detail=f"Plan run {run_id} was not found")
     return {"success": True, "data": run}
 
 
 @router.post("/{plan_id}/runs/{run_id}/reset")
-def reset_query_plan_run(plan_id: str, run_id: str) -> dict:
-    run = reset_plan_run(plan_id, run_id)
+def reset_query_plan_run(plan_id: str, run_id: str, request: Request) -> dict:
+    run = reset_plan_run(plan_id, run_id, user_id=request_user_id(request))
     if run is None:
         raise HTTPException(status_code=404, detail=f"Plan run {run_id} was not found")
     return {"success": True, "data": run}

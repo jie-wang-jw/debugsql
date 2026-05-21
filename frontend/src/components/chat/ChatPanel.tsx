@@ -13,6 +13,11 @@ import {
   type BenchmarkDatabaseInfo,
   type BenchmarkInfo,
 } from '../../services/api/benchmarkApi';
+import {
+  getHistoryConversation,
+  getHistorySummary,
+  type HistoryConversationSummary,
+} from '../../services/api/historyApi';
 import { useExecutionContext } from '../../store/ExecutionContext';
 import { useQueryPlanContext } from '../../store/QueryPlanContext';
 import { generateId } from '../../utils';
@@ -31,6 +36,10 @@ const INITIAL_MESSAGES: ChatMessage[] = [];
 export function ChatPanel() {
   const [messages, setMessages] = useState<ChatMessage[]>(INITIAL_MESSAGES);
   const [status, setStatus] = useState<ChatStatus>('idle');
+  const [sessionId, setSessionId] = useState(() => `session-${Date.now()}`);
+  const [historyItems, setHistoryItems] = useState<HistoryConversationSummary[]>([]);
+  const [historyOpen, setHistoryOpen] = useState(true);
+  const [historyStatus, setHistoryStatus] = useState<'idle' | 'loading' | 'error'>('idle');
   const [benchmarks, setBenchmarks] = useState<BenchmarkInfo[]>([]);
   const [databases, setDatabases] = useState<BenchmarkDatabaseInfo[]>([]);
   const [selectedBenchmark, setSelectedBenchmark] = useState('spider');
@@ -39,9 +48,24 @@ export function ChatPanel() {
   const { triggerExecution } = useExecutionContext();
   const { loadPlan } = useQueryPlanContext();
 
+  const refreshHistory = useCallback(async () => {
+    setHistoryStatus('loading');
+    try {
+      const summary = await getHistorySummary();
+      setHistoryItems(summary.conversations);
+      setHistoryStatus('idle');
+    } catch {
+      setHistoryStatus('error');
+    }
+  }, []);
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, status]);
+
+  useEffect(() => {
+    void refreshHistory();
+  }, [refreshHistory]);
 
   useEffect(() => {
     let isMounted = true;
@@ -118,7 +142,7 @@ export function ChatPanel() {
           requiresExecution = Boolean(planId),
         } = await sendChatMessage({
           message: trimmed,
-          sessionId: 'dev-session',
+          sessionId,
           datasetContext: selectedDbId
             ? { benchmark: selectedBenchmark, dbId: selectedDbId }
             : undefined,
@@ -139,6 +163,7 @@ export function ChatPanel() {
             triggerExecution(sql ?? trimmed, planId);
           }
         }
+        void refreshHistory();
       } catch {
         const errorMsg: ChatMessage = {
           id: generateId(),
@@ -153,7 +178,44 @@ export function ChatPanel() {
 
       setStatus('idle');
     },
-    [loadPlan, selectedBenchmark, selectedDbId, status, triggerExecution],
+    [loadPlan, refreshHistory, selectedBenchmark, selectedDbId, sessionId, status, triggerExecution],
+  );
+
+  const startNewConversation = useCallback(() => {
+    setSessionId(`session-${Date.now()}`);
+    setMessages([]);
+    setStatus('idle');
+  }, []);
+
+  const loadHistoryConversation = useCallback(
+    async (conversationId: string) => {
+      setHistoryStatus('loading');
+      try {
+        const detail = await getHistoryConversation(conversationId);
+        setSessionId(detail.sessionId);
+        setMessages(
+          detail.messages.map((message) => ({
+            id: message.id,
+            role: message.role,
+            content: message.content,
+            timestamp: new Date(message.timestamp),
+          })),
+        );
+        if (detail.datasetContext?.benchmark) {
+          setSelectedBenchmark(detail.datasetContext.benchmark);
+        }
+        if (detail.datasetContext?.dbId) {
+          setSelectedDbId(detail.datasetContext.dbId);
+        }
+        if (detail.activePlanId) {
+          await loadPlan(detail.activePlanId);
+        }
+        setHistoryStatus('idle');
+      } catch {
+        setHistoryStatus('error');
+      }
+    },
+    [loadPlan],
   );
 
   const isEmpty = messages.length === 0 && status === 'idle';
@@ -168,6 +230,15 @@ export function ChatPanel() {
   return (
     <div className="chat-panel">
       <ChatHeader status={status} />
+      <HistoryPanel
+        isOpen={historyOpen}
+        items={historyItems}
+        status={historyStatus}
+        onToggle={() => setHistoryOpen((value) => !value)}
+        onRefresh={refreshHistory}
+        onNew={startNewConversation}
+        onSelect={loadHistoryConversation}
+      />
       <DatasetSelector
         benchmarks={benchmarks}
         benchmark={selectedBenchmark}
@@ -213,6 +284,60 @@ export function ChatPanel() {
 
       <ChatInput onSend={sendMessage} isDisabled={status === 'thinking'} />
     </div>
+  );
+}
+
+interface HistoryPanelProps {
+  isOpen: boolean;
+  items: HistoryConversationSummary[];
+  status: 'idle' | 'loading' | 'error';
+  onToggle: () => void;
+  onRefresh: () => void;
+  onNew: () => void;
+  onSelect: (conversationId: string) => void;
+}
+
+function HistoryPanel({
+  isOpen,
+  items,
+  status,
+  onToggle,
+  onRefresh,
+  onNew,
+  onSelect,
+}: HistoryPanelProps) {
+  return (
+    <section className="history-panel">
+      <div className="history-panel__header">
+        <button className="history-panel__toggle" type="button" onClick={onToggle}>
+          History {isOpen ? '-' : '+'}
+        </button>
+        <div className="history-panel__actions">
+          <button type="button" onClick={onNew}>New</button>
+          <button type="button" onClick={onRefresh}>Refresh</button>
+        </div>
+      </div>
+      {isOpen && (
+        <div className="history-panel__list">
+          {status === 'loading' && <p className="history-panel__empty">Loading history...</p>}
+          {status === 'error' && <p className="history-panel__empty">History unavailable.</p>}
+          {status === 'idle' && items.length === 0 && (
+            <p className="history-panel__empty">No saved conversations yet.</p>
+          )}
+          {status !== 'loading' && items.slice(0, 5).map((item) => (
+            <button
+              className="history-panel__item"
+              type="button"
+              key={item.id}
+              onClick={() => onSelect(item.id)}
+            >
+              <span>{item.title || 'Untitled conversation'}</span>
+              <small>{new Date(item.updatedAt).toLocaleString()}</small>
+            </button>
+          ))}
+        </div>
+      )}
+    </section>
   );
 }
 

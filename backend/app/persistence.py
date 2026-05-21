@@ -20,6 +20,7 @@ from app.models.history import (
     PlanEdit,
     QueryPlanRecord,
 )
+from app.models.auth import User
 
 
 def _utc_now() -> datetime:
@@ -47,11 +48,11 @@ def _result_preview(result: dict[str, Any] | None) -> dict[str, Any] | None:
     }
 
 
-def best_effort(operation: str, fn) -> None:
+def best_effort(operation: str, fn, user_id: str | None = None) -> None:
     try:
         with session_scope() as session:
-            user = ensure_dev_user(session)
-            fn(session, user.id)
+            effective_user_id = user_id or ensure_dev_user(session).id
+            fn(session, effective_user_id)
     except SQLAlchemyError as exc:
         print(f"[persistence] {operation} skipped: {exc}")
     except Exception as exc:  # pragma: no cover - defensive audit path.
@@ -95,6 +96,7 @@ def persist_chat_interaction(
     assistant_content: str,
     dataset_context: dict[str, Any] | None,
     response: dict[str, Any],
+    user_id: str | None = None,
 ) -> None:
     def write(session: Session, user_id: str) -> None:
         conversation = get_or_create_conversation(
@@ -152,10 +154,14 @@ def persist_chat_interaction(
             )
         )
 
-    best_effort("persist_chat_interaction", write)
+    best_effort("persist_chat_interaction", write, user_id=user_id)
 
 
-def persist_query_plan(plan_id: str, conversation_session_id: str | None = None) -> None:
+def persist_query_plan(
+    plan_id: str,
+    conversation_session_id: str | None = None,
+    user_id: str | None = None,
+) -> None:
     from app.demo_pipeline import get_plan_record
 
     record = get_plan_record(plan_id)
@@ -213,10 +219,10 @@ def persist_query_plan(plan_id: str, conversation_session_id: str | None = None)
             )
         )
 
-    best_effort("persist_query_plan", write)
+    best_effort("persist_query_plan", write, user_id=user_id)
 
 
-def persist_plan_edit(plan_id: str, edit: dict[str, Any]) -> None:
+def persist_plan_edit(plan_id: str, edit: dict[str, Any], user_id: str | None = None) -> None:
     def write(session: Session, user_id: str) -> None:
         session.add(
             PlanEdit(
@@ -234,7 +240,7 @@ def persist_plan_edit(plan_id: str, edit: dict[str, Any]) -> None:
                 id=_stable_id("op", {"type": "plan_edit", "plan": plan_id, "time": time.time()}),
                 user_id=user_id,
                 session_id=None,
-                operation_type="plan_edit",
+                operation_type=edit.get("operation_type") or edit.get("operationType") or "plan_edit",
                 target_type="query_plan",
                 target_id=plan_id,
                 payload=_safe_json(edit),
@@ -250,7 +256,7 @@ def persist_plan_edit(plan_id: str, edit: dict[str, Any]) -> None:
             existing.metadata_json = _safe_json((record.get("plan") or {}).get("metadata"))
             existing.updated_at = _utc_now()
 
-    best_effort("persist_plan_edit", write)
+    best_effort("persist_plan_edit", write, user_id=user_id)
 
 
 def persist_execution_run(
@@ -264,6 +270,7 @@ def persist_execution_run(
     result: dict[str, Any] | None = None,
     node_states: dict[str, Any] | None = None,
     error_message: str | None = None,
+    user_id: str | None = None,
 ) -> None:
     def write(session: Session, user_id: str) -> None:
         existing = session.get(ExecutionRun, run_id)
@@ -298,12 +305,14 @@ def persist_execution_run(
             )
         )
 
-    best_effort("persist_execution_run", write)
+    best_effort("persist_execution_run", write, user_id=user_id)
 
 
-def history_summary(limit: int = 20) -> dict[str, Any]:
+def history_summary(limit: int = 20, user_id: str | None = None) -> dict[str, Any]:
     with session_scope() as session:
-        user = ensure_dev_user(session)
+        user = session.get(User, user_id) if user_id else ensure_dev_user(session)
+        if not user:
+            raise ValueError("User not found")
         conversations = session.execute(
             select(Conversation)
             .where(Conversation.user_id == user.id)
@@ -350,6 +359,58 @@ def history_summary(limit: int = 20) -> dict[str, Any]:
                     "planId": item.plan_id,
                     "runType": item.run_type,
                     "status": item.status,
+                    "updatedAt": item.updated_at.isoformat(),
+                }
+                for item in executions
+            ],
+        }
+
+
+def conversation_detail(conversation_id: str, user_id: str | None = None) -> dict[str, Any] | None:
+    with session_scope() as session:
+        user = session.get(User, user_id) if user_id else ensure_dev_user(session)
+        if not user:
+            return None
+        conversation = session.get(Conversation, conversation_id)
+        if not conversation or conversation.user_id != user.id:
+            return None
+        messages = session.execute(
+            select(Message)
+            .where(Message.conversation_id == conversation.id)
+            .order_by(Message.created_at)
+        ).scalars().all()
+        executions = session.execute(
+            select(ExecutionRun)
+            .where(ExecutionRun.user_id == user.id, ExecutionRun.session_id == conversation.session_id)
+            .order_by(desc(ExecutionRun.updated_at))
+            .limit(5)
+        ).scalars().all()
+        return {
+            "id": conversation.id,
+            "sessionId": conversation.session_id,
+            "title": conversation.title,
+            "datasetContext": conversation.dataset_context,
+            "activePlanId": conversation.active_plan_id,
+            "updatedAt": conversation.updated_at.isoformat(),
+            "messages": [
+                {
+                    "id": item.id,
+                    "role": item.role,
+                    "content": item.content,
+                    "timestamp": item.created_at.isoformat(),
+                    "planId": item.plan_id,
+                    "sql": item.sql,
+                    "datasetContext": item.dataset_context,
+                }
+                for item in messages
+            ],
+            "executionRuns": [
+                {
+                    "id": item.id,
+                    "planId": item.plan_id,
+                    "runType": item.run_type,
+                    "status": item.status,
+                    "resultPreview": item.result_preview,
                     "updatedAt": item.updated_at.isoformat(),
                 }
                 for item in executions

@@ -77,6 +77,98 @@
 }
 
 /* ================================================
+   Conversation history
+   ================================================ */
+.history-panel {
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border-default);
+  background: var(--bg-surface);
+}
+
+.history-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+}
+
+.history-panel__toggle,
+.history-panel__actions button,
+.history-panel__item {
+  border: 1px solid var(--border-default);
+  background: var(--bg-input);
+  color: var(--text-secondary);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  transition: border-color var(--t-fast), color var(--t-fast), background var(--t-fast);
+}
+
+.history-panel__toggle {
+  padding: 5px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.history-panel__actions {
+  display: flex;
+  gap: 6px;
+}
+
+.history-panel__actions button {
+  padding: 5px 8px;
+  font-size: 10px;
+}
+
+.history-panel__toggle:hover,
+.history-panel__actions button:hover,
+.history-panel__item:hover {
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+  background: var(--bg-elevated);
+}
+
+.history-panel__list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 0 12px 10px;
+}
+
+.history-panel__item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  width: 100%;
+  padding: 8px 9px;
+  text-align: left;
+}
+
+.history-panel__item span {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--text-primary);
+  font-size: 11px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history-panel__item small,
+.history-panel__empty {
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.history-panel__empty {
+  margin: 0;
+  padding: 5px 2px;
+}
+
+/* ================================================
    Benchmark / database selector
    ================================================ */
 .dataset-selector-wrap {

@@ -143,15 +143,22 @@ def generate_plan_for_message(
 def get_plan_graph(plan_id: str) -> dict[str, Any] | None:
     stored = PLAN_STORE.get(plan_id)
     if not stored:
+        stored = _restore_plan_from_database(plan_id)
+    if not stored:
         return None
     return stored["graph"]
 
 
 def get_plan_record(plan_id: str) -> dict[str, Any] | None:
-    return PLAN_STORE.get(plan_id)
+    return PLAN_STORE.get(plan_id) or _restore_plan_from_database(plan_id)
 
 
-def update_plan_node(plan_id: str, node_id: str, data: dict[str, Any]) -> dict[str, Any] | None:
+def update_plan_node(
+    plan_id: str,
+    node_id: str,
+    data: dict[str, Any],
+    user_id: str | None = None,
+) -> dict[str, Any] | None:
     graph = get_plan_graph(plan_id)
     if not graph:
         return None
@@ -167,27 +174,37 @@ def update_plan_node(plan_id: str, node_id: str, data: dict[str, Any]) -> dict[s
     else:
         return None
 
-    _mark_downstream_pending(graph, node_id)
+    downstream = _mark_downstream_pending(graph, node_id)
     edit_result = _apply_node_edit_to_executable(plan_id, node_id)
+    edit_result["downstreamNodeIds"] = sorted(downstream)
+    edit_result["needsReplan"] = edit_result.get("status") == "needs_replan" or not edit_result.get("executableAvailable", True)
+    edit_result["operationType"] = "plan_edit_replan"
     _record_plan_edit(plan_id, node_id, old_data, data, edit_result)
-    _persist_latest_plan_edit(plan_id)
+    _persist_latest_plan_edit(plan_id, user_id=user_id)
     graph["editStatus"] = edit_result
+    graph["lastEditResult"] = edit_result
+    graph["needsReplan"] = bool(edit_result["needsReplan"])
     return graph
 
 
-def run_demo_execution(sql_or_query: str, session_id: str | None = None, plan_id: str | None = None) -> dict[str, Any]:
+def run_demo_execution(
+    sql_or_query: str,
+    session_id: str | None = None,
+    plan_id: str | None = None,
+    user_id: str | None = None,
+) -> dict[str, Any]:
     run_id = _stable_id("run", {"sql": sql_or_query, "session": session_id, "plan": plan_id, "time": time.time()})
     if _plan_requires_replan(plan_id):
         result = _replan_required_execution_result(plan_id)
         RUN_STORE[run_id] = result
-        _persist_execution(run_id, plan_id, session_id, "sql", "success", result.get("sql"), result)
+        _persist_execution(run_id, plan_id, session_id, "sql", "success", result.get("sql"), result, user_id=user_id)
         return {"runId": run_id, "status": "running"}
 
     sql = _execution_sql(sql_or_query, plan_id)
     if not sql.strip():
         result = _replan_required_execution_result(plan_id)
         RUN_STORE[run_id] = result
-        _persist_execution(run_id, plan_id, session_id, "sql", result.get("status", "success"), sql, result)
+        _persist_execution(run_id, plan_id, session_id, "sql", result.get("status", "success"), sql, result, user_id=user_id)
         return {"runId": run_id, "status": "running"}
 
     dataset_context = _plan_dataset_context(plan_id)
@@ -209,7 +226,7 @@ def run_demo_execution(sql_or_query: str, session_id: str | None = None, plan_id
             },
         }
     RUN_STORE[run_id] = result
-    _persist_execution(run_id, plan_id, session_id, "sql", "success", result.get("sql"), result)
+    _persist_execution(run_id, plan_id, session_id, "sql", "success", result.get("sql"), result, user_id=user_id)
     return {"runId": run_id, "status": "running"}
 
 
@@ -217,7 +234,7 @@ def get_execution_result(run_id: str) -> dict[str, Any] | None:
     return RUN_STORE.get(run_id)
 
 
-def create_plan_run(plan_id: str) -> dict[str, Any] | None:
+def create_plan_run(plan_id: str, user_id: str | None = None) -> dict[str, Any] | None:
     stored = PLAN_STORE.get(plan_id)
     if not stored:
         return None
@@ -238,12 +255,13 @@ def create_plan_run(plan_id: str) -> dict[str, Any] | None:
         "totalSteps": len(order),
         "resultRunId": None,
         "result": None,
+        "userId": user_id,
         "createdAt": time.time(),
         "updatedAt": time.time(),
     }
     PLAN_RUN_STORE[run_id] = run
     _apply_plan_run_to_graph(plan_id, run)
-    _persist_execution(run_id, plan_id, None, "plan_step", "idle", None, None, node_states)
+    _persist_execution(run_id, plan_id, None, "plan_step", "idle", None, None, node_states, user_id=user_id)
     return _public_plan_run(run)
 
 
@@ -252,7 +270,7 @@ def get_plan_run(run_id: str) -> dict[str, Any] | None:
     return _public_plan_run(run) if run else None
 
 
-def step_plan_run(plan_id: str, run_id: str) -> dict[str, Any] | None:
+def step_plan_run(plan_id: str, run_id: str, user_id: str | None = None) -> dict[str, Any] | None:
     run = PLAN_RUN_STORE.get(run_id)
     if not run or run.get("planId") != plan_id:
         return None
@@ -279,7 +297,7 @@ def step_plan_run(plan_id: str, run_id: str) -> dict[str, Any] | None:
 
     try:
         if index == len(order) - 1:
-            execution = run_demo_execution("step-plan-run", "dev-session", plan_id)
+            execution = run_demo_execution("step-plan-run", "dev-session", plan_id, user_id=user_id or run.get("userId"))
             result = get_execution_result(execution["runId"])
             run["resultRunId"] = execution["runId"]
             run["result"] = result
@@ -305,24 +323,25 @@ def step_plan_run(plan_id: str, run_id: str) -> dict[str, Any] | None:
         run.get("result"),
         run.get("nodeStates"),
         run.get("error"),
+        user_id=user_id or run.get("userId"),
     )
     return _public_plan_run(run)
 
 
-def run_full_plan(plan_id: str, run_id: str) -> dict[str, Any] | None:
+def run_full_plan(plan_id: str, run_id: str, user_id: str | None = None) -> dict[str, Any] | None:
     run = PLAN_RUN_STORE.get(run_id)
     if not run or run.get("planId") != plan_id:
         return None
 
     while run.get("status") not in {"success", "error"}:
-        step_plan_run(plan_id, run_id)
+        step_plan_run(plan_id, run_id, user_id=user_id)
         run = PLAN_RUN_STORE[run_id]
         if int(run["stepsCompleted"]) >= int(run["totalSteps"]):
             break
     return _public_plan_run(run)
 
 
-def reset_plan_run(plan_id: str, run_id: str) -> dict[str, Any] | None:
+def reset_plan_run(plan_id: str, run_id: str, user_id: str | None = None) -> dict[str, Any] | None:
     run = PLAN_RUN_STORE.get(run_id)
     if not run or run.get("planId") != plan_id:
         return None
@@ -338,7 +357,7 @@ def reset_plan_run(plan_id: str, run_id: str) -> dict[str, Any] | None:
     run.pop("error", None)
     run["updatedAt"] = time.time()
     _apply_plan_run_to_graph(plan_id, run)
-    _persist_execution(run_id, plan_id, None, "plan_step", "idle", None, None, run["nodeStates"])
+    _persist_execution(run_id, plan_id, None, "plan_step", "idle", None, None, run["nodeStates"], user_id=user_id or run.get("userId"))
     return _public_plan_run(run)
 
 
@@ -351,8 +370,50 @@ def _plan_with_dataset_metadata(plan: QueryPlan, dataset_context: dict[str, Any]
     return dumped
 
 
+def _restore_plan_from_database(plan_id: str) -> dict[str, Any] | None:
+    try:
+        from app.database import session_scope
+        from app.models.history import QueryPlanRecord
+
+        with session_scope() as session:
+            record = session.get(QueryPlanRecord, plan_id)
+            if not record or not record.graph_json:
+                return None
+            stored = {
+                "message": record.query_text or record.id,
+                "session_id": record.session_id,
+                "dataset_context": (
+                    {"benchmark": record.benchmark, "dbId": record.db_id}
+                    if record.benchmark and record.db_id
+                    else None
+                ),
+                "ir": record.ir_json or {},
+                "plan": {
+                    "plan_id": record.id,
+                    "metadata": record.metadata_json or {},
+                    "executable": {
+                        "type": "sql",
+                        "dialect": "sqlite",
+                        "content": record.executable_sql or "",
+                    },
+                },
+                "graph": record.graph_json,
+                "assistant_content": "",
+                "created_at": time.time(),
+            }
+            PLAN_STORE[plan_id] = stored
+            return stored
+    except Exception as exc:  # pragma: no cover - best-effort restore path.
+        print(f"[persistence] query plan restore skipped: {exc}")
+        return None
+
+
 def _plan_dataset_context(plan_id: str | None) -> dict[str, Any] | None:
-    if not plan_id or plan_id not in PLAN_STORE:
+    if not plan_id:
+        return None
+    if plan_id not in PLAN_STORE:
+        _restore_plan_from_database(plan_id)
+    if plan_id not in PLAN_STORE:
         return None
     stored = PLAN_STORE[plan_id]
     context = stored.get("dataset_context")
@@ -363,13 +424,21 @@ def _plan_dataset_context(plan_id: str | None) -> dict[str, Any] | None:
 
 
 def _plan_template(plan_id: str | None) -> str | None:
-    if not plan_id or plan_id not in PLAN_STORE:
+    if not plan_id:
+        return None
+    if plan_id not in PLAN_STORE:
+        _restore_plan_from_database(plan_id)
+    if plan_id not in PLAN_STORE:
         return None
     return PLAN_STORE[plan_id].get("plan", {}).get("metadata", {}).get("template")
 
 
 def _plan_requires_replan(plan_id: str | None) -> bool:
-    if not plan_id or plan_id not in PLAN_STORE:
+    if not plan_id:
+        return False
+    if plan_id not in PLAN_STORE:
+        _restore_plan_from_database(plan_id)
+    if plan_id not in PLAN_STORE:
         return False
     metadata = PLAN_STORE[plan_id].get("plan", {}).get("metadata", {})
     return bool(metadata.get("requires_replan"))
@@ -740,6 +809,9 @@ def _execution_sql(sql_or_query: str, plan_id: str | None) -> str:
     if not plan_id and PLAN_STORE:
         plan_id = max(PLAN_STORE.items(), key=lambda item: item[1].get("created_at", 0))[0]
 
+    if plan_id and plan_id not in PLAN_STORE:
+        _restore_plan_from_database(plan_id)
+
     if plan_id and plan_id in PLAN_STORE:
         executable = PLAN_STORE[plan_id]["plan"].get("executable") or {}
         if executable.get("content"):
@@ -862,7 +934,7 @@ def _record_plan_edit(
     )
 
 
-def _persist_latest_plan_edit(plan_id: str) -> None:
+def _persist_latest_plan_edit(plan_id: str, user_id: str | None = None) -> None:
     stored = PLAN_STORE.get(plan_id)
     edits = (stored or {}).get("edit_log") or []
     if not edits:
@@ -870,8 +942,8 @@ def _persist_latest_plan_edit(plan_id: str) -> None:
     try:
         from app.persistence import persist_plan_edit, persist_query_plan
 
-        persist_plan_edit(plan_id, edits[-1])
-        persist_query_plan(plan_id, (stored or {}).get("session_id"))
+        persist_plan_edit(plan_id, edits[-1], user_id=user_id)
+        persist_query_plan(plan_id, (stored or {}).get("session_id"), user_id=user_id)
     except Exception as exc:  # pragma: no cover - defensive audit path.
         print(f"[persistence] plan edit skipped: {exc}")
 
@@ -886,6 +958,7 @@ def _persist_execution(
     result: dict[str, Any] | None,
     node_states: dict[str, Any] | None = None,
     error_message: str | None = None,
+    user_id: str | None = None,
 ) -> None:
     try:
         from app.persistence import persist_execution_run
@@ -900,12 +973,13 @@ def _persist_execution(
             result=result,
             node_states=node_states,
             error_message=error_message,
+            user_id=user_id,
         )
     except Exception as exc:  # pragma: no cover - defensive audit path.
         print(f"[persistence] execution skipped: {exc}")
 
 
-def _mark_downstream_pending(graph: dict[str, Any], node_id: str) -> None:
+def _mark_downstream_pending(graph: dict[str, Any], node_id: str) -> set[str]:
     downstream = _downstream_node_ids(graph, node_id)
     for node in graph.get("nodes", []):
         data = node.get("data", {})
@@ -913,6 +987,7 @@ def _mark_downstream_pending(graph: dict[str, Any], node_id: str) -> None:
             data["executionState"] = "pending"
         if node.get("id") in downstream and data.get("kind") == "data":
             data["materialized"] = False
+    return downstream
 
 
 def _downstream_node_ids(graph: dict[str, Any], node_id: str) -> set[str]:
