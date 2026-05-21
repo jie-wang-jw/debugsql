@@ -38,7 +38,7 @@ export function ChatPanel() {
   const [status, setStatus] = useState<ChatStatus>('idle');
   const [sessionId, setSessionId] = useState(() => `session-${Date.now()}`);
   const [historyItems, setHistoryItems] = useState<HistoryConversationSummary[]>([]);
-  const [historyOpen, setHistoryOpen] = useState(true);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [historyStatus, setHistoryStatus] = useState<'idle' | 'loading' | 'error'>('idle');
   const [benchmarks, setBenchmarks] = useState<BenchmarkInfo[]>([]);
   const [databases, setDatabases] = useState<BenchmarkDatabaseInfo[]>([]);
@@ -230,15 +230,6 @@ export function ChatPanel() {
   return (
     <div className="chat-panel">
       <ChatHeader status={status} />
-      <HistoryPanel
-        isOpen={historyOpen}
-        items={historyItems}
-        status={historyStatus}
-        onToggle={() => setHistoryOpen((value) => !value)}
-        onRefresh={refreshHistory}
-        onNew={startNewConversation}
-        onSelect={loadHistoryConversation}
-      />
       <DatasetSelector
         benchmarks={benchmarks}
         benchmark={selectedBenchmark}
@@ -282,6 +273,15 @@ export function ChatPanel() {
         <div ref={bottomRef} />
       </div>
 
+      <HistoryPanel
+        isOpen={historyOpen}
+        items={historyItems}
+        status={historyStatus}
+        onToggle={() => setHistoryOpen((value) => !value)}
+        onRefresh={refreshHistory}
+        onNew={startNewConversation}
+        onSelect={loadHistoryConversation}
+      />
       <ChatInput onSend={sendMessage} isDisabled={status === 'thinking'} />
     </div>
   );
