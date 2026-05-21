@@ -6,7 +6,7 @@ import time
 from datetime import datetime, timezone
 from typing import Any
 
-from sqlalchemy import desc, select
+from sqlalchemy import desc, func, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -379,15 +379,21 @@ def persist_execution_run(
     best_effort("persist_execution_run", write, user_id=user_id)
 
 
-def history_summary(limit: int = 20, user_id: str | None = None) -> dict[str, Any]:
+def history_summary(limit: int = 20, offset: int = 0, user_id: str | None = None) -> dict[str, Any]:
     with session_scope() as session:
         user = session.get(User, user_id) if user_id else ensure_dev_user(session)
         if not user:
             raise ValueError("User not found")
+        total_conversations = session.scalar(
+            select(func.count())
+            .select_from(Conversation)
+            .where(Conversation.user_id == user.id)
+        ) or 0
         conversations = session.execute(
             select(Conversation)
             .where(Conversation.user_id == user.id)
             .order_by(desc(Conversation.updated_at))
+            .offset(offset)
             .limit(limit)
         ).scalars().all()
         plans = session.execute(
@@ -404,6 +410,12 @@ def history_summary(limit: int = 20, user_id: str | None = None) -> dict[str, An
         ).scalars().all()
         return {
             "user": {"id": user.id, "email": user.email, "displayName": user.display_name},
+            "pagination": {
+                "limit": limit,
+                "offset": offset,
+                "totalConversations": total_conversations,
+                "hasMoreConversations": offset + len(conversations) < total_conversations,
+            },
             "conversations": [
                 {
                     "id": item.id,

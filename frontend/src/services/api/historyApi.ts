@@ -16,6 +16,12 @@ export interface HistorySummary {
     email: string;
     displayName: string | null;
   };
+  pagination?: {
+    limit: number;
+    offset: number;
+    totalConversations: number;
+    hasMoreConversations: boolean;
+  };
   conversations: HistoryConversationSummary[];
   queryPlans: Array<{
     id: string;
@@ -31,6 +37,11 @@ export interface HistorySummary {
     status: string;
     updatedAt: string;
   }>;
+}
+
+export interface HistorySummaryParams {
+  limit?: number;
+  offset?: number;
 }
 
 export interface HistoryMessage {
@@ -61,8 +72,15 @@ export interface HistoryConversationDetail {
   }>;
 }
 
-export function getHistorySummary(options?: RequestOptions): Promise<HistorySummary> {
-  return apiGet<HistorySummary>('/history/summary', options);
+export function getHistorySummary(
+  params: HistorySummaryParams = {},
+  options?: RequestOptions,
+): Promise<HistorySummary> {
+  const search = new URLSearchParams();
+  if (params.limit !== undefined) search.set('limit', String(params.limit));
+  if (params.offset !== undefined) search.set('offset', String(params.offset));
+  const query = search.toString();
+  return apiGet<HistorySummary>(`/history/summary${query ? `?${query}` : ''}`, options);
 }
 
 export function getHistoryConversation(

@@ -25,6 +25,7 @@ import './ChatPanel.css';
 
 // TODO: Initialize messages from server session history.
 const INITIAL_MESSAGES: ChatMessage[] = [];
+const HISTORY_SUMMARY_LIMIT = 20;
 
 /**
  * Left-panel AI chat orchestrator.
@@ -40,6 +41,7 @@ export function ChatPanel() {
   const [historyItems, setHistoryItems] = useState<HistoryConversationSummary[]>([]);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyStatus, setHistoryStatus] = useState<'idle' | 'loading' | 'error'>('idle');
+  const [historyHasMore, setHistoryHasMore] = useState(false);
   const [benchmarks, setBenchmarks] = useState<BenchmarkInfo[]>([]);
   const [databases, setDatabases] = useState<BenchmarkDatabaseInfo[]>([]);
   const [selectedBenchmark, setSelectedBenchmark] = useState('spider');
@@ -51,8 +53,9 @@ export function ChatPanel() {
   const refreshHistory = useCallback(async () => {
     setHistoryStatus('loading');
     try {
-      const summary = await getHistorySummary();
+      const summary = await getHistorySummary({ limit: HISTORY_SUMMARY_LIMIT, offset: 0 });
       setHistoryItems(summary.conversations);
+      setHistoryHasMore(Boolean(summary.pagination?.hasMoreConversations));
       setHistoryStatus('idle');
     } catch {
       setHistoryStatus('error');
@@ -277,6 +280,8 @@ export function ChatPanel() {
         isOpen={historyOpen}
         items={historyItems}
         status={historyStatus}
+        hasMore={historyHasMore}
+        limit={HISTORY_SUMMARY_LIMIT}
         onToggle={() => setHistoryOpen((value) => !value)}
         onRefresh={refreshHistory}
         onNew={startNewConversation}
@@ -291,6 +296,8 @@ interface HistoryPanelProps {
   isOpen: boolean;
   items: HistoryConversationSummary[];
   status: 'idle' | 'loading' | 'error';
+  hasMore: boolean;
+  limit: number;
   onToggle: () => void;
   onRefresh: () => void;
   onNew: () => void;
@@ -301,6 +308,8 @@ function HistoryPanel({
   isOpen,
   items,
   status,
+  hasMore,
+  limit,
   onToggle,
   onRefresh,
   onNew,
@@ -324,7 +333,7 @@ function HistoryPanel({
           {status === 'idle' && items.length === 0 && (
             <p className="history-panel__empty">No saved conversations yet.</p>
           )}
-          {status !== 'loading' && items.slice(0, 5).map((item) => (
+          {status !== 'loading' && items.map((item) => (
             <button
               className="history-panel__item"
               type="button"
@@ -335,6 +344,11 @@ function HistoryPanel({
               <small>{new Date(item.updatedAt).toLocaleString()}</small>
             </button>
           ))}
+          {status === 'idle' && hasMore && (
+            <p className="history-panel__empty">
+              Showing latest {limit}. Older conversations stay saved.
+            </p>
+          )}
         </div>
       )}
     </section>
