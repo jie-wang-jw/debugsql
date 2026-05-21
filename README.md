@@ -116,11 +116,18 @@ Start all services:
 docker compose up -d --build
 ```
 
+Apply database migrations:
+
+```bash
+docker compose exec backend alembic upgrade head
+```
+
 Check backend:
 
 ```bash
 curl http://localhost:8000/health
 curl http://localhost:8000/db-health
+curl http://localhost:8000/auth/me
 curl http://localhost:8000/hello
 ```
 
@@ -134,6 +141,20 @@ http://localhost:5173
 
 Use this mode when developing in PyCharm, VS Code, or a local terminal. Run the
 backend and frontend in two separate terminals.
+
+Start a local PostgreSQL container first:
+
+```powershell
+docker compose up -d postgres
+```
+
+For local backend execution outside Docker, use a localhost database URL:
+
+```powershell
+$env:DATABASE_URL="postgresql+psycopg://debugsql:debugsql_dev_password@127.0.0.1:5432/debugsql"
+cd backend
+.\.venv\Scripts\alembic.exe upgrade head
+```
 
 ### Windows / PyCharm
 
@@ -360,16 +381,30 @@ uv run uvicorn app.main:app --reload
 Alembic is already scaffolded for future database migrations:
 
 ```bash
-uv run alembic revision --autogenerate -m "init schema"
 uv run alembic upgrade head
+```
+
+Current persistence coverage:
+
+* dev auto-login user (`/auth/me`)
+* conversations and messages
+* generated query plans
+* Inspector plan edits
+* SQL and step-by-step execution runs
+* operation logs
+
+Development history endpoint:
+
+```bash
+curl http://127.0.0.1:8000/history/summary
 ```
 
 ## Next Steps
 
 1. Replace the deterministic demo NL2SQL path with a real NL-to-IR provider.
 2. Expand Spider/BIRD benchmark execution beyond exact sample-question matching.
-3. Persist users, conversations, query plans, and operation logs in PostgreSQL.
-4. Add email OTP authentication and dev-mode auto-login.
+3. Replace dev auto-login with GitHub OAuth for real users.
+4. Extend persistence from audit-log storage to DB-backed runtime state.
 5. Add evaluation scripts for Execution Accuracy, DRR, IRR, and edit counts.
 6. Add richer Inspector JSON editing and downstream plan regeneration.
 7. Add streaming execution progress and cancellation.

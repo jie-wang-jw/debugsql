@@ -147,6 +147,10 @@ def get_plan_graph(plan_id: str) -> dict[str, Any] | None:
     return stored["graph"]
 
 
+def get_plan_record(plan_id: str) -> dict[str, Any] | None:
+    return PLAN_STORE.get(plan_id)
+
+
 def update_plan_node(plan_id: str, node_id: str, data: dict[str, Any]) -> dict[str, Any] | None:
     graph = get_plan_graph(plan_id)
     if not graph:
@@ -166,6 +170,7 @@ def update_plan_node(plan_id: str, node_id: str, data: dict[str, Any]) -> dict[s
     _mark_downstream_pending(graph, node_id)
     edit_result = _apply_node_edit_to_executable(plan_id, node_id)
     _record_plan_edit(plan_id, node_id, old_data, data, edit_result)
+    _persist_latest_plan_edit(plan_id)
     graph["editStatus"] = edit_result
     return graph
 
@@ -175,12 +180,14 @@ def run_demo_execution(sql_or_query: str, session_id: str | None = None, plan_id
     if _plan_requires_replan(plan_id):
         result = _replan_required_execution_result(plan_id)
         RUN_STORE[run_id] = result
+        _persist_execution(run_id, plan_id, session_id, "sql", "success", result.get("sql"), result)
         return {"runId": run_id, "status": "running"}
 
     sql = _execution_sql(sql_or_query, plan_id)
     if not sql.strip():
         result = _replan_required_execution_result(plan_id)
         RUN_STORE[run_id] = result
+        _persist_execution(run_id, plan_id, session_id, "sql", result.get("status", "success"), sql, result)
         return {"runId": run_id, "status": "running"}
 
     dataset_context = _plan_dataset_context(plan_id)
@@ -202,6 +209,7 @@ def run_demo_execution(sql_or_query: str, session_id: str | None = None, plan_id
             },
         }
     RUN_STORE[run_id] = result
+    _persist_execution(run_id, plan_id, session_id, "sql", "success", result.get("sql"), result)
     return {"runId": run_id, "status": "running"}
 
 
@@ -235,6 +243,7 @@ def create_plan_run(plan_id: str) -> dict[str, Any] | None:
     }
     PLAN_RUN_STORE[run_id] = run
     _apply_plan_run_to_graph(plan_id, run)
+    _persist_execution(run_id, plan_id, None, "plan_step", "idle", None, None, node_states)
     return _public_plan_run(run)
 
 
@@ -286,6 +295,17 @@ def step_plan_run(plan_id: str, run_id: str) -> dict[str, Any] | None:
 
     run["updatedAt"] = time.time()
     _apply_plan_run_to_graph(plan_id, run)
+    _persist_execution(
+        run_id,
+        plan_id,
+        None,
+        "plan_step",
+        run["status"],
+        (run.get("result") or {}).get("sql"),
+        run.get("result"),
+        run.get("nodeStates"),
+        run.get("error"),
+    )
     return _public_plan_run(run)
 
 
@@ -318,6 +338,7 @@ def reset_plan_run(plan_id: str, run_id: str) -> dict[str, Any] | None:
     run.pop("error", None)
     run["updatedAt"] = time.time()
     _apply_plan_run_to_graph(plan_id, run)
+    _persist_execution(run_id, plan_id, None, "plan_step", "idle", None, None, run["nodeStates"])
     return _public_plan_run(run)
 
 
@@ -839,6 +860,49 @@ def _record_plan_edit(
             "created_at": time.time(),
         }
     )
+
+
+def _persist_latest_plan_edit(plan_id: str) -> None:
+    stored = PLAN_STORE.get(plan_id)
+    edits = (stored or {}).get("edit_log") or []
+    if not edits:
+        return
+    try:
+        from app.persistence import persist_plan_edit, persist_query_plan
+
+        persist_plan_edit(plan_id, edits[-1])
+        persist_query_plan(plan_id, (stored or {}).get("session_id"))
+    except Exception as exc:  # pragma: no cover - defensive audit path.
+        print(f"[persistence] plan edit skipped: {exc}")
+
+
+def _persist_execution(
+    run_id: str,
+    plan_id: str | None,
+    session_id: str | None,
+    run_type: str,
+    status: str,
+    sql: str | None,
+    result: dict[str, Any] | None,
+    node_states: dict[str, Any] | None = None,
+    error_message: str | None = None,
+) -> None:
+    try:
+        from app.persistence import persist_execution_run
+
+        persist_execution_run(
+            run_id=run_id,
+            plan_id=plan_id,
+            session_id=session_id,
+            run_type=run_type,
+            status=status,
+            sql=sql,
+            result=result,
+            node_states=node_states,
+            error_message=error_message,
+        )
+    except Exception as exc:  # pragma: no cover - defensive audit path.
+        print(f"[persistence] execution skipped: {exc}")
 
 
 def _mark_downstream_pending(graph: dict[str, Any], node_id: str) -> None:

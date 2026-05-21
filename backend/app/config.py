@@ -7,6 +7,8 @@ class Settings(BaseSettings):
     app_name: str = "DebugSQL Backend"
     database_url: str = "postgresql+psycopg://debugsql:debugsql_dev_password@postgres:5432/debugsql"
     debugsql_auto_login: bool = True
+    debugsql_dev_user_email: str = "dev@debugsql.local"
+    debugsql_dev_user_name: str = "DebugSQL Dev User"
     nl2ir_provider: str = "stub"
     ir_to_plan_provider: str = "stub"
     ir_to_plan_api_url: str = ""
