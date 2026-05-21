@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException
+from sqlalchemy.exc import SQLAlchemyError
 
-from app.auth import ensure_dev_user, user_to_dict
+from app.auth import dev_user_dict, ensure_dev_user, user_to_dict
 from app.config import get_settings
 from app.database import session_scope
 
@@ -13,9 +14,22 @@ def me() -> dict:
     settings = get_settings()
     if not settings.debugsql_auto_login:
         raise HTTPException(status_code=401, detail="No authenticated user")
-    with session_scope() as session:
-        user = ensure_dev_user(session)
-        return {"success": True, "data": user_to_dict(user)}
+    try:
+        with session_scope() as session:
+            user = ensure_dev_user(session)
+            data = user_to_dict(user)
+            data["persistence"] = "database"
+            return {"success": True, "data": data}
+    except SQLAlchemyError as exc:
+        return {
+            "success": True,
+            "data": dev_user_dict(persistence="ephemeral"),
+            "warning": {
+                "code": "database_unavailable",
+                "message": "Dev auto-login is using an ephemeral user because the system database is unavailable.",
+                "detail": str(exc),
+            },
+        }
 
 
 @router.post("/logout")

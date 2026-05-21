@@ -44,3 +44,15 @@ def user_to_dict(user: User) -> dict:
         "avatarUrl": user.avatar_url,
         "authMode": user.auth_mode,
     }
+
+
+def dev_user_dict(persistence: str = "database") -> dict:
+    settings = get_settings()
+    return {
+        "id": stable_id("user", settings.debugsql_dev_user_email),
+        "email": settings.debugsql_dev_user_email,
+        "displayName": settings.debugsql_dev_user_name,
+        "avatarUrl": None,
+        "authMode": "dev",
+        "persistence": persistence,
+    }

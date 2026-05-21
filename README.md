@@ -148,13 +148,21 @@ Start a local PostgreSQL container first:
 docker compose up -d postgres
 ```
 
-For local backend execution outside Docker, use a localhost database URL:
+For local backend execution outside Docker, use a localhost database URL. The
+Docker-internal hostname `postgres` only works from containers, not from PyCharm
+or a host terminal:
 
 ```powershell
 $env:DATABASE_URL="postgresql+psycopg://debugsql:debugsql_dev_password@127.0.0.1:5432/debugsql"
 cd backend
 .\.venv\Scripts\alembic.exe upgrade head
 ```
+
+The helper scripts below set this localhost `DATABASE_URL` automatically when no
+`DATABASE_URL` is already present in your shell. If PostgreSQL is temporarily
+unavailable, dev auto-login still returns an ephemeral user so the frontend can
+load, but history and operation logs will not be persisted until the database is
+reachable and migrations have been applied.
 
 ### Windows / PyCharm
 
