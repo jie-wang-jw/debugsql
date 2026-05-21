@@ -1,0 +1,115 @@
+{
+  "schema": {
+    "missing_sqlite": [],
+    "fk_mismatches": [],
+    "empty_tables": {},
+    "normalized_names": [
+      {
+        "db_id": "formula_1",
+        "type": "table",
+        "before": [
+          "circuits",
+          "constructors",
+          "drivers",
+          "seasons",
+          "races",
+          "constructorResults",
+          "constructorStandings",
+          "driverStandings",
+          "lapTimes",
+          "pitStops",
+          "qualifying",
+          "status",
+          "results"
+        ],
+        "after": [
+          "circuits",
+          "constructors",
+          "drivers",
+          "seasons",
+          "races",
+          "constructorresults",
+          "constructorstandings",
+          "driverstandings",
+          "laptimes",
+          "pitstops",
+          "qualifying",
+          "status",
+          "results"
+        ]
+      },
+      {
+        "db_id": "european_football_2",
+        "type": "table",
+        "before": [
+          "Player_Attributes",
+          "Player",
+          "League",
+          "Country",
+          "Team",
+          "Team_Attributes",
+          "Match"
+        ],
+        "after": [
+          "player_attributes",
+          "player",
+          "league",
+          "country",
+          "team",
+          "team_attributes",
+          "match"
+        ]
+      },
+      {
+        "db_id": "thrombosis_prediction",
+        "type": "table",
+        "before": [
+          "Examination",
+          "Patient",
+          "Laboratory"
+        ],
+        "after": [
+          "examination",
+          "patient",
+          "laboratory"
+        ]
+      },
+      {
+        "db_id": "codebase_community",
+        "type": "table",
+        "before": [
+          "badges",
+          "comments",
+          "postHistory",
+          "postLinks",
+          "posts",
+          "tags",
+          "users",
+          "votes"
+        ],
+        "after": [
+          "badges",
+          "comments",
+          "posthistory",
+          "postlinks",
+          "posts",
+          "tags",
+          "users",
+          "votes"
+        ]
+      }
+    ]
+  },
+  "dev": {
+    "missing_db": [],
+    "encoding_fixed": 8,
+    "sql_normalized": 131,
+    "duplicates_removed": 1
+  },
+  "execution_spot_check": {
+    "sample_size": 20,
+    "passed": 20,
+    "failed": 0,
+    "failures": []
+  }
+}

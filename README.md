@@ -70,6 +70,38 @@ python scripts/clean_spider.py
 
 > Note: Raw Spider files and SQLite databases are excluded from Git due to size limits.
 
+## BIRD Dataset Setup
+
+1. Download the BIRD dev dataset from https://bird-bench.github.io/
+
+2. Unzip and copy these files into the correct folders:
+
+| File/Folder       | Destination                    |
+| ----------------- | ------------------------------ |
+| `dev.json`        | `data/benchmarks/bird/raw/`    |
+| `dev_tables.json` | `data/benchmarks/bird/raw/`    |
+| `dev_databases/`  | `data/benchmarks/bird/sqlite/` |
+
+3. Run the cleaning script:
+
+```bash
+python scripts/clean_bird.py
+```
+
+4. Cleaned files will be saved to:
+
+```text
+data/benchmarks/bird/processed/
+```
+
+Generated outputs include:
+
+* `clean_dev.json`
+* `clean_schema.json`
+* `cleaning_report.json`
+
+> Note: Raw BIRD files and SQLite databases are excluded from Git due to size limits.
+
 ## Quick Start
 
 Create local environment variables:
