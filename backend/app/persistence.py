@@ -157,6 +157,77 @@ def persist_chat_interaction(
     best_effort("persist_chat_interaction", write, user_id=user_id)
 
 
+def persist_chat_failure(
+    *,
+    session_id: str,
+    user_message: str,
+    assistant_content: str,
+    dataset_context: dict[str, Any] | None,
+    error_type: str,
+    error_message: str,
+    user_id: str | None = None,
+) -> None:
+    response = {
+        "intentType": "error",
+        "requiresPlan": False,
+        "requiresExecution": False,
+        "explanation": error_message,
+        "errorType": error_type,
+    }
+
+    def write(session: Session, user_id: str) -> None:
+        conversation = get_or_create_conversation(
+            session,
+            user_id,
+            session_id,
+            dataset_context,
+            title=user_message,
+        )
+        conversation.updated_at = _utc_now()
+        base = {"conversation": conversation.id, "time": time.time()}
+        session.add(
+            Message(
+                id=_stable_id("msg", {**base, "role": "user", "content": user_message}),
+                conversation_id=conversation.id,
+                user_id=user_id,
+                role="user",
+                content=user_message,
+                dataset_context=_safe_json(dataset_context) if dataset_context else None,
+            )
+        )
+        session.add(
+            Message(
+                id=_stable_id("msg", {**base, "role": "assistant", "content": assistant_content}),
+                conversation_id=conversation.id,
+                user_id=user_id,
+                role="assistant",
+                content=assistant_content,
+                intent_type="error",
+                dataset_context=_safe_json(dataset_context) if dataset_context else None,
+                extra=_safe_json(response),
+            )
+        )
+        session.add(
+            OperationLog(
+                id=_stable_id("op", {**base, "type": "chat_error", "message": user_message}),
+                user_id=user_id,
+                session_id=session_id,
+                operation_type="chat_error",
+                target_type="conversation",
+                target_id=conversation.id,
+                payload=_safe_json(
+                    {
+                        "datasetContext": dataset_context,
+                        "errorType": error_type,
+                        "errorMessage": error_message,
+                    }
+                ),
+            )
+        )
+
+    best_effort("persist_chat_failure", write, user_id=user_id)
+
+
 def persist_query_plan(
     plan_id: str,
     conversation_session_id: str | None = None,

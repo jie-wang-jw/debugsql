@@ -8,6 +8,7 @@ IntentType = Literal[
     "benchmark_query",
     "edit_plan",
     "unsupported",
+    "error",
 ]
 
 

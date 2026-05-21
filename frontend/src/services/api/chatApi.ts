@@ -26,7 +26,7 @@ export interface ChatQueryResponse {
   /** The assistant's markdown response text. */
   content: string;
   /** Classified backend intent for routing/debugging. */
-  intentType?: 'help' | 'benchmark_query' | 'edit_plan' | 'unsupported';
+  intentType?: 'help' | 'benchmark_query' | 'edit_plan' | 'unsupported' | 'error';
   /** Whether the backend created a query plan for this response. */
   requiresPlan?: boolean;
   /** Whether the frontend should trigger execution after loading the plan. */
