@@ -4,7 +4,7 @@ from alembic import context
 from sqlalchemy import engine_from_config, pool
 
 from app.config import get_settings
-from app.database import Base
+from app.database import Base, _ensure_sqlite_parent_dir
 import app.models  # noqa: F401
 
 config = context.config
@@ -16,7 +16,9 @@ target_metadata = Base.metadata
 
 
 def get_url() -> str:
-    return get_settings().database_url
+    database_url = get_settings().database_url
+    _ensure_sqlite_parent_dir(database_url)
+    return database_url
 
 
 def run_migrations_offline() -> None:

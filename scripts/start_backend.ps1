@@ -6,7 +6,10 @@ Set-Location $Backend
 $env:PYTHONPATH = $Backend
 
 if (-not $env:DATABASE_URL) {
-    $env:DATABASE_URL = "postgresql+psycopg://debugsql:debugsql_dev_password@127.0.0.1:5432/debugsql"
+    $LocalData = Join-Path $Root "data\dev"
+    New-Item -ItemType Directory -Force -Path $LocalData | Out-Null
+    $SqlitePath = (Join-Path $LocalData "debugsql.sqlite").Replace("\", "/")
+    $env:DATABASE_URL = "sqlite:///$SqlitePath"
 }
 
 if (-not $env:DEBUGSQL_AUTO_LOGIN) {

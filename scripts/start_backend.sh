@@ -7,7 +7,8 @@ PYTHON="$BACKEND/.venv/bin/python"
 
 cd "$BACKEND"
 export PYTHONPATH="$BACKEND"
-export DATABASE_URL="${DATABASE_URL:-postgresql+psycopg://debugsql:debugsql_dev_password@127.0.0.1:5432/debugsql}"
+mkdir -p "$ROOT/data/dev"
+export DATABASE_URL="${DATABASE_URL:-sqlite:///$ROOT/data/dev/debugsql.sqlite}"
 export DEBUGSQL_AUTO_LOGIN="${DEBUGSQL_AUTO_LOGIN:-1}"
 
 if [ ! -x "$PYTHON" ]; then

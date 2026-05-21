@@ -140,29 +140,43 @@ http://localhost:5173
 ## Local Development Without Docker
 
 Use this mode when developing in PyCharm, VS Code, or a local terminal. Run the
-backend and frontend in two separate terminals.
+backend and frontend in two separate terminals. Local development uses a SQLite
+file by default, so PostgreSQL is not required just to run the app.
 
-Start a local PostgreSQL container first:
+The default local database file is:
+
+```text
+data/dev/debugsql.sqlite
+```
+
+The helper scripts below create this directory and set:
+
+```text
+DATABASE_URL=sqlite:///.../data/dev/debugsql.sqlite
+```
+
+Run migrations once after creating or resetting the SQLite database:
+
+```powershell
+$repo = (Get-Location).Path
+New-Item -ItemType Directory -Force -Path "$repo\data\dev" | Out-Null
+$env:DATABASE_URL="sqlite:///$($repo.Replace('\','/'))/data/dev/debugsql.sqlite"
+cd backend
+.\.venv\Scripts\alembic.exe upgrade head
+```
+
+If you want to test against PostgreSQL locally, start only the database service
+and override `DATABASE_URL` before running the backend:
 
 ```powershell
 docker compose up -d postgres
-```
-
-For local backend execution outside Docker, use a localhost database URL. The
-Docker-internal hostname `postgres` only works from containers, not from PyCharm
-or a host terminal:
-
-```powershell
 $env:DATABASE_URL="postgresql+psycopg://debugsql:debugsql_dev_password@127.0.0.1:5432/debugsql"
 cd backend
 .\.venv\Scripts\alembic.exe upgrade head
 ```
 
-The helper scripts below set this localhost `DATABASE_URL` automatically when no
-`DATABASE_URL` is already present in your shell. If PostgreSQL is temporarily
-unavailable, dev auto-login still returns an ephemeral user so the frontend can
-load, but history and operation logs will not be persisted until the database is
-reachable and migrations have been applied.
+The Docker-internal hostname `postgres` only works from containers, not from
+PyCharm or a host terminal. Server deployment continues to use PostgreSQL.
 
 ### Windows / PyCharm
 
@@ -193,8 +207,10 @@ http://127.0.0.1:8000
 If you prefer to run commands manually:
 
 ```powershell
+$repo = "C:\projects\CP683\debugsql"
 cd backend
 $env:PYTHONPATH="C:\projects\CP683\debugsql\backend"
+$env:DATABASE_URL="sqlite:///$($repo.Replace('\','/'))/data/dev/debugsql.sqlite"
 .\.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
@@ -229,6 +245,8 @@ Manual commands:
 ```bash
 cd backend
 export PYTHONPATH="$(pwd)"
+export DATABASE_URL="sqlite:///$(cd .. && pwd)/data/dev/debugsql.sqlite"
+python -m alembic upgrade head
 python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
