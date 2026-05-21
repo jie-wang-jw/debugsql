@@ -16,3 +16,13 @@ def me() -> dict:
     with session_scope() as session:
         user = ensure_dev_user(session)
         return {"success": True, "data": user_to_dict(user)}
+
+
+@router.post("/logout")
+def logout() -> dict:
+    return {"success": True, "data": None}
+
+
+@router.get("/github/login")
+def github_login() -> dict:
+    raise HTTPException(status_code=501, detail="GitHub OAuth is not configured yet")
