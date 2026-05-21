@@ -22,10 +22,19 @@ import {
 const USE_MOCK_SERVICES = import.meta.env.VITE_USE_MOCK_SERVICES === 'true';
 
 /**
- * Returns the initial placeholder plan synchronously for app bootstrap.
- * Real backend plans are loaded later via fetchQueryPlan(planId).
+ * Returns an empty plan for app bootstrap in real-backend mode.
+ * Real plans are loaded only after chat returns a backend-generated planId.
  */
 export function getInitialPlan(): QueryPlanGraph {
+  if (!USE_MOCK_SERVICES) {
+    return {
+      nodes: [],
+      edges: [],
+      queryLabel: 'No query plan yet',
+      totalCost: 0,
+    };
+  }
+
   return getInitialQueryPlan();
 }
 

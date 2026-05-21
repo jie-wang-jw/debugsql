@@ -43,11 +43,20 @@ export function QueryPlanPanel() {
       />
 
       <div className="qplan__canvas">
-        <QueryPlanFlow
-          graph={graph}
-          selectedNodeId={selectedNodeId}
-          onNodeSelect={onNodeSelect}
-        />
+        {graph.nodes.length > 0 ? (
+          <QueryPlanFlow
+            graph={graph}
+            selectedNodeId={selectedNodeId}
+            onNodeSelect={onNodeSelect}
+          />
+        ) : (
+          <div className="qplan__empty">
+            <p className="qplan__empty-title">No query plan yet</p>
+            <p className="qplan__empty-copy">
+              Enter a natural language question in the chat to generate an editable plan.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
