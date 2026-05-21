@@ -1,15 +1,15 @@
 """
-clean_spider.py
+clean_bird.py
 ---------------
-Spider dataset cleaning pipeline for DebugSQL.
+Bird dataset cleaning pipeline for DebugSQL.
 
 Usage:
-    python scripts/clean_spider.py
+    python scripts/clean_bird.py
 
 Outputs:
     - clean_schema.json      : cleaned + validated schema index keyed by db_id
     - clean_dev.json         : cleaned dev queries
-    - clean_train.json       : cleaned train queries
+    # - clean_train.json       : cleaned train queries mark
     - cleaning_report.json   : summary of all issues found and fixed
 """
 
@@ -83,7 +83,7 @@ def get_available_dbs(database_dir: Path) -> set[str]:
 
 
 # ---------------------------------------------------------------------------
-# Step 2 — Load and clean schema (tables.json)
+# Step 2 — Load and clean schema (dev_tables.json)
 # ---------------------------------------------------------------------------
 
 def get_sqlite_schema(sqlite_path: Path) -> dict[str, list[str]]:
@@ -130,7 +130,7 @@ def clean_schema(
     report: dict,
 ) -> dict[str, Any]:
     """
-    Clean tables.json entries and return a dict keyed by db_id.
+    Clean dev_tables.json entries and return a dict keyed by db_id.
     Also validates foreign keys and flags empty tables.
     """
     clean: dict[str, Any] = {}
@@ -237,7 +237,7 @@ def clean_queries(
     for entry in queries:
         db_id = entry.get("db_id", "")
         question = entry.get("question", "")
-        sql = entry.get("query", "")
+        sql = entry.get("SQL", "")  # mark -- 'query'
 
         # ── 1. Skip if no SQLite ────────────────────────────────────────────
         if db_id not in available_dbs:
@@ -268,8 +268,11 @@ def clean_queries(
             "question": question,
             "query": sql,
             # preserve optional fields
-            "query_toks": entry.get("query_toks", []),
-            "question_toks": entry.get("question_toks", []),
+            # "query_toks": entry.get("query_toks", []),  mark --
+            # "question_toks": entry.get("question_toks", []), mark --
+            "question_id": entry.get("question_id"),
+            "evidence": clean_text(entry.get("evidence", "")),
+            "difficulty": entry.get("difficulty", "")
         })
 
     log.info(
@@ -327,27 +330,27 @@ def spot_check_execution(
 # ---------------------------------------------------------------------------
 
 def main():
-    parser = argparse.ArgumentParser(description="Clean Spider dataset for DebugSQL")
+    parser = argparse.ArgumentParser(description="Clean Data dataset for DebugSQL")
     _ROOT = Path(__file__).parent.parent
-    parser.add_argument("--spider_dir", default=str(_ROOT / "data/benchmarks/spider/raw"),
-                    help="Path to raw Spider directory")
-    parser.add_argument("--output_dir", default=str(_ROOT / "data/benchmarks/spider/processed"),
+    parser.add_argument("--bird_dir", default=str(_ROOT / "data/benchmarks/bird/raw"),
+                    help="Path to raw Bird directory")
+    parser.add_argument("--output_dir", default=str(_ROOT / "data/benchmarks/bird/processed"),
                     help="Where to write cleaned outputs")
     parser.add_argument("--spot_check", type=int, default=20,
                         help="Number of queries to spot-check execution (0 to skip)")
     args = parser.parse_args()
 
-    spider_dir = Path(args.spider_dir)
+    bird_dir = Path(args.bird_dir)
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # SQLite files live in a separate tree from the JSON annotation files;
-    # spider_dir contains tables.json / dev.json, while database_dir holds the
+    # bird_dir contains dev_tables.json / dev.json, while database_dir holds the
     # actual .sqlite files.  Keep them decoupled so either can be swapped.
-    database_dir = Path(__file__).parent.parent / "data/benchmarks/spider/sqlite/database"
-    tables_path  = spider_dir / "tables.json"
-    dev_path     = spider_dir / "dev.json"
-    train_path   = spider_dir / "train_spider.json"
+    database_dir = Path(__file__).parent.parent / "data/benchmarks/bird/sqlite"
+    tables_path  = bird_dir / "dev_tables.json"
+    dev_path     = bird_dir / "dev.json"
+    # train_path   = bird_dir / "train_spider.json"  mark --
 
     report: dict = {}
 
@@ -357,7 +360,7 @@ def main():
     log.info(f"  Found {len(available_dbs)} databases with SQLite files")
 
     # ── Step 2: clean schema ─────────────────────────────────────────────────
-    log.info("Step 2: Cleaning schema (tables.json)...")
+    log.info("Step 2: Cleaning schema (dev_tables.json)...")
     with open(tables_path, encoding="utf-8") as f:
         raw_tables = json.load(f)
     clean_schema_index = clean_schema(raw_tables, available_dbs, database_dir, report)
@@ -378,20 +381,20 @@ def main():
         json.dump(clean_dev, f, indent=2, ensure_ascii=False)
     log.info(f"  Saved → {dev_out}")
 
-    # ── Step 4: clean train queries ──────────────────────────────────────────
-    if train_path.exists():
-        log.info("Step 4: Cleaning train_spider.json...")
-        with open(train_path, encoding="utf-8") as f:
-            raw_train = json.load(f)
-        clean_train = clean_queries(raw_train, available_dbs, "train", report)
-
-        train_out = output_dir / "clean_train.json"
-        with open(train_out, "w", encoding="utf-8") as f:
-            json.dump(clean_train, f, indent=2, ensure_ascii=False)
-        log.info(f"  Saved → {train_out}")
-    else:
-        clean_train = []
-        log.warning("train_spider.json not found — skipping")
+    # ── Step 4: clean train queries ────────────────────────────────────────── mark
+    # if train_path.exists():
+    #     log.info("Step 4: Cleaning train_spider.json...")
+    #     with open(train_path, encoding="utf-8") as f:
+    #         raw_train = json.load(f)
+    #     clean_train = clean_queries(raw_train, available_dbs, "train", report)
+    #
+    #     train_out = output_dir / "clean_train.json"
+    #     with open(train_out, "w", encoding="utf-8") as f:
+    #         json.dump(clean_train, f, indent=2, ensure_ascii=False)
+    #     log.info(f"  Saved → {train_out}")
+    # else:
+    #     clean_train = []
+    #     log.warning("train_spider.json not found — skipping")
 
     # ── Step 5: spot-check execution ─────────────────────────────────────────
     if args.spot_check > 0 and clean_dev:
@@ -410,7 +413,7 @@ def main():
     print("="*55)
     print(f"  Databases cleaned      : {len(clean_schema_index)}")
     print(f"  Dev queries cleaned    : {len(clean_dev)}")
-    print(f"  Train queries cleaned  : {len(clean_train)}")
+    # print(f"  Train queries cleaned  : {len(clean_train)}") mark --
     print(f"  Missing SQLite (skipped): {len(report['schema']['missing_sqlite'])}")
     print(f"  FK mismatches fixed    : {len(report['schema']['fk_mismatches'])}")
     print(f"  DBs with empty tables  : {len(report['schema']['empty_tables'])}")
