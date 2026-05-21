@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react';
 import { FiDatabase, FiGithub, FiLoader, FiLogOut } from 'react-icons/fi';
 import { getCurrentUser, githubLoginUrl, logout, type CurrentUser } from '../../services/api/authApi';
 import './AuthGate.css';
 
+const DEV_LOGOUT_KEY = 'debugsql.devLogout';
+
 interface AuthGateProps {
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
 type AuthState =
@@ -16,6 +18,11 @@ export function AuthGate({ children }: AuthGateProps) {
   const [state, setState] = useState<AuthState>({ status: 'loading', user: null, error: null });
 
   const refreshUser = async () => {
+    if (sessionStorage.getItem(DEV_LOGOUT_KEY) === '1') {
+      setState({ status: 'unauthenticated', user: null, error: null });
+      return;
+    }
+
     setState({ status: 'loading', user: null, error: null });
     try {
       const user = await getCurrentUser();
@@ -43,13 +50,19 @@ export function AuthGate({ children }: AuthGateProps) {
 
   if (state.status === 'unauthenticated') {
     return (
-      <LoginScreen error={state.error} onRetry={() => void refreshUser()} />
+      <LoginScreen
+        error={state.error}
+        onRetry={() => {
+          sessionStorage.removeItem(DEV_LOGOUT_KEY);
+          void refreshUser();
+        }}
+      />
     );
   }
 
   return (
     <div className="auth-app-frame">
-      <UserStrip user={state.user} onLogout={() => void handleLogout(refreshUser)} />
+      <UserStrip user={state.user} onLogout={() => void handleLogout(setState)} />
       {children}
     </div>
   );
@@ -108,10 +121,11 @@ function UserStrip({ user, onLogout }: { user: CurrentUser; onLogout: () => void
   );
 }
 
-async function handleLogout(refreshUser: () => Promise<void>) {
+async function handleLogout(setState: Dispatch<SetStateAction<AuthState>>) {
   try {
     await logout();
   } finally {
-    await refreshUser();
+    sessionStorage.setItem(DEV_LOGOUT_KEY, '1');
+    setState({ status: 'unauthenticated', user: null, error: null });
   }
 }
