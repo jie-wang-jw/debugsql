@@ -48,8 +48,8 @@ export async function patchQueryPlanNode(
   nodeId: string,
   body: NodeUpdateRequest,
   options?: RequestOptions,
-): Promise<void> {
-  return apiPatch<void>(`/query-plan/${planId}/nodes/${nodeId}`, body, options);
+): Promise<QueryPlanGraph> {
+  return apiPatch<QueryPlanGraph>(`/query-plan/${planId}/nodes/${nodeId}`, body, options);
 }
 
 /**

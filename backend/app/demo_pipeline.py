@@ -85,16 +85,9 @@ def generate_plan_for_message(
         PLAN_STORE[stored["plan"]["plan_id"]] = stored
         return stored
 
-    if benchmark in SQLITE_ROOTS and db_id and _is_schema_overview_request(message, db_id):
-        stored = _build_schema_overview_plan(message, session_id, dataset_context)
-        PLAN_STORE[stored["plan"]["plan_id"]] = stored
-        return stored
-
     gold_sql = find_benchmark_gold_sql(benchmark, db_id, message) if benchmark in SQLITE_ROOTS else None
     if benchmark in SQLITE_ROOTS and db_id and not gold_sql:
-        stored = _build_benchmark_guidance_plan(message, session_id, dataset_context)
-        PLAN_STORE[stored["plan"]["plan_id"]] = stored
-        return stored
+        raise ValueError("No benchmark gold SQL found for this question.")
 
     intent_ir = build_demo_ir(message)
     if dataset_context:
@@ -158,23 +151,37 @@ def update_plan_node(plan_id: str, node_id: str, data: dict[str, Any]) -> dict[s
     if not graph:
         return None
 
+    old_data: dict[str, Any] | None = None
     for node in graph["nodes"]:
         if node["id"] == node_id:
+            old_data = dict(node.get("data", {}))
             node["data"] = data
             node["data"]["_lastEditedAt"] = int(time.time())
+            node["data"]["_editVersion"] = int(node["data"].get("_editVersion") or 0) + 1
             break
-    _sync_executable_from_graph(plan_id)
+    else:
+        return None
+
+    _mark_downstream_pending(graph, node_id)
+    edit_result = _apply_node_edit_to_executable(plan_id, node_id)
+    _record_plan_edit(plan_id, node_id, old_data, data, edit_result)
+    graph["editStatus"] = edit_result
     return graph
 
 
 def run_demo_execution(sql_or_query: str, session_id: str | None = None, plan_id: str | None = None) -> dict[str, Any]:
     run_id = _stable_id("run", {"sql": sql_or_query, "session": session_id, "plan": plan_id, "time": time.time()})
-    if _plan_template(plan_id) in {"spider_guidance", "benchmark_guidance"}:
-        result = _guidance_execution_result(plan_id)
+    if _plan_requires_replan(plan_id):
+        result = _replan_required_execution_result(plan_id)
         RUN_STORE[run_id] = result
         return {"runId": run_id, "status": "running"}
 
     sql = _execution_sql(sql_or_query, plan_id)
+    if not sql.strip():
+        result = _replan_required_execution_result(plan_id)
+        RUN_STORE[run_id] = result
+        return {"runId": run_id, "status": "running"}
+
     dataset_context = _plan_dataset_context(plan_id)
     benchmark = (dataset_context or {}).get("benchmark")
     db_id = (dataset_context or {}).get("dbId")
@@ -227,6 +234,13 @@ def _plan_template(plan_id: str | None) -> str | None:
     return PLAN_STORE[plan_id].get("plan", {}).get("metadata", {}).get("template")
 
 
+def _plan_requires_replan(plan_id: str | None) -> bool:
+    if not plan_id or plan_id not in PLAN_STORE:
+        return False
+    metadata = PLAN_STORE[plan_id].get("plan", {}).get("metadata", {})
+    return bool(metadata.get("requires_replan"))
+
+
 def query_plan_to_graph(plan: QueryPlan, query_label: str) -> dict[str, Any]:
     levels = _node_levels(plan)
     nodes = []
@@ -264,172 +278,6 @@ def _is_sales_store_demo(message: str) -> bool:
         ("store" in text or "stores" in text)
         and ("top" in text or "rank" in text or "sales" in text or "selling" in text)
     )
-
-
-def _is_schema_overview_request(message: str, db_id: str) -> bool:
-    text = message.lower()
-    return (
-        "inside" in text
-        or "schema" in text
-        or "tables" in text
-        or "columns" in text
-        or "what is in" in text
-        or f"inside {db_id.lower()}" in text
-        or f"in {db_id.lower()}" in text
-    )
-
-
-def _build_schema_overview_plan(
-    message: str,
-    session_id: str | None,
-    dataset_context: dict[str, Any] | None,
-) -> dict[str, Any]:
-    benchmark = (dataset_context or {}).get("benchmark")
-    db_id = (dataset_context or {}).get("dbId")
-    schema_context = get_schema_context(benchmark, db_id) or {"tables": []}
-    tables = schema_context.get("tables", [])
-    plan_id = _stable_id("plan_schema", {"message": message, "dataset": dataset_context})
-    sql = (
-        "SELECT name AS table_name\n"
-        "FROM sqlite_master\n"
-        "WHERE type = 'table'\n"
-        "ORDER BY name;"
-    )
-    graph = {
-        "queryLabel": message,
-        "totalCost": 8.2,
-        "nodes": [
-            _intent_node(
-                "intent",
-                80,
-                80,
-                "Schema Overview",
-                "LIST_TABLES",
-                [],
-                [],
-                ["table_name", "columns"],
-            ),
-            _op_node("op_schema", 360, 80, "SELECT", "Read SQLite schema", "sqlite_master tables", len(tables), 8.2),
-            _data_node(
-                "data_result",
-                650,
-                80,
-                f"{db_id} schema",
-                "result",
-                len(tables),
-                8.2,
-                ["table_name", "columns"],
-            ),
-        ],
-        "edges": [
-            _edge("intent", "op_schema", animated=True),
-            _edge("op_schema", "data_result", animated=True),
-        ],
-    }
-    return {
-        "message": message,
-        "session_id": session_id,
-        "dataset_context": dataset_context,
-        "ir": {
-            "intent_type": "schema_overview",
-            "raw_query": message,
-            "dataset_context": dataset_context,
-            "table_count": len(tables),
-        },
-        "plan": {
-            "plan_id": plan_id,
-            "plan_type": "tree",
-            "data_source_type": "relational",
-            "executable": {"type": "sql", "dialect": "sqlite", "content": sql},
-            "metadata": {
-                "provider": "backend_demo_template",
-                "template": "benchmark_schema_overview",
-                "dataset_context": dataset_context,
-                "benchmark": benchmark,
-                "db_id": db_id,
-            },
-        },
-        "graph": graph,
-        "assistant_content": _schema_overview_assistant_content(db_id, tables, sql),
-        "created_at": time.time(),
-    }
-
-
-def _build_benchmark_guidance_plan(
-    message: str,
-    session_id: str | None,
-    dataset_context: dict[str, Any] | None,
-) -> dict[str, Any]:
-    benchmark = (dataset_context or {}).get("benchmark")
-    db_id = (dataset_context or {}).get("dbId")
-    plan_id = _stable_id("plan_guidance", {"message": message, "dataset": dataset_context})
-    graph = {
-        "queryLabel": message,
-        "totalCost": 0.0,
-        "nodes": [
-            _intent_node(
-                "intent",
-                80,
-                80,
-                "Clarification Needed",
-                "NO_SQL_GENERATED",
-                [],
-                [],
-                ["benchmark", "db_id", "question"],
-            ),
-            _op_node(
-                "op_guidance",
-                360,
-                80,
-                "GUIDANCE",
-                "Unsupported request",
-                "No matching benchmark sample question or schema overview intent",
-                0,
-                0.0,
-            ),
-            _data_node(
-                "data_result",
-                690,
-                80,
-                "Guidance",
-                "result",
-                1,
-                0.0,
-                ["status", "message"],
-            ),
-        ],
-        "edges": [
-            _edge("intent", "op_guidance"),
-            _edge("op_guidance", "data_result"),
-        ],
-    }
-    return {
-        "message": message,
-        "session_id": session_id,
-        "dataset_context": dataset_context,
-        "ir": {
-            "intent_type": "clarification_needed",
-            "raw_query": message,
-            "dataset_context": dataset_context,
-            "needs_clarification": True,
-        },
-        "plan": {
-            "plan_id": plan_id,
-            "plan_type": "tree",
-            "data_source_type": "relational",
-            "executable": {"type": "none", "dialect": "sqlite", "content": ""},
-            "metadata": {
-                "provider": "backend_demo_template",
-                "template": "benchmark_guidance",
-                "dataset_context": dataset_context,
-                "benchmark": benchmark,
-                "db_id": db_id,
-            },
-        },
-        "graph": graph,
-        "assistant_content": _benchmark_guidance_content(benchmark, db_id),
-        "created_at": time.time(),
-    }
 
 
 def _build_sales_store_demo(message: str, session_id: str | None) -> dict[str, Any]:
@@ -570,37 +418,10 @@ def _benchmark_query_content(
     )
 
 
-def _schema_overview_assistant_content(db_id: str | None, tables: list[dict[str, Any]], sql: str) -> str:
-    preview = "\n".join(
-        f"- {table.get('name')}: {', '.join((table.get('columns') or [])[:6])}"
-        for table in tables[:8]
-    )
-    more = f"\n- ... {len(tables) - 8} more tables" if len(tables) > 8 else ""
-    return (
-        f"I found the selected database **{db_id}**. It contains **{len(tables)} tables**.\n\n"
-        f"{preview}{more}\n\n"
-        f"```sql\n{sql}\n```"
-    )
-
-
-def _benchmark_guidance_content(benchmark: str | None, db_id: str | None) -> str:
-    label = (benchmark or "benchmark").upper()
-    return (
-        f"I cannot generate a reliable SQL query for **{db_id}** ({label}) from this request yet.\n\n"
-        "Current MVP behavior:\n"
-        f"- Click one of the {label} example questions for the selected database.\n"
-        "- Ask what tables/columns are inside the selected database.\n"
-        f"- Use exact {label} dev questions to test real SQLite execution.\n\n"
-        "The next step is to connect the real NL2SQL provider so arbitrary benchmark questions "
-        "can be converted into IR and SQL."
-    )
-
-
-def _guidance_execution_result(plan_id: str | None) -> dict[str, Any]:
+def _replan_required_execution_result(plan_id: str | None) -> dict[str, Any]:
     stored = PLAN_STORE.get(plan_id or "", {})
-    dataset_context = stored.get("dataset_context") or {}
-    db_id = dataset_context.get("dbId") or "selected database"
-    benchmark_label = (dataset_context.get("benchmark") or "benchmark").upper()
+    metadata = stored.get("plan", {}).get("metadata", {})
+    reason = metadata.get("replan_reason") or "The edited node changes query semantics."
     return {
         "sql": "",
         "columns": [
@@ -609,10 +430,10 @@ def _guidance_execution_result(plan_id: str | None) -> dict[str, Any]:
         ],
         "rows": [
             {
-                "status": "not_executable",
+                "status": "needs_replan",
                 "message": (
-                    f"No SQL was generated for {db_id}. "
-                    f"Use a {benchmark_label} sample question or ask for the schema overview."
+                    f"{reason} A real NL2IR/IR2Plan provider is required to regenerate this "
+                    "benchmark plan safely."
                 ),
             }
         ],
@@ -794,6 +615,180 @@ def _execution_sql(sql_or_query: str, plan_id: str | None) -> str:
     return "SELECT dimension, value FROM debugsql_stub_result ORDER BY value DESC"
 
 
+def _apply_node_edit_to_executable(plan_id: str, node_id: str) -> dict[str, Any]:
+    stored = PLAN_STORE.get(plan_id)
+    if not stored:
+        return {"status": "missing_plan", "message": "Plan was not found."}
+
+    metadata = stored.get("plan", {}).setdefault("metadata", {})
+    metadata.pop("requires_replan", None)
+    metadata.pop("replan_reason", None)
+
+    template = metadata.get("template")
+    if template == "sales_store_ranking":
+        _sync_executable_from_graph(plan_id)
+        return {
+            "status": "regenerated",
+            "message": "Sales demo SQL was regenerated from edited plan nodes.",
+            "executableAvailable": True,
+        }
+
+    if template == "benchmark_gold_sql":
+        patch_result = _apply_supported_benchmark_sql_patch(plan_id, node_id)
+        if patch_result["status"] in {"regenerated", "graph_updated"}:
+            return patch_result
+
+        metadata["requires_replan"] = True
+        metadata["replan_reason"] = patch_result["message"]
+        executable = stored.get("plan", {}).setdefault("executable", {})
+        executable["content"] = ""
+        return {
+            **patch_result,
+            "executableAvailable": False,
+            "requiresProvider": True,
+        }
+
+    return {
+        "status": "graph_updated",
+        "message": "Node payload was saved. This plan type does not require SQL regeneration.",
+        "executableAvailable": bool((stored.get("plan", {}).get("executable") or {}).get("content")),
+    }
+
+
+def _apply_supported_benchmark_sql_patch(plan_id: str, node_id: str) -> dict[str, Any]:
+    stored = PLAN_STORE[plan_id]
+    graph = stored["graph"]
+    node = _graph_node(graph, node_id)
+    if not node:
+        return {"status": "missing_node", "message": "Edited node was not found."}
+
+    data = node.get("data", {})
+    if data.get("kind") == "data":
+        return {
+            "status": "graph_updated",
+            "message": "Data-node display metadata was updated without changing SQL.",
+            "executableAvailable": True,
+        }
+
+    executable = stored.get("plan", {}).get("executable") or {}
+    sql = executable.get("content") or ""
+    if not sql:
+        return {"status": "needs_replan", "message": "No executable SQL is available to patch."}
+
+    operation_type = str(data.get("operationType") or "").upper()
+    if operation_type == "LIMIT":
+        limit = _extract_limit(str(data.get("detail") or data.get("label") or ""))
+        if limit is None:
+            return {"status": "needs_replan", "message": "The edited LIMIT node does not contain a valid integer limit."}
+        executable["content"] = _replace_sql_limit(sql, limit)
+        return {
+            "status": "regenerated",
+            "message": f"Benchmark SQL LIMIT was regenerated as LIMIT {limit}.",
+            "executableAvailable": True,
+        }
+
+    if operation_type == "SORT":
+        order_by = str(data.get("detail") or "").strip()
+        if not order_by:
+            return {"status": "needs_replan", "message": "The edited SORT node does not contain an ORDER BY expression."}
+        executable["content"] = _replace_sql_order_by(sql, order_by)
+        return {
+            "status": "regenerated",
+            "message": f"Benchmark SQL ORDER BY was regenerated as {order_by}.",
+            "executableAvailable": True,
+        }
+
+    return {
+        "status": "needs_replan",
+        "message": (
+            "This benchmark node edit changes semantics that cannot be safely regenerated "
+            "without the external NL2IR/IR2Plan provider."
+        ),
+    }
+
+
+def _record_plan_edit(
+    plan_id: str,
+    node_id: str,
+    old_data: dict[str, Any] | None,
+    new_data: dict[str, Any],
+    edit_result: dict[str, Any],
+) -> None:
+    stored = PLAN_STORE.get(plan_id)
+    if not stored:
+        return
+    stored.setdefault("edit_log", []).append(
+        {
+            "node_id": node_id,
+            "old_data": old_data,
+            "new_data": new_data,
+            "result": edit_result,
+            "created_at": time.time(),
+        }
+    )
+
+
+def _mark_downstream_pending(graph: dict[str, Any], node_id: str) -> None:
+    downstream = _downstream_node_ids(graph, node_id)
+    for node in graph.get("nodes", []):
+        data = node.get("data", {})
+        if node.get("id") in downstream and data.get("kind") == "operation":
+            data["executionState"] = "pending"
+        if node.get("id") in downstream and data.get("kind") == "data":
+            data["materialized"] = False
+
+
+def _downstream_node_ids(graph: dict[str, Any], node_id: str) -> set[str]:
+    adjacency: dict[str, list[str]] = {}
+    for edge in graph.get("edges", []):
+        adjacency.setdefault(edge.get("source"), []).append(edge.get("target"))
+
+    seen: set[str] = set()
+    stack = list(adjacency.get(node_id, []))
+    while stack:
+        current = stack.pop()
+        if current in seen:
+            continue
+        seen.add(current)
+        stack.extend(adjacency.get(current, []))
+    return seen
+
+
+def _graph_node(graph: dict[str, Any], node_id: str) -> dict[str, Any] | None:
+    for node in graph.get("nodes", []):
+        if node.get("id") == node_id:
+            return node
+    return None
+
+
+def _replace_sql_limit(sql: str, limit: int) -> str:
+    stripped = sql.strip().rstrip(";")
+    if re.search(r"\bLIMIT\s+\d+\b", stripped, flags=re.IGNORECASE):
+        patched = re.sub(r"\bLIMIT\s+\d+\b", f"LIMIT {limit}", stripped, flags=re.IGNORECASE)
+    else:
+        patched = f"{stripped}\nLIMIT {limit}"
+    return f"{patched};"
+
+
+def _replace_sql_order_by(sql: str, order_by: str) -> str:
+    stripped = sql.strip().rstrip(";")
+    limit_match = re.search(r"\bLIMIT\s+\d+\b", stripped, flags=re.IGNORECASE)
+    limit_clause = ""
+    body = stripped
+    if limit_match:
+        limit_clause = limit_match.group(0)
+        body = stripped[: limit_match.start()].rstrip()
+
+    if re.search(r"\bORDER\s+BY\b", body, flags=re.IGNORECASE):
+        body = re.sub(r"\bORDER\s+BY\b.+$", f"ORDER BY {order_by}", body, flags=re.IGNORECASE | re.DOTALL)
+    else:
+        body = f"{body}\nORDER BY {order_by}"
+
+    if limit_clause:
+        body = f"{body}\n{limit_clause}"
+    return f"{body};"
+
+
 def _sync_executable_from_graph(plan_id: str) -> None:
     stored = PLAN_STORE.get(plan_id)
     if not stored:
@@ -887,6 +882,9 @@ def _execution_rows(sql: str) -> tuple[list[dict[str, Any]], list[dict[str, str]
 
 
 def _extract_limit(sql: str) -> int | None:
+    plain = sql.strip()
+    if plain.isdigit():
+        return int(plain)
     match = re.search(r"\bLIMIT\s+(\d+)\b", sql, flags=re.IGNORECASE)
     if not match:
         return None

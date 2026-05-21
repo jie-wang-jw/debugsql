@@ -61,7 +61,11 @@ export function QueryPlanProvider({ children }: { children: ReactNode }) {
   const onNodeDataUpdate = useCallback(
     async (nodeId: string, updatedData: FlowNodeData) => {
       if (activePlanId) {
-        await updateQueryPlanNode(activePlanId, nodeId, updatedData);
+        const updatedGraph = await updateQueryPlanNode(activePlanId, nodeId, updatedData);
+        if (updatedGraph) {
+          setGraph(updatedGraph);
+          return;
+        }
       }
 
       setGraph((prev) => ({

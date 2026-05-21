@@ -15,15 +15,6 @@ HELP_TERMS = (
     "evaluate",
 )
 
-SCHEMA_TERMS = (
-    "inside",
-    "schema",
-    "tables",
-    "columns",
-    "what is in",
-    "what's in",
-)
-
 EDIT_TERMS = (
     "change limit",
     "set limit",
@@ -55,15 +46,6 @@ def classify_message(message: str, dataset_context: dict | None = None) -> Conve
             requires_plan=False,
             requires_execution=False,
             reason="Message is asking about system or benchmark usage.",
-        )
-
-    if benchmark in SQLITE_ROOTS and db_id and any(term in text for term in SCHEMA_TERMS):
-        return ConversationIntent(
-            intent_type="schema_overview",
-            confidence=0.85,
-            requires_plan=True,
-            requires_execution=True,
-            reason="Message asks about database structure.",
         )
 
     if benchmark in SQLITE_ROOTS and db_id:

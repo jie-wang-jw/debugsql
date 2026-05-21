@@ -27,7 +27,7 @@ def patch_query_plan_node(plan_id: str, node_id: str, request: NodeUpdateRequest
     graph = update_plan_node(plan_id, node_id, request.data)
     if graph is None:
         raise HTTPException(status_code=404, detail=f"Query plan {plan_id} was not found")
-    return {"success": True, "data": None}
+    return {"success": True, "data": graph}
 
 
 @router.post("/{plan_id}/snapshot")

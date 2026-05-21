@@ -51,7 +51,7 @@ export async function updateQueryPlanNode(
   planId: string,
   nodeId: string,
   _data: FlowNodeData,
-): Promise<void> {
+): Promise<QueryPlanGraph | void> {
   if (USE_MOCK_SERVICES) {
     return saveMockNodeUpdate(planId, nodeId);
   }

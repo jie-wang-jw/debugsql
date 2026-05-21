@@ -5,7 +5,6 @@ from pydantic import BaseModel
 
 IntentType = Literal[
     "help",
-    "schema_overview",
     "benchmark_query",
     "edit_plan",
     "unsupported",
