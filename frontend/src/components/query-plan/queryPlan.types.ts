@@ -23,7 +23,16 @@ export type OperationType =
   | 'AGGREGATE'
   | 'LIMIT';
 
-export type ExecutionState = 'pending' | 'running' | 'done';
+export type ExecutionState = 'pending' | 'running' | 'success' | 'error' | 'skipped' | 'done';
+
+export interface QueryPlanRunStatus {
+  runId: string;
+  status: 'idle' | 'running' | 'success' | 'error';
+  currentNodeId?: string | null;
+  nextNodeId?: string | null;
+  stepsCompleted: number;
+  totalSteps: number;
+}
 
 export interface OperationNodeData {
   kind: 'operation';
@@ -44,6 +53,8 @@ export interface DataNodeData {
   rowCount?: number;
   estimatedCost?: number;
   columns?: string[];
+  executionState?: ExecutionState;
+  materialized?: boolean;
 }
 
 // Union discriminated by `kind`
@@ -60,4 +71,5 @@ export interface QueryPlanGraph {
   edges: FlowEdge[];
   queryLabel: string;
   totalCost: number;
+  runStatus?: QueryPlanRunStatus;
 }

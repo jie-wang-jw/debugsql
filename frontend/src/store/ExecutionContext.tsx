@@ -17,8 +17,14 @@ import {
   useCallback,
   type ReactNode,
 } from 'react';
-import type { ExecutionStatus, ExecutionResult } from '../types/execution.types';
+import type { ExecutionStatus, ExecutionResult, PlanRun } from '../types/execution.types';
 import { executeQuery } from '../services/adapters/executionAdapter';
+import {
+  postPlanRun,
+  postPlanRunFull,
+  postPlanRunReset,
+  postPlanRunStep,
+} from '../services/api/queryPlanApi';
 
 export interface ExecutionContextValue {
   /** Current pipeline status. */
@@ -27,11 +33,17 @@ export interface ExecutionContextValue {
   result: ExecutionResult | null;
   /** Populated on failure; null otherwise. */
   error: string | null;
+  /** Current step-by-step plan run, if one has been started. */
+  planRun: PlanRun | null;
   /**
    * Kick off backend execution for the given query/plan.
    * Sets status to "running", then resolves to "success" or "failed".
    */
   triggerExecution: (query: string, planId?: string | null) => Promise<void>;
+  startPlanRun: (planId: string) => Promise<void>;
+  stepPlanRun: () => Promise<void>;
+  runFullPlan: () => Promise<void>;
+  resetPlanRun: () => Promise<void>;
 }
 
 const ExecutionContext = createContext<ExecutionContextValue | null>(null);
@@ -48,6 +60,7 @@ export function ExecutionProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<ExecutionStatus>('idle');
   const [result, setResult] = useState<ExecutionResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [planRun, setPlanRun] = useState<PlanRun | null>(null);
 
   const triggerExecution = useCallback(async (query: string, planId?: string | null) => {
     if (!query.trim()) return;
@@ -67,8 +80,65 @@ export function ExecutionProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const applyPlanRun = useCallback((nextRun: PlanRun) => {
+    setPlanRun(nextRun);
+    if (nextRun.result) {
+      setResult(nextRun.result);
+      setStatus('success');
+    } else if (nextRun.status === 'error') {
+      setError(nextRun.error ?? 'Plan run failed');
+      setStatus('failed');
+    } else if (nextRun.status === 'running') {
+      setStatus('running');
+    } else {
+      setStatus('idle');
+    }
+  }, []);
+
+  const startPlanRun = useCallback(async (planId: string) => {
+    setError(null);
+    setResult(null);
+    const nextRun = await postPlanRun(planId);
+    applyPlanRun(nextRun);
+  }, [applyPlanRun]);
+
+  const stepPlanRun = useCallback(async () => {
+    if (!planRun) return;
+    setError(null);
+    const nextRun = await postPlanRunStep(planRun.planId, planRun.runId);
+    applyPlanRun(nextRun);
+  }, [applyPlanRun, planRun]);
+
+  const runFullPlan = useCallback(async () => {
+    if (!planRun) return;
+    setError(null);
+    setStatus('running');
+    const nextRun = await postPlanRunFull(planRun.planId, planRun.runId);
+    applyPlanRun(nextRun);
+  }, [applyPlanRun, planRun]);
+
+  const resetPlanRun = useCallback(async () => {
+    if (!planRun) return;
+    setError(null);
+    setResult(null);
+    const nextRun = await postPlanRunReset(planRun.planId, planRun.runId);
+    applyPlanRun(nextRun);
+  }, [applyPlanRun, planRun]);
+
   return (
-    <ExecutionContext.Provider value={{ status, result, error, triggerExecution }}>
+    <ExecutionContext.Provider
+      value={{
+        status,
+        result,
+        error,
+        planRun,
+        triggerExecution,
+        startPlanRun,
+        stepPlanRun,
+        runFullPlan,
+        resetPlanRun,
+      }}
+    >
       {children}
     </ExecutionContext.Provider>
   );

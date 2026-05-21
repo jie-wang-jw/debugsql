@@ -18,6 +18,7 @@ from app.planning.schemas import PlanNode, PlanningRequest, QueryPlan
 
 PLAN_STORE: dict[str, dict[str, Any]] = {}
 RUN_STORE: dict[str, dict[str, Any]] = {}
+PLAN_RUN_STORE: dict[str, dict[str, Any]] = {}
 
 
 def build_demo_ir(message: str) -> dict[str, Any]:
@@ -206,6 +207,118 @@ def run_demo_execution(sql_or_query: str, session_id: str | None = None, plan_id
 
 def get_execution_result(run_id: str) -> dict[str, Any] | None:
     return RUN_STORE.get(run_id)
+
+
+def create_plan_run(plan_id: str) -> dict[str, Any] | None:
+    stored = PLAN_STORE.get(plan_id)
+    if not stored:
+        return None
+
+    graph = stored["graph"]
+    order = _plan_node_order(graph)
+    run_id = _stable_id("plan_run", {"plan": plan_id, "time": time.time()})
+    node_states = {node_id: "pending" for node_id in order}
+    run = {
+        "runId": run_id,
+        "planId": plan_id,
+        "status": "idle",
+        "nodeOrder": order,
+        "currentNodeId": None,
+        "nextNodeId": order[0] if order else None,
+        "nodeStates": node_states,
+        "stepsCompleted": 0,
+        "totalSteps": len(order),
+        "resultRunId": None,
+        "result": None,
+        "createdAt": time.time(),
+        "updatedAt": time.time(),
+    }
+    PLAN_RUN_STORE[run_id] = run
+    _apply_plan_run_to_graph(plan_id, run)
+    return _public_plan_run(run)
+
+
+def get_plan_run(run_id: str) -> dict[str, Any] | None:
+    run = PLAN_RUN_STORE.get(run_id)
+    return _public_plan_run(run) if run else None
+
+
+def step_plan_run(plan_id: str, run_id: str) -> dict[str, Any] | None:
+    run = PLAN_RUN_STORE.get(run_id)
+    if not run or run.get("planId") != plan_id:
+        return None
+
+    if run["status"] in {"success", "error"}:
+        return _public_plan_run(run)
+
+    order: list[str] = run["nodeOrder"]
+    index = int(run["stepsCompleted"])
+    if index >= len(order):
+        run["status"] = "success"
+        run["currentNodeId"] = None
+        run["nextNodeId"] = None
+        run["updatedAt"] = time.time()
+        _apply_plan_run_to_graph(plan_id, run)
+        return _public_plan_run(run)
+
+    node_id = order[index]
+    run["status"] = "running"
+    run["currentNodeId"] = node_id
+    run["nextNodeId"] = order[index + 1] if index + 1 < len(order) else None
+    run["nodeStates"][node_id] = "running"
+    _apply_plan_run_to_graph(plan_id, run)
+
+    try:
+        if index == len(order) - 1:
+            execution = run_demo_execution("step-plan-run", "dev-session", plan_id)
+            result = get_execution_result(execution["runId"])
+            run["resultRunId"] = execution["runId"]
+            run["result"] = result
+        run["nodeStates"][node_id] = "success"
+        run["stepsCompleted"] = index + 1
+        run["status"] = "success" if run["stepsCompleted"] >= len(order) else "running"
+        run["currentNodeId"] = node_id
+        run["nextNodeId"] = order[run["stepsCompleted"]] if run["stepsCompleted"] < len(order) else None
+    except Exception as exc:  # pragma: no cover - defensive state capture for API callers.
+        run["nodeStates"][node_id] = "error"
+        run["status"] = "error"
+        run["error"] = str(exc)
+
+    run["updatedAt"] = time.time()
+    _apply_plan_run_to_graph(plan_id, run)
+    return _public_plan_run(run)
+
+
+def run_full_plan(plan_id: str, run_id: str) -> dict[str, Any] | None:
+    run = PLAN_RUN_STORE.get(run_id)
+    if not run or run.get("planId") != plan_id:
+        return None
+
+    while run.get("status") not in {"success", "error"}:
+        step_plan_run(plan_id, run_id)
+        run = PLAN_RUN_STORE[run_id]
+        if int(run["stepsCompleted"]) >= int(run["totalSteps"]):
+            break
+    return _public_plan_run(run)
+
+
+def reset_plan_run(plan_id: str, run_id: str) -> dict[str, Any] | None:
+    run = PLAN_RUN_STORE.get(run_id)
+    if not run or run.get("planId") != plan_id:
+        return None
+
+    order: list[str] = run["nodeOrder"]
+    run["status"] = "idle"
+    run["currentNodeId"] = None
+    run["nextNodeId"] = order[0] if order else None
+    run["nodeStates"] = {node_id: "pending" for node_id in order}
+    run["stepsCompleted"] = 0
+    run["resultRunId"] = None
+    run["result"] = None
+    run.pop("error", None)
+    run["updatedAt"] = time.time()
+    _apply_plan_run_to_graph(plan_id, run)
+    return _public_plan_run(run)
 
 
 def _plan_with_dataset_metadata(plan: QueryPlan, dataset_context: dict[str, Any] | None) -> dict[str, Any]:
@@ -752,6 +865,72 @@ def _downstream_node_ids(graph: dict[str, Any], node_id: str) -> set[str]:
         seen.add(current)
         stack.extend(adjacency.get(current, []))
     return seen
+
+
+def _plan_node_order(graph: dict[str, Any]) -> list[str]:
+    nodes = [node.get("id") for node in graph.get("nodes", []) if node.get("id")]
+    if not nodes:
+        return []
+
+    adjacency: dict[str, list[str]] = {node_id: [] for node_id in nodes}
+    indegree: dict[str, int] = {node_id: 0 for node_id in nodes}
+    for edge in graph.get("edges", []):
+        source = edge.get("source")
+        target = edge.get("target")
+        if source in adjacency and target in indegree:
+            adjacency[source].append(target)
+            indegree[target] += 1
+
+    queue = [node_id for node_id in nodes if indegree[node_id] == 0]
+    ordered: list[str] = []
+    while queue:
+        current = queue.pop(0)
+        ordered.append(current)
+        for target in adjacency.get(current, []):
+            indegree[target] -= 1
+            if indegree[target] == 0:
+                queue.append(target)
+
+    return ordered if len(ordered) == len(nodes) else nodes
+
+
+def _apply_plan_run_to_graph(plan_id: str, run: dict[str, Any]) -> None:
+    stored = PLAN_STORE.get(plan_id)
+    if not stored:
+        return
+    graph = stored["graph"]
+    graph["runStatus"] = {
+        "runId": run["runId"],
+        "status": run["status"],
+        "currentNodeId": run.get("currentNodeId"),
+        "nextNodeId": run.get("nextNodeId"),
+        "stepsCompleted": run["stepsCompleted"],
+        "totalSteps": run["totalSteps"],
+    }
+    for node in graph.get("nodes", []):
+        node_id = node.get("id")
+        data = node.setdefault("data", {})
+        if node_id in run.get("nodeStates", {}):
+            data["executionState"] = run["nodeStates"][node_id]
+            data["_runId"] = run["runId"]
+            if data.get("kind") == "data":
+                data["materialized"] = run["nodeStates"][node_id] == "success"
+
+
+def _public_plan_run(run: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "runId": run["runId"],
+        "planId": run["planId"],
+        "status": run["status"],
+        "currentNodeId": run.get("currentNodeId"),
+        "nextNodeId": run.get("nextNodeId"),
+        "nodeStates": run.get("nodeStates", {}),
+        "stepsCompleted": run["stepsCompleted"],
+        "totalSteps": run["totalSteps"],
+        "resultRunId": run.get("resultRunId"),
+        "result": run.get("result"),
+        "error": run.get("error"),
+    }
 
 
 def _graph_node(graph: dict[str, Any], node_id: str) -> dict[str, Any] | None:

@@ -19,8 +19,12 @@ import {
   FiZap,
   FiDatabase,
   FiClock,
+  FiPlay,
+  FiRefreshCw,
+  FiSkipForward,
 } from 'react-icons/fi';
 import { useExecutionContext }  from '../../store/ExecutionContext';
+import { useQueryPlanContext } from '../../store/QueryPlanContext';
 import { ExecutionStatus }      from './ExecutionStatus';
 import { SQLPreview }           from './SQLPreview';
 import { ResultsTable }         from './ResultsTable';
@@ -70,6 +74,65 @@ function MetricsBar() {
       } accent="cyan" />
       <MetricChip icon={<FiZap size={10} />}      label="estimated"     value={`~${metrics.estimatedRows.toLocaleString()} rows`} accent="purple" />
     </motion.div>
+  );
+}
+
+function PlanRunControls() {
+  const { activePlanId, refreshActivePlan } = useQueryPlanContext();
+  const { planRun, startPlanRun, stepPlanRun, runFullPlan, resetPlanRun } = useExecutionContext();
+
+  const refreshAfter = async (action: () => Promise<void>) => {
+    await action();
+    await refreshActivePlan();
+  };
+
+  const hasPlan = Boolean(activePlanId);
+  const hasRun = Boolean(planRun);
+  const isComplete = planRun?.status === 'success' || planRun?.status === 'error';
+
+  return (
+    <div className="plan-run-controls">
+      <div className="plan-run-controls__summary">
+        <span className="plan-run-controls__label">Step Debugging</span>
+        <span className="plan-run-controls__status">
+          {planRun
+            ? `${planRun.stepsCompleted}/${planRun.totalSteps} nodes · ${planRun.status}`
+            : hasPlan
+              ? 'ready'
+              : 'no active plan'}
+        </span>
+      </div>
+      <div className="plan-run-controls__buttons">
+        <button
+          className="plan-run-controls__button"
+          disabled={!hasPlan}
+          onClick={() => activePlanId && refreshAfter(() => startPlanRun(activePlanId))}
+        >
+          <FiPlay size={11} /> Start
+        </button>
+        <button
+          className="plan-run-controls__button"
+          disabled={!hasRun || isComplete}
+          onClick={() => refreshAfter(stepPlanRun)}
+        >
+          <FiSkipForward size={11} /> Next
+        </button>
+        <button
+          className="plan-run-controls__button"
+          disabled={!hasRun || isComplete}
+          onClick={() => refreshAfter(runFullPlan)}
+        >
+          <FiZap size={11} /> Run full
+        </button>
+        <button
+          className="plan-run-controls__button"
+          disabled={!hasRun}
+          onClick={() => refreshAfter(resetPlanRun)}
+        >
+          <FiRefreshCw size={11} /> Reset
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -174,6 +237,7 @@ export function ExecutionPanel() {
       <PanelHeader />
 
       <div className="exec-panel__body">
+        <PlanRunControls />
         <AnimatePresence mode="wait">
 
           {status === 'idle' && (

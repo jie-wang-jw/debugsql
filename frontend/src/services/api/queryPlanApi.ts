@@ -15,6 +15,7 @@ import { apiGet, apiPatch, apiPost } from './client';
 import type { RequestOptions } from './client';
 import type { QueryPlanGraph } from '../../components/query-plan/queryPlan.types';
 import type { FlowNodeData } from '../../components/query-plan/queryPlan.types';
+import type { PlanRun } from '../../types/execution.types';
 
 export interface NodeUpdateRequest {
   nodeId: string;
@@ -62,4 +63,40 @@ export async function postPlanSnapshot(
   options?: RequestOptions,
 ): Promise<PlanSnapshotMeta> {
   return apiPost<PlanSnapshotMeta>(`/query-plan/${planId}/snapshot`, body, options);
+}
+
+export async function postPlanRun(planId: string, options?: RequestOptions): Promise<PlanRun> {
+  return apiPost<PlanRun>(`/query-plan/${planId}/runs`, undefined, options);
+}
+
+export async function getPlanRun(
+  planId: string,
+  runId: string,
+  options?: RequestOptions,
+): Promise<PlanRun> {
+  return apiGet<PlanRun>(`/query-plan/${planId}/runs/${runId}`, options);
+}
+
+export async function postPlanRunStep(
+  planId: string,
+  runId: string,
+  options?: RequestOptions,
+): Promise<PlanRun> {
+  return apiPost<PlanRun>(`/query-plan/${planId}/runs/${runId}/step`, undefined, options);
+}
+
+export async function postPlanRunFull(
+  planId: string,
+  runId: string,
+  options?: RequestOptions,
+): Promise<PlanRun> {
+  return apiPost<PlanRun>(`/query-plan/${planId}/runs/${runId}/full`, undefined, options);
+}
+
+export async function postPlanRunReset(
+  planId: string,
+  runId: string,
+  options?: RequestOptions,
+): Promise<PlanRun> {
+  return apiPost<PlanRun>(`/query-plan/${planId}/runs/${runId}/reset`, undefined, options);
 }

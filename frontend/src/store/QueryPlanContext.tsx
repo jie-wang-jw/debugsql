@@ -24,6 +24,7 @@ export interface QueryPlanContextValue {
   selectedNode: FlowNode | null;
   activePlanId: string | null;
   loadPlan: (planId: string) => Promise<void>;
+  refreshActivePlan: () => Promise<void>;
   onNodeSelect: (id: string) => void;
   onNodeDataUpdate: (nodeId: string, updatedData: FlowNodeData) => Promise<void>;
 }
@@ -58,6 +59,12 @@ export function QueryPlanProvider({ children }: { children: ReactNode }) {
     setSelectedNodeId(null);
   }, []);
 
+  const refreshActivePlan = useCallback(async () => {
+    if (!activePlanId) return;
+    const nextGraph = await fetchQueryPlan(activePlanId);
+    setGraph(nextGraph);
+  }, [activePlanId]);
+
   const onNodeDataUpdate = useCallback(
     async (nodeId: string, updatedData: FlowNodeData) => {
       if (activePlanId) {
@@ -86,6 +93,7 @@ export function QueryPlanProvider({ children }: { children: ReactNode }) {
         selectedNode,
         activePlanId,
         loadPlan,
+        refreshActivePlan,
         onNodeSelect,
         onNodeDataUpdate,
       }}
