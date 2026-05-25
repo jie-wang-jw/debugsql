@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     ir_to_plan_api_url: str = ""
     ir_to_plan_api_key: str = ""
     ir_to_plan_timeout_seconds: int = 30
+    benchmark_data_dir: str = "data/benchmarks"
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")

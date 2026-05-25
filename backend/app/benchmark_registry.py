@@ -7,9 +7,16 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
+from app.config import get_settings
+
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-BENCHMARK_ROOT = PROJECT_ROOT / "data" / "benchmarks"
+_configured_benchmark_root = Path(get_settings().benchmark_data_dir)
+BENCHMARK_ROOT = (
+    _configured_benchmark_root
+    if _configured_benchmark_root.is_absolute()
+    else PROJECT_ROOT / _configured_benchmark_root
+)
 SPIDER_ROOT = BENCHMARK_ROOT / "spider"
 BIRD_ROOT = BENCHMARK_ROOT / "bird"
 

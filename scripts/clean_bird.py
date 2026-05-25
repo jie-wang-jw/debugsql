@@ -332,22 +332,26 @@ def spot_check_execution(
 def main():
     parser = argparse.ArgumentParser(description="Clean Data dataset for DebugSQL")
     _ROOT = Path(__file__).parent.parent
-    parser.add_argument("--bird_dir", default=str(_ROOT / "data/benchmarks/bird/raw"),
+    benchmark_root = Path(os.getenv("BENCHMARK_DATA_DIR", str(_ROOT / "data/benchmarks")))
+    parser.add_argument("--benchmark_dir", default=str(benchmark_root),
+                        help="Benchmark data root containing spider/ and bird/")
+    parser.add_argument("--bird_dir", default=None,
                     help="Path to raw Bird directory")
-    parser.add_argument("--output_dir", default=str(_ROOT / "data/benchmarks/bird/processed"),
+    parser.add_argument("--output_dir", default=None,
                     help="Where to write cleaned outputs")
     parser.add_argument("--spot_check", type=int, default=20,
                         help="Number of queries to spot-check execution (0 to skip)")
     args = parser.parse_args()
 
-    bird_dir = Path(args.bird_dir)
-    output_dir = Path(args.output_dir)
+    benchmark_dir = Path(args.benchmark_dir)
+    bird_dir = Path(args.bird_dir) if args.bird_dir else benchmark_dir / "bird" / "raw"
+    output_dir = Path(args.output_dir) if args.output_dir else benchmark_dir / "bird" / "processed"
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # SQLite files live in a separate tree from the JSON annotation files;
     # bird_dir contains dev_tables.json / dev.json, while database_dir holds the
     # actual .sqlite files.  Keep them decoupled so either can be swapped.
-    database_dir = Path(__file__).parent.parent / "data/benchmarks/bird/sqlite"
+    database_dir = benchmark_dir / "bird" / "sqlite"
     tables_path  = bird_dir / "dev_tables.json"
     dev_path     = bird_dir / "dev.json"
     # train_path   = bird_dir / "train_spider.json"  mark --

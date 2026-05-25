@@ -38,6 +38,23 @@ data/benchmarks/
 
 Only `.gitkeep` files are committed. Raw benchmark files, processed metadata, and SQLite databases should stay out of Git.
 
+For long-term server deployment, keep benchmark files on the server data disk
+and mount them into the backend container. The backend reads:
+
+```env
+BENCHMARK_DATA_DIR=/app/data/benchmarks
+```
+
+Docker Compose maps the host path with:
+
+```env
+BENCHMARK_HOST_DATA_DIR=./data/benchmarks
+```
+
+On a production-like server, set `BENCHMARK_HOST_DATA_DIR` to a durable path
+such as `/data/debugsql/benchmarks`. Do not commit raw benchmark downloads to
+Git.
+
 ## Spider Dataset Setup
 
 1. Download the Spider dataset from https://yale-lily.github.io/spider
@@ -66,6 +83,14 @@ source venv/bin/activate
 python scripts/clean_spider.py
 ```
 
+If the benchmark data lives outside the repository, either set
+`BENCHMARK_DATA_DIR` or pass `--benchmark_dir`:
+
+```bash
+BENCHMARK_DATA_DIR=/data/debugsql/benchmarks python scripts/clean_spider.py
+python scripts/clean_spider.py --benchmark_dir /data/debugsql/benchmarks
+```
+
 5. Cleaned files will be saved to `data/benchmarks/spider/processed/`
 
 > Note: Raw Spider files and SQLite databases are excluded from Git due to size limits.
@@ -86,6 +111,14 @@ python scripts/clean_spider.py
 
 ```bash
 python scripts/clean_bird.py
+```
+
+If the benchmark data lives outside the repository, either set
+`BENCHMARK_DATA_DIR` or pass `--benchmark_dir`:
+
+```bash
+BENCHMARK_DATA_DIR=/data/debugsql/benchmarks python scripts/clean_bird.py
+python scripts/clean_bird.py --benchmark_dir /data/debugsql/benchmarks
 ```
 
 4. Cleaned files will be saved to:
@@ -274,7 +307,59 @@ VITE_API_BASE_URL=/api
 CORS_ORIGINS=http://SERVER_IP,http://SERVER_IP:80,http://localhost:5173,http://127.0.0.1:5173
 APP_BASE_URL=http://SERVER_IP/api
 FRONTEND_BASE_URL=http://SERVER_IP
-DEBUGSQL_AUTO_LOGIN=0
+DEBUGSQL_AUTO_LOGIN=1
+BENCHMARK_HOST_DATA_DIR=/data/debugsql/benchmarks
+BENCHMARK_DATA_DIR=/app/data/benchmarks
+```
+
+`DEBUGSQL_AUTO_LOGIN=1` is suitable for the current private demo server. Change
+it to `0` after GitHub/Google OAuth is configured for real user testing.
+
+Create the durable server data directories before starting Compose:
+
+```bash
+mkdir -p /data/debugsql/benchmarks/{bird,spider}/{raw,processed,sqlite}
+mkdir -p /data/debugsql/data/postgres
+```
+
+The recommended long-term benchmark layout is:
+
+```text
+/data/debugsql/benchmarks/
+  bird/
+    raw/
+      dev.json
+      dev_tables.json
+    processed/
+      clean_dev.json
+      clean_schema.json
+      cleaning_report.json
+    sqlite/
+      card_games/card_games.sqlite
+      ...
+  spider/
+    raw/
+      dev.json
+      tables.json
+      train_spider.json
+    processed/
+      clean_dev.json
+      clean_train.json
+      clean_schema.json
+      cleaning_report.json
+    sqlite/
+      database/
+        activity_1/activity_1.sqlite
+        ...
+```
+
+Run cleaning on the host after downloading or replacing benchmark files. The
+cleaning scripts use only the Python standard library:
+
+```bash
+python3 scripts/clean_spider.py --benchmark_dir /data/debugsql/benchmarks
+python3 scripts/clean_bird.py --benchmark_dir /data/debugsql/benchmarks
+docker compose restart backend
 ```
 
 Then open:
