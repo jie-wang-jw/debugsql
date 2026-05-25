@@ -74,7 +74,7 @@ def _list_benchmark_databases(benchmark: str) -> list[dict[str, Any]]:
                 "benchmark": benchmark,
                 "dbId": db_id,
                 "label": db_id,
-                "hasSQLite": sqlite_path.exists(),
+                "hasSQLite": sqlite_path.is_file(),
                 "tableCount": len(schemas[db_id].get("table_names_clean", [])),
                 "sampleQuestions": questions_by_db.get(db_id, [])[:5],
             }
@@ -140,12 +140,13 @@ def execute_benchmark_sql(benchmark: str, db_id: str, sql: str) -> dict[str, Any
         return _error_result(sql, f"Unknown benchmark '{benchmark}'.")
 
     sqlite_path = SQLITE_ROOTS[benchmark] / db_id / f"{db_id}.sqlite"
-    if not sqlite_path.exists():
+    if not sqlite_path.is_file():
         return _error_result(sql, f"SQLite database was not found for {benchmark} db_id '{db_id}'.")
 
     start = time.perf_counter()
     try:
-        with sqlite3.connect(sqlite_path) as conn:
+        sqlite_uri = f"{sqlite_path.resolve().as_uri()}?mode=ro&immutable=1"
+        with sqlite3.connect(sqlite_uri, uri=True) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.execute(sql)
             fetched = cursor.fetchmany(100)
