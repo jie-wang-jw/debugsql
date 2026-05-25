@@ -143,6 +143,16 @@ Create local environment variables:
 cp .env.example .env
 ```
 
+For the Linux demo server, use the server template instead:
+
+```bash
+cp .env.server.example .env
+```
+
+Then replace placeholder secrets such as `POSTGRES_PASSWORD`,
+`DATABASE_URL`, `SESSION_SECRET`, and `JWT_SECRET`. Real `.env` files are
+ignored by Git; only the example templates should be committed.
+
 Start all services:
 
 ```bash
