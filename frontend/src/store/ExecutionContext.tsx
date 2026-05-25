@@ -49,6 +49,7 @@ export interface ExecutionContextValue {
   stepPlanRun: () => Promise<void>;
   runFullPlan: () => Promise<void>;
   resetPlanRun: () => Promise<void>;
+  resetExecution: () => void;
   restoreExecution: (
     preview?: ExecutionResultPreview | null,
     status?: string | null,
@@ -120,6 +121,13 @@ export function ExecutionProvider({ children }: { children: ReactNode }) {
     setStatus(restoredStatus === 'error' || restoredStatus === 'failed' ? 'failed' : 'success');
   }, []);
 
+  const resetExecution = useCallback(() => {
+    setStatus('idle');
+    setResult(null);
+    setError(null);
+    setPlanRun(null);
+  }, []);
+
   const applyPlanRun = useCallback((nextRun: PlanRun) => {
     setPlanRun(nextRun);
     if (nextRun.result) {
@@ -177,6 +185,7 @@ export function ExecutionProvider({ children }: { children: ReactNode }) {
         stepPlanRun,
         runFullPlan,
         resetPlanRun,
+        resetExecution,
         restoreExecution,
       }}
     >

@@ -88,8 +88,8 @@ function resolveApplyHint(
 // ---- Main component ----
 
 export function InspectorPanel() {
-  const { activePlanId, graph, selectedNode, selectedNodeId, onNodeDataUpdate } = useQueryPlanContext();
-  const { triggerExecution } = useExecutionContext();
+  const { graph, selectedNode, selectedNodeId, onNodeDataUpdate } = useQueryPlanContext();
+  const { resetExecution } = useExecutionContext();
 
   // Flat list of all editable/read-only fields — reset on each new selection
   const [editedFields, setEditedFields] = useState<InspectorField[]>([]);
@@ -145,16 +145,11 @@ export function InspectorPanel() {
 
       setIsDirty(false);
       setIsApplied(true);
-      // Revert "applied" confirmation after 2 s
-      setTimeout(() => setIsApplied(false), 2000);
-
-      // Re-execute after node parameters change so results reflect the edit.
-      const nodeLabel = getNodeDisplayName(updatedData);
-      await triggerExecution(`re-execute after node update: ${nodeLabel}`, activePlanId);
+      resetExecution();
     } catch (error) {
       console.error('Failed to apply node changes', error);
     }
-  }, [activePlanId, selectedNode, selectedNodeId, editedFields, onNodeDataUpdate, triggerExecution]);
+  }, [selectedNode, selectedNodeId, editedFields, onNodeDataUpdate, resetExecution]);
 
   const accent: AccentVariant = selectedNode
     ? getNodeAccent(selectedNode.data)

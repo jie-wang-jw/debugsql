@@ -178,15 +178,25 @@ def update_plan_node(
             node["data"] = data
             node["data"]["_lastEditedAt"] = int(time.time())
             node["data"]["_editVersion"] = int(node["data"].get("_editVersion") or 0) + 1
+            if node["data"].get("kind") == "operation":
+                node["data"]["executionState"] = "pending"
+            if node["data"].get("kind") == "data":
+                node["data"]["executionState"] = "pending"
+                node["data"]["materialized"] = False
             break
     else:
         return None
 
+    before_sql = ((get_plan_record(plan_id, user_id=user_id) or {}).get("plan") or {}).get("executable", {}).get("content")
     downstream = _mark_downstream_pending(graph, node_id)
+    _clear_plan_run_state(plan_id, graph)
     edit_result = _apply_node_edit_to_executable(plan_id, node_id)
+    after_sql = ((get_plan_record(plan_id, user_id=user_id) or {}).get("plan") or {}).get("executable", {}).get("content")
+    edit_result["editedNodeId"] = node_id
     edit_result["downstreamNodeIds"] = sorted(downstream)
     edit_result["needsReplan"] = edit_result.get("status") == "needs_replan" or not edit_result.get("executableAvailable", True)
     edit_result["operationType"] = "plan_edit_replan"
+    edit_result["executableSqlChanged"] = before_sql != after_sql
     _record_plan_edit(plan_id, node_id, old_data, data, edit_result)
     _persist_latest_plan_edit(plan_id, user_id=user_id)
     graph["editStatus"] = edit_result
@@ -954,6 +964,15 @@ def _apply_node_edit_to_executable(plan_id: str, node_id: str) -> dict[str, Any]
     metadata.pop("requires_replan", None)
     metadata.pop("replan_reason", None)
 
+    graph = stored.get("graph") or {}
+    node = _graph_node(graph, node_id)
+    if node and (node.get("data") or {}).get("kind") == "data":
+        return {
+            "status": "graph_updated",
+            "message": "Data-node display metadata was updated without changing SQL.",
+            "executableAvailable": bool((stored.get("plan", {}).get("executable") or {}).get("content")),
+        }
+
     template = metadata.get("template")
     if template == "sales_store_ranking":
         _sync_executable_from_graph(plan_id)
@@ -1111,7 +1130,18 @@ def _mark_downstream_pending(graph: dict[str, Any], node_id: str) -> set[str]:
             data["executionState"] = "pending"
         if node.get("id") in downstream and data.get("kind") == "data":
             data["materialized"] = False
+            data["executionState"] = "pending"
     return downstream
+
+
+def _clear_plan_run_state(plan_id: str, graph: dict[str, Any]) -> None:
+    graph.pop("runStatus", None)
+    for run_id, run in list(PLAN_RUN_STORE.items()):
+        if run.get("planId") == plan_id:
+            PLAN_RUN_STORE.pop(run_id, None)
+    for node in graph.get("nodes", []):
+        data = node.setdefault("data", {})
+        data.pop("_runId", None)
 
 
 def _downstream_node_ids(graph: dict[str, Any], node_id: str) -> set[str]:
@@ -1242,8 +1272,8 @@ def _sync_executable_from_graph(plan_id: str) -> None:
 
     graph = stored["graph"]
     filter_detail = (
-        _node_detail(graph, "intent")
-        or _node_detail(graph, "op_filter")
+        _node_detail(graph, "op_filter")
+        or _node_detail(graph, "intent")
         or "sales_date >= CURRENT_DATE - 30"
     )
     group_by = _node_detail(graph, "op_group_by") or "store_id, store_name"

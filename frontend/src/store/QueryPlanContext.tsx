@@ -26,7 +26,7 @@ export interface QueryPlanContextValue {
   loadPlan: (planId: string) => Promise<void>;
   refreshActivePlan: () => Promise<void>;
   onNodeSelect: (id: string) => void;
-  onNodeDataUpdate: (nodeId: string, updatedData: FlowNodeData) => Promise<void>;
+  onNodeDataUpdate: (nodeId: string, updatedData: FlowNodeData) => Promise<QueryPlanGraph | null>;
 }
 
 const QueryPlanContext = createContext<QueryPlanContextValue | null>(null);
@@ -71,7 +71,10 @@ export function QueryPlanProvider({ children }: { children: ReactNode }) {
         const updatedGraph = await updateQueryPlanNode(activePlanId, nodeId, updatedData);
         if (updatedGraph) {
           setGraph(updatedGraph);
-          return;
+          setSelectedNodeId((prev) =>
+            updatedGraph.nodes.some((node) => node.id === prev) ? prev : nodeId,
+          );
+          return updatedGraph;
         }
       }
 
@@ -81,6 +84,7 @@ export function QueryPlanProvider({ children }: { children: ReactNode }) {
           node.id === nodeId ? { ...node, data: updatedData } : node
         ),
       }));
+      return null;
     },
     [activePlanId]
   );

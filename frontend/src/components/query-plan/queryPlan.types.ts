@@ -40,6 +40,9 @@ export interface QueryPlanEditResult {
   executableAvailable?: boolean;
   needsReplan?: boolean;
   downstreamNodeIds?: string[];
+  editedNodeId?: string;
+  executableSqlChanged?: boolean;
+  requiresProvider?: boolean;
   operationType?: string;
 }
 
