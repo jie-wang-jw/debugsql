@@ -14,6 +14,7 @@ from app.benchmark_registry import (
 )
 from app.planning.provider import get_ir_to_plan_provider
 from app.planning.schemas import PlanNode, PlanningRequest, QueryPlan
+from app.simple_nl2sql import build_simple_schema_nl2sql
 
 
 PLAN_STORE: dict[str, dict[str, Any]] = {}
@@ -88,14 +89,20 @@ def generate_plan_for_message(
         return stored
 
     gold_sql = find_benchmark_gold_sql(benchmark, db_id, message) if benchmark in SQLITE_ROOTS else None
-    if benchmark in SQLITE_ROOTS and db_id and not gold_sql:
+    schema_context = get_schema_context(benchmark, db_id)
+    fallback = (
+        build_simple_schema_nl2sql(message, schema_context)
+        if benchmark in SQLITE_ROOTS and db_id and not gold_sql
+        else None
+    )
+    if benchmark in SQLITE_ROOTS and db_id and not gold_sql and not fallback:
         raise ValueError("No benchmark gold SQL found for this question.")
 
-    intent_ir = build_demo_ir(message)
+    intent_ir = fallback.intent_ir if fallback else build_demo_ir(message)
     if dataset_context:
         intent_ir["dataset_context"] = dataset_context
 
-    schema_context = get_schema_context(benchmark, db_id) or {
+    schema_context = schema_context or {
         "tables": [
             {
                 "name": intent_ir["table"],
@@ -117,6 +124,10 @@ def generate_plan_for_message(
     if gold_sql and plan.executable:
         plan.executable.content = gold_sql
         plan.metadata["template"] = "benchmark_gold_sql"
+    if fallback and plan.executable:
+        plan.executable.content = fallback.sql
+        plan.metadata["template"] = "schema_fallback_sql"
+        plan.metadata["fallback_explanation"] = fallback.explanation
     graph = query_plan_to_graph(plan, message)
     assistant_content = (
         _benchmark_query_content(
@@ -125,6 +136,8 @@ def generate_plan_for_message(
             (dataset_context or {}).get("benchmark"),
         )
         if gold_sql and plan.executable
+        else _schema_fallback_content(fallback, plan.executable.content, graph)
+        if fallback and plan.executable
         else _assistant_content((plan.executable.content if plan.executable else ""), graph)
     )
 
@@ -752,6 +765,20 @@ def _benchmark_query_content(
         f"I matched this question to a {label} dev example and generated an executable plan.\n\n"
         f"```sql\n{sql}\n```\n\n"
         f"The plan can be inspected and executed against the selected SQLite database. Total cost: **{graph['totalCost']:.1f}**."
+    )
+
+
+def _schema_fallback_content(
+    fallback: Any,
+    sql: str,
+    graph: dict[str, Any],
+) -> str:
+    return (
+        "I generated a demo schema-aware NL2SQL plan for this question.\n\n"
+        f"```sql\n{sql}\n```\n\n"
+        f"{fallback.explanation} This fallback is intentionally simple; complex joins, nested SQL, "
+        "and domain reasoning still require the real NL2SQL provider. "
+        f"Total cost: **{graph['totalCost']:.1f}**."
     )
 
 

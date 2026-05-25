@@ -69,11 +69,15 @@ def _help_content(dataset_context: dict | None) -> str:
 
 
 def _unsupported_content(dataset_context: dict | None) -> str:
+    benchmark = (dataset_context or {}).get("benchmark", "selected benchmark")
     db_id = (dataset_context or {}).get("dbId", "the selected database")
     return (
-        f"I cannot generate reliable SQL for **{db_id}** from this question yet.\n\n"
-        "Please try one of these:\n"
-        "- Click a Spider or BIRD example question shown in the chat panel.\n"
-        "- Wait until the real NL2SQL provider is connected for arbitrary questions.\n\n"
-        "I did not create a query plan because doing so would risk showing incorrect SQL."
+        f"I could not safely generate SQL for **{benchmark} / {db_id}** from this wording.\n\n"
+        "What works in the current MVP:\n"
+        "- Click one of the example questions shown for the selected database.\n"
+        "- Try simple schema questions such as `how many rows?`, `show cards`, "
+        "`list names`, or `top 10 cards`.\n\n"
+        "What is not connected yet:\n"
+        "- Arbitrary NL2SQL with complex joins, nested SQL, or domain reasoning.\n\n"
+        "I did not create a query plan because showing guessed SQL would be misleading."
     )

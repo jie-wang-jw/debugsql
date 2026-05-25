@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from app.benchmark_registry import SQLITE_ROOTS, find_benchmark_gold_sql
+from app.benchmark_registry import SQLITE_ROOTS, find_benchmark_gold_sql, get_schema_context
 from app.conversation.schemas import ConversationIntent
+from app.simple_nl2sql import can_generate_simple_schema_nl2sql
 
 
 HELP_TERMS = (
@@ -57,6 +58,17 @@ def classify_message(message: str, dataset_context: dict | None = None) -> Conve
                 requires_plan=True,
                 requires_execution=True,
                 reason=f"Message matches a {benchmark.upper()} sample question.",
+            )
+
+        if can_generate_simple_schema_nl2sql(message, get_schema_context(benchmark, db_id)):
+            return ConversationIntent(
+                intent_type="benchmark_query",
+                confidence=0.62,
+                requires_plan=True,
+                requires_execution=True,
+                reason=(
+                    f"Message was handled by the simple schema-aware {benchmark.upper()} demo fallback."
+                ),
             )
 
         return ConversationIntent(
