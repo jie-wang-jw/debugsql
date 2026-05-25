@@ -52,7 +52,7 @@ BENCHMARK_HOST_DATA_DIR=./data/benchmarks
 ```
 
 On a production-like server, set `BENCHMARK_HOST_DATA_DIR` to a durable path
-such as `/data/debugsql/benchmarks`. Do not commit raw benchmark downloads to
+such as `/data/debugsql/data/benchmarks`. Do not commit raw benchmark downloads to
 Git.
 
 ## Spider Dataset Setup
@@ -87,8 +87,8 @@ If the benchmark data lives outside the repository, either set
 `BENCHMARK_DATA_DIR` or pass `--benchmark_dir`:
 
 ```bash
-BENCHMARK_DATA_DIR=/data/debugsql/benchmarks python scripts/clean_spider.py
-python scripts/clean_spider.py --benchmark_dir /data/debugsql/benchmarks
+BENCHMARK_DATA_DIR=/data/debugsql/data/benchmarks python scripts/clean_spider.py
+python scripts/clean_spider.py --benchmark_dir /data/debugsql/data/benchmarks
 ```
 
 5. Cleaned files will be saved to `data/benchmarks/spider/processed/`
@@ -117,8 +117,8 @@ If the benchmark data lives outside the repository, either set
 `BENCHMARK_DATA_DIR` or pass `--benchmark_dir`:
 
 ```bash
-BENCHMARK_DATA_DIR=/data/debugsql/benchmarks python scripts/clean_bird.py
-python scripts/clean_bird.py --benchmark_dir /data/debugsql/benchmarks
+BENCHMARK_DATA_DIR=/data/debugsql/data/benchmarks python scripts/clean_bird.py
+python scripts/clean_bird.py --benchmark_dir /data/debugsql/data/benchmarks
 ```
 
 4. Cleaned files will be saved to:
@@ -332,7 +332,7 @@ CORS_ORIGINS=http://SERVER_IP,http://SERVER_IP:80,http://localhost:5173,http://1
 APP_BASE_URL=http://SERVER_IP/api
 FRONTEND_BASE_URL=http://SERVER_IP
 DEBUGSQL_AUTO_LOGIN=1
-BENCHMARK_HOST_DATA_DIR=/data/debugsql/benchmarks
+BENCHMARK_HOST_DATA_DIR=/data/debugsql/data/benchmarks
 BENCHMARK_DATA_DIR=/app/data/benchmarks
 ```
 
@@ -342,14 +342,14 @@ it to `0` after GitHub/Google OAuth is configured for real user testing.
 Create the durable server data directories before starting Compose:
 
 ```bash
-mkdir -p /data/debugsql/benchmarks/{bird,spider}/{raw,processed,sqlite}
+mkdir -p /data/debugsql/data/benchmarks/{bird,spider}/{raw,processed,sqlite}
 mkdir -p /data/debugsql/data/postgres
 ```
 
 The recommended long-term benchmark layout is:
 
 ```text
-/data/debugsql/benchmarks/
+/data/debugsql/data/benchmarks/
   bird/
     raw/
       dev.json
@@ -381,8 +381,8 @@ Run cleaning on the host after downloading or replacing benchmark files. The
 cleaning scripts use only the Python standard library:
 
 ```bash
-python3 scripts/clean_spider.py --benchmark_dir /data/debugsql/benchmarks
-python3 scripts/clean_bird.py --benchmark_dir /data/debugsql/benchmarks
+python3 scripts/clean_spider.py --benchmark_dir /data/debugsql/data/benchmarks
+python3 scripts/clean_bird.py --benchmark_dir /data/debugsql/data/benchmarks
 docker compose restart backend
 ```
 
