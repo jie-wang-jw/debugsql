@@ -47,7 +47,7 @@ export function ChatPanel() {
   const [selectedBenchmark, setSelectedBenchmark] = useState('spider');
   const [selectedDbId, setSelectedDbId] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
-  const { triggerExecution } = useExecutionContext();
+  const { restoreExecution, triggerExecution } = useExecutionContext();
   const { loadPlan } = useQueryPlanContext();
 
   const refreshHistory = useCallback(async () => {
@@ -213,12 +213,13 @@ export function ChatPanel() {
         if (detail.activePlanId) {
           await loadPlan(detail.activePlanId);
         }
+        restoreExecution(detail.latestExecutionResultPreview, detail.latestExecutionStatus);
         setHistoryStatus('idle');
       } catch {
         setHistoryStatus('error');
       }
     },
-    [loadPlan],
+    [loadPlan, restoreExecution],
   );
 
   const isEmpty = messages.length === 0 && status === 'idle';

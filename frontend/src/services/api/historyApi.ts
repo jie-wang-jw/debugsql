@@ -1,6 +1,7 @@
 import { apiGet } from './client';
 import type { DatasetContext } from './chatApi';
 import type { RequestOptions } from './client';
+import type { ExecutionResultPreview } from '../../types/execution.types';
 
 export interface HistoryConversationSummary {
   id: string;
@@ -60,6 +61,9 @@ export interface HistoryConversationDetail {
   title: string | null;
   datasetContext?: DatasetContext | null;
   activePlanId?: string | null;
+  latestExecutionRunId?: string | null;
+  latestExecutionStatus?: string | null;
+  latestExecutionResultPreview?: ExecutionResultPreview | null;
   updatedAt: string;
   messages: HistoryMessage[];
   executionRuns: Array<{
@@ -67,7 +71,7 @@ export interface HistoryConversationDetail {
     planId: string | null;
     runType: string;
     status: string;
-    resultPreview?: unknown;
+    resultPreview?: ExecutionResultPreview | null;
     updatedAt: string;
   }>;
 }

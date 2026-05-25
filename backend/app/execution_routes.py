@@ -26,8 +26,8 @@ def execute(request: ExecutionRequest, http_request: Request) -> dict:
 
 
 @router.get("/{run_id}/result")
-def execution_result(run_id: str) -> dict:
-    result = get_execution_result(run_id)
+def execution_result(run_id: str, request: Request) -> dict:
+    result = get_execution_result(run_id, user_id=request_user_id(request))
     if result is None:
         raise HTTPException(status_code=404, detail=f"Execution run {run_id} was not found")
     return {"success": True, "data": result}

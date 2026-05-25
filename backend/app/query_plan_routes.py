@@ -24,8 +24,8 @@ class NodeUpdateRequest(BaseModel):
 
 
 @router.get("/{plan_id}")
-def get_query_plan(plan_id: str) -> dict:
-    graph = get_plan_graph(plan_id)
+def get_query_plan(plan_id: str, request: Request) -> dict:
+    graph = get_plan_graph(plan_id, user_id=request_user_id(request))
     if graph is None:
         raise HTTPException(status_code=404, detail=f"Query plan {plan_id} was not found")
     return {"success": True, "data": graph}
@@ -45,8 +45,8 @@ def patch_query_plan_node(
 
 
 @router.post("/{plan_id}/snapshot")
-def save_query_plan_snapshot(plan_id: str) -> dict:
-    if get_plan_graph(plan_id) is None:
+def save_query_plan_snapshot(plan_id: str, request: Request) -> dict:
+    if get_plan_graph(plan_id, user_id=request_user_id(request)) is None:
         raise HTTPException(status_code=404, detail=f"Query plan {plan_id} was not found")
     return {
         "success": True,
@@ -67,8 +67,8 @@ def start_query_plan_run(plan_id: str, request: Request) -> dict:
 
 
 @router.get("/{plan_id}/runs/{run_id}")
-def get_query_plan_run(plan_id: str, run_id: str) -> dict:
-    run = get_plan_run(run_id)
+def get_query_plan_run(plan_id: str, run_id: str, request: Request) -> dict:
+    run = get_plan_run(run_id, user_id=request_user_id(request))
     if run is None or run["planId"] != plan_id:
         raise HTTPException(status_code=404, detail=f"Plan run {run_id} was not found")
     return {"success": True, "data": run}

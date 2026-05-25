@@ -48,6 +48,20 @@ def _result_preview(result: dict[str, Any] | None) -> dict[str, Any] | None:
     }
 
 
+def _execution_restore_preview(run: ExecutionRun | None) -> dict[str, Any] | None:
+    if not run or not run.result_preview:
+        return None
+    preview = dict(run.result_preview)
+    preview["sql"] = run.sql or ""
+    preview["metrics"] = run.metrics or {
+        "planningTimeMs": 0,
+        "executionTimeMs": 0,
+        "rowCount": preview.get("rowCount", len(preview.get("rows") or [])),
+        "estimatedRows": preview.get("rowCount", len(preview.get("rows") or [])),
+    }
+    return preview
+
+
 def best_effort(operation: str, fn, user_id: str | None = None) -> None:
     try:
         with session_scope() as session:
@@ -238,6 +252,8 @@ def persist_query_plan(
     record = get_plan_record(plan_id)
     if not record:
         return
+    if user_id:
+        record["user_id"] = user_id
 
     def write(session: Session, user_id: str) -> None:
         dataset_context = record.get("dataset_context") or {}
@@ -468,12 +484,16 @@ def conversation_detail(conversation_id: str, user_id: str | None = None) -> dic
             .order_by(desc(ExecutionRun.updated_at))
             .limit(5)
         ).scalars().all()
+        latest_execution = executions[0] if executions else None
         return {
             "id": conversation.id,
             "sessionId": conversation.session_id,
             "title": conversation.title,
             "datasetContext": conversation.dataset_context,
             "activePlanId": conversation.active_plan_id,
+            "latestExecutionRunId": latest_execution.id if latest_execution else None,
+            "latestExecutionStatus": latest_execution.status if latest_execution else None,
+            "latestExecutionResultPreview": _execution_restore_preview(latest_execution),
             "updatedAt": conversation.updated_at.isoformat(),
             "messages": [
                 {

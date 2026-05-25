@@ -32,6 +32,10 @@ export interface ExecutionResult {
   metrics: ExecutionMetrics;
 }
 
+export type ExecutionResultPreview = Partial<ExecutionResult> & {
+  rowCount?: number;
+};
+
 export type PlanRunStatus = 'idle' | 'running' | 'success' | 'error';
 export type PlanNodeRunState = 'pending' | 'running' | 'success' | 'error' | 'skipped';
 

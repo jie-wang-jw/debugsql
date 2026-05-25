@@ -17,7 +17,12 @@ import {
   useCallback,
   type ReactNode,
 } from 'react';
-import type { ExecutionStatus, ExecutionResult, PlanRun } from '../types/execution.types';
+import type {
+  ExecutionStatus,
+  ExecutionResult,
+  ExecutionResultPreview,
+  PlanRun,
+} from '../types/execution.types';
 import { executeQuery } from '../services/adapters/executionAdapter';
 import {
   postPlanRun,
@@ -44,6 +49,10 @@ export interface ExecutionContextValue {
   stepPlanRun: () => Promise<void>;
   runFullPlan: () => Promise<void>;
   resetPlanRun: () => Promise<void>;
+  restoreExecution: (
+    preview?: ExecutionResultPreview | null,
+    status?: string | null,
+  ) => void;
 }
 
 const ExecutionContext = createContext<ExecutionContextValue | null>(null);
@@ -78,6 +87,37 @@ export function ExecutionProvider({ children }: { children: ReactNode }) {
       setError(msg);
       setStatus('failed');
     }
+  }, []);
+
+  const restoreExecution = useCallback((
+    preview?: ExecutionResultPreview | null,
+    restoredStatus?: string | null,
+  ) => {
+    setError(null);
+    setPlanRun(null);
+
+    if (!preview) {
+      setResult(null);
+      setStatus('idle');
+      return;
+    }
+
+    const rows = preview.rows ?? [];
+    const columns = preview.columns ?? [];
+    const metrics = {
+      planningTimeMs: preview.metrics?.planningTimeMs ?? 0,
+      executionTimeMs: preview.metrics?.executionTimeMs ?? 0,
+      rowCount: preview.metrics?.rowCount ?? preview.rowCount ?? rows.length,
+      estimatedRows: preview.metrics?.estimatedRows ?? preview.rowCount ?? rows.length,
+    };
+
+    setResult({
+      sql: preview.sql ?? '',
+      columns,
+      rows,
+      metrics,
+    });
+    setStatus(restoredStatus === 'error' || restoredStatus === 'failed' ? 'failed' : 'success');
   }, []);
 
   const applyPlanRun = useCallback((nextRun: PlanRun) => {
@@ -137,6 +177,7 @@ export function ExecutionProvider({ children }: { children: ReactNode }) {
         stepPlanRun,
         runFullPlan,
         resetPlanRun,
+        restoreExecution,
       }}
     >
       {children}
