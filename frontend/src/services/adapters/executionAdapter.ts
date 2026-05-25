@@ -1,62 +1,41 @@
 // ================================================
-// DebugSQL – Execution Adapter  (Phase 7)
+// DebugSQL - Execution Adapter
 //
 // Single injection point for the query execution pipeline.
-// ExecutionContext imports ONLY from this file, not from the mock service.
+// ExecutionContext imports only from this file.
 //
-// To connect the real backend:
-//   1. Set VITE_USE_MOCK_SERVICES=false in your .env
-//   2. Uncomment the real API call below
-//   3. Remove the mock branch
+// Default mode calls the real backend API. Set VITE_USE_MOCK_SERVICES=true
+// only when intentionally running isolated frontend mock services.
 //
-// TODO: Replace mock adapter with real backend API
-// TODO: Add query cancellation support (AbortController)
-// TODO: Connect websocket/live execution updates for streaming progress
-// TODO: Validate SQL against backend schema before sending
+// TODO: Add query cancellation support with AbortController.
+// TODO: Connect websocket/live execution updates for streaming progress.
+// TODO: Replace backend demo execution with real SQLite benchmark execution.
 // ================================================
 
 import type { ExecutionResult } from '../../types/execution.types';
-import { runMockExecution }     from '../mocks/mockExecutionService';
+import { runMockExecution } from '../mocks/mockExecutionService';
 
-// ---------------------------------------------------------------------------
-// Feature flag
-// ---------------------------------------------------------------------------
-
-const USE_MOCK_SERVICES = import.meta.env.VITE_USE_MOCK_SERVICES !== 'false';
-
-// ---------------------------------------------------------------------------
-// Adapter
-// ---------------------------------------------------------------------------
+const USE_MOCK_SERVICES = import.meta.env.VITE_USE_MOCK_SERVICES === 'true';
 
 /**
  * Executes a query and returns the full result payload.
  *
- * Currently routes to the mock execution service.
- * When the backend is ready, flip USE_MOCK_SERVICES and uncomment the real call.
- *
- * @param query  Natural-language or SQL query string.
- * @param signal Optional AbortSignal for cancellation.
- *
- * TODO: Replace mock adapter with postExecutionRun() + getExecutionResult()
- * TODO: Add query cancellation support (AbortController)
- * TODO: Stream execution step progress from backend (SSE / WebSocket)
+ * Real-backend mode submits a run, then fetches the completed result. The mock
+ * branch is kept only for frontend-only development and visual testing.
  */
 export async function executeQuery(
-  query:   string,
+  query: string,
+  planId?: string,
   _signal?: AbortSignal,
 ): Promise<ExecutionResult> {
   if (USE_MOCK_SERVICES) {
     return runMockExecution(query);
   }
 
-  // TODO: Replace with real API call:
-  // const { postExecutionRun, getExecutionResult } = await import('../api/executionApi');
-  // const { runId } = await postExecutionRun(
-  //   { sql: query, sessionId: getSessionId(), planId: getActivePlanId() },
-  //   { signal: _signal },
-  // );
-  // return getExecutionResult(runId, { signal: _signal });
-  throw new Error(
-    '[executionAdapter] Real backend is not implemented yet. Set VITE_USE_MOCK_SERVICES=true.',
+  const { postExecutionRun, getExecutionResult } = await import('../api/executionApi');
+  const { runId } = await postExecutionRun(
+    { sql: query, sessionId: 'dev-session', planId },
+    { signal: _signal },
   );
+  return getExecutionResult(runId, { signal: _signal });
 }

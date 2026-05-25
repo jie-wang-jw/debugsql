@@ -72,16 +72,90 @@
 /* ---- Body ---- */
 .exec-panel__body {
   flex: 1;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
   min-height: 0;
   position: relative;
+}
+
+.plan-run-controls {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: 8px var(--sp-3);
+  border-bottom: 1px solid var(--border-default);
+  background: var(--bg-surface);
+}
+
+.plan-run-controls__summary {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.plan-run-controls__label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.plan-run-controls__status {
+  font-size: 10.5px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+}
+
+.plan-run-controls__buttons {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.plan-run-controls__button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 26px;
+  padding: 4px 10px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border-default);
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  font-size: 10.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    border-color var(--t-fast),
+    background var(--t-fast),
+    color var(--t-fast);
+}
+
+.plan-run-controls__button:hover:not(:disabled) {
+  border-color: var(--border-strong);
+  background: var(--bg-hover-md);
+  color: var(--text-primary);
+}
+
+.plan-run-controls__button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .exec-panel__state-wrap {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
   width: 100%;
 }
 
@@ -89,6 +163,7 @@
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-height: 0;
   overflow-y: auto;
   padding: var(--sp-3);
   gap: var(--sp-3);
@@ -414,6 +489,8 @@
   color: var(--text-primary);
   white-space: pre;
   overflow-x: auto;
+  max-height: 120px;
+  overflow-y: auto;
   tab-size: 2;
 }
 
@@ -430,8 +507,10 @@
 /* ------------------------------------------------------------------ */
 
 .results-table-wrap {
-  flex: 1;
-  min-height: 0;
+  flex-shrink: 0;
+  max-height: 320px;
+  display: flex;
+  flex-direction: column;
   border: 1px solid var(--border-default);
   border-radius: var(--r-lg);
   overflow: hidden;
@@ -439,9 +518,21 @@
   box-shadow: var(--shadow-sm);
 }
 
+.results-table-wrap--empty {
+  align-items: center;
+  justify-content: center;
+  min-height: 80px;
+}
+
+.results-table__empty {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
 .results-table-scroll {
   width: 100%;
-  height: 100%;
+  max-height: 320px;
   overflow: auto;
 }
 

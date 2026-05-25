@@ -31,3 +31,24 @@ export interface ExecutionResult {
   rows:    ExecutionRow[];
   metrics: ExecutionMetrics;
 }
+
+export type ExecutionResultPreview = Partial<ExecutionResult> & {
+  rowCount?: number;
+};
+
+export type PlanRunStatus = 'idle' | 'running' | 'success' | 'error';
+export type PlanNodeRunState = 'pending' | 'running' | 'success' | 'error' | 'skipped';
+
+export interface PlanRun {
+  runId: string;
+  planId: string;
+  status: PlanRunStatus;
+  currentNodeId?: string | null;
+  nextNodeId?: string | null;
+  nodeStates: Record<string, PlanNodeRunState>;
+  stepsCompleted: number;
+  totalSteps: number;
+  resultRunId?: string | null;
+  result?: ExecutionResult | null;
+  error?: string | null;
+}

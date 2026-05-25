@@ -7,18 +7,17 @@ interface ChatHeaderProps {
 }
 
 const STATUS_LABEL: Record<ChatStatus, string> = {
-  idle:     'AI Ready',
-  thinking: 'Thinking…',
-  error:    'Offline',
+  idle: 'AI Ready',
+  thinking: 'Thinking',
+  error: 'Offline',
 };
 
 const STATUS_VARIANT: Record<ChatStatus, 'green' | 'blue' | 'red'> = {
-  idle:     'green',
+  idle: 'green',
   thinking: 'blue',
-  error:    'red',
+  error: 'red',
 };
 
-/** Fixed header bar for the chat panel with branding and AI status. */
 export function ChatHeader({ status }: ChatHeaderProps) {
   return (
     <header className="chat-header">

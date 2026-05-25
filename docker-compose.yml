@@ -28,10 +28,11 @@ services:
       DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://debugsql:debugsql_dev_password@postgres:5432/debugsql}
       DEBUGSQL_AUTO_LOGIN: ${DEBUGSQL_AUTO_LOGIN:-1}
       NL2IR_PROVIDER: ${NL2IR_PROVIDER:-stub}
+      BENCHMARK_DATA_DIR: ${BENCHMARK_DATA_DIR:-/app/data/benchmarks}
     expose:
       - "8000"
     volumes:
-      - ./data/benchmarks:/app/data/benchmarks:ro
+      - ${BENCHMARK_HOST_DATA_DIR:-./data/benchmarks}:/app/data/benchmarks:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -45,6 +46,7 @@ services:
       - .env
     environment:
       VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api}
+      VITE_DEV_API_TARGET: ${VITE_DEV_API_TARGET:-http://backend:8000}
     ports:
       - "${FRONTEND_PORT:-5173}:5173"
     depends_on:

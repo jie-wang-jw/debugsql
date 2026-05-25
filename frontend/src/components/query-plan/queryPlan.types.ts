@@ -23,7 +23,28 @@ export type OperationType =
   | 'AGGREGATE'
   | 'LIMIT';
 
-export type ExecutionState = 'pending' | 'running' | 'done';
+export type ExecutionState = 'pending' | 'running' | 'success' | 'error' | 'skipped' | 'done';
+
+export interface QueryPlanRunStatus {
+  runId: string;
+  status: 'idle' | 'running' | 'success' | 'error';
+  currentNodeId?: string | null;
+  nextNodeId?: string | null;
+  stepsCompleted: number;
+  totalSteps: number;
+}
+
+export interface QueryPlanEditResult {
+  status: 'regenerated' | 'graph_updated' | 'needs_replan' | 'missing_plan' | 'missing_node' | string;
+  message: string;
+  executableAvailable?: boolean;
+  needsReplan?: boolean;
+  downstreamNodeIds?: string[];
+  editedNodeId?: string;
+  executableSqlChanged?: boolean;
+  requiresProvider?: boolean;
+  operationType?: string;
+}
 
 export interface OperationNodeData {
   kind: 'operation';
@@ -44,6 +65,8 @@ export interface DataNodeData {
   rowCount?: number;
   estimatedCost?: number;
   columns?: string[];
+  executionState?: ExecutionState;
+  materialized?: boolean;
 }
 
 // Union discriminated by `kind`
@@ -60,4 +83,8 @@ export interface QueryPlanGraph {
   edges: FlowEdge[];
   queryLabel: string;
   totalCost: number;
+  runStatus?: QueryPlanRunStatus;
+  editStatus?: QueryPlanEditResult;
+  lastEditResult?: QueryPlanEditResult;
+  needsReplan?: boolean;
 }

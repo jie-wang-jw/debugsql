@@ -1,0 +1,214 @@
+.auth-app-frame {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.auth-screen {
+  width: 100%;
+  height: 100%;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--sp-6);
+  background:
+    radial-gradient(circle at 50% 20%, rgba(107, 143, 191, 0.10), transparent 34%),
+    var(--bg-base);
+}
+
+.auth-card {
+  width: min(440px, 100%);
+  padding: var(--sp-8);
+  border: 1px solid var(--border-default);
+  border-radius: var(--r-lg);
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-lg);
+}
+
+.auth-card--compact {
+  width: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-4) var(--sp-5);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.auth-loader {
+  animation: spin-smooth 1s linear infinite;
+  color: var(--accent-blue-light);
+}
+
+.auth-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+.auth-brand__icon {
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--r-md);
+  color: var(--accent-blue-light);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+}
+
+.auth-eyebrow {
+  margin: 0 0 2px;
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.auth-brand h1 {
+  margin: 0;
+  font-size: 26px;
+  line-height: 1.1;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.auth-copy {
+  margin: var(--sp-5) 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.auth-error {
+  margin: 0 0 var(--sp-4);
+  padding: var(--sp-3);
+  color: var(--accent-red);
+  background: var(--accent-red-dim);
+  border: 1px solid rgba(184, 114, 114, 0.16);
+  border-radius: var(--r-md);
+  font-size: 12px;
+}
+
+.auth-actions {
+  display: flex;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+
+.auth-primary,
+.auth-secondary,
+.user-strip__logout {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 7px 13px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border-default);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background var(--t-fast),
+    border-color var(--t-fast),
+    color var(--t-fast);
+}
+
+.auth-primary {
+  background: var(--accent-blue-dim);
+  color: var(--accent-blue-light);
+}
+
+.auth-secondary,
+.user-strip__logout {
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+}
+
+.auth-primary:hover,
+.auth-secondary:hover,
+.user-strip__logout:hover {
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+.auth-note {
+  margin: var(--sp-4) 0 0;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.auth-note code {
+  color: var(--text-code);
+}
+
+.user-strip {
+  position: fixed;
+  right: var(--sp-3);
+  top: var(--sp-2);
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: 4px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--r-full);
+  background: rgba(17, 17, 19, 0.72);
+  backdrop-filter: blur(10px);
+}
+
+.user-strip__identity {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding-left: 4px;
+}
+
+.user-strip__avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.user-strip__avatar--fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-blue-dim);
+  color: var(--accent-blue-light);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.user-strip__name {
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.user-strip__mode {
+  padding: 2px 6px;
+  border-radius: var(--r-full);
+  background: var(--accent-green-dim);
+  color: var(--accent-green);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  text-transform: uppercase;
+}
+
+.user-strip__logout {
+  min-height: 26px;
+  padding: 4px 9px;
+  border-radius: var(--r-full);
+  font-size: 10.5px;
+}

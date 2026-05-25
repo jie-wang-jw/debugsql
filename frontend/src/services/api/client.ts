@@ -20,13 +20,13 @@ import type { ApiError, ApiResponse } from '../../types/api.types';
 /**
  * Backend base URL — injected from the Vite environment at build time.
  *
- * Development default : http://localhost:8000/api  (FastAPI / uvicorn)
+ * Development default : /api  (proxied by Vite or Docker Compose)
  * Production          : set VITE_API_BASE_URL in your deployment environment
  *
  * TODO: Add environment-specific configuration (dev / staging / prod)
  */
 export const API_BASE_URL: string =
-  import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000/api';
+  import.meta.env.VITE_API_BASE_URL ?? '/api';
 
 /** Default request timeout in milliseconds. */
 export const DEFAULT_TIMEOUT_MS = 30_000;
@@ -78,6 +78,7 @@ async function request<T>(
 
   const response = await fetch(`${API_BASE_URL}${path}`, {
     method,
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
       // TODO: Add Authorization header once auth is implemented:

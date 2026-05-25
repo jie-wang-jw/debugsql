@@ -18,7 +18,7 @@ import {
   FiGitMerge,
 } from 'react-icons/fi';
 import type { InspectorField } from '../../types';
-import type { FlowNodeData } from '../query-plan/queryPlan.types';
+import type { FlowNodeData, QueryPlanEditResult } from '../query-plan/queryPlan.types';
 import { useQueryPlanContext } from '../../store/QueryPlanContext';
 import { useExecutionContext } from '../../store/ExecutionContext';
 import {
@@ -65,11 +65,31 @@ function getNodeIcon(data: FlowNodeData) {
   }
 }
 
+function resolveApplyHint(
+  isDirty: boolean,
+  isApplied: boolean,
+  editResult?: QueryPlanEditResult,
+): string {
+  if (isDirty) {
+    return 'Unsaved changes - click Apply to update the graph';
+  }
+  if (isApplied && editResult?.needsReplan) {
+    return `Needs full replan - ${editResult.message}`;
+  }
+  if (isApplied && editResult?.status === 'regenerated') {
+    return `Downstream replanned - ${editResult.message}`;
+  }
+  if (isApplied) {
+    return editResult?.message || 'Applied';
+  }
+  return 'Edit fields above to modify the query plan node';
+}
+
 // ---- Main component ----
 
 export function InspectorPanel() {
-  const { selectedNode, selectedNodeId, onNodeDataUpdate } = useQueryPlanContext();
-  const { triggerExecution } = useExecutionContext();
+  const { graph, selectedNode, selectedNodeId, onNodeDataUpdate } = useQueryPlanContext();
+  const { resetExecution } = useExecutionContext();
 
   // Flat list of all editable/read-only fields — reset on each new selection
   const [editedFields, setEditedFields] = useState<InspectorField[]>([]);
@@ -113,26 +133,23 @@ export function InspectorPanel() {
     setIsApplied(false);
   }, []);
 
-  const handleApply = useCallback(() => {
+  const handleApply = useCallback(async () => {
     if (!selectedNode || !selectedNodeId) return;
 
     // TODO: PATCH /api/query-plan/:planId/nodes/:nodeId — sync node edits to backend
     // TODO: Trigger query-regeneration pipeline after applying node changes
     // TODO: Show diff preview before applying (future enhancement)
     const updatedData = applyEditsToNodeData(selectedNode.data, editedFields);
-    onNodeDataUpdate(selectedNodeId, updatedData);
+    try {
+      await onNodeDataUpdate(selectedNodeId, updatedData);
 
-    setIsDirty(false);
-    setIsApplied(true);
-    // Revert "applied" confirmation after 2 s
-    setTimeout(() => setIsApplied(false), 2000);
-
-    // Re-execute after node parameters change so results reflect the edit.
-    // TODO: Pass the actual modified SQL or planId to the backend for re-execution
-    // TODO: Diff the updated parameters before triggering to avoid redundant runs
-    const nodeLabel = getNodeDisplayName(selectedNode.data);
-    triggerExecution(`re-execute after node update: ${nodeLabel}`);
-  }, [selectedNode, selectedNodeId, editedFields, onNodeDataUpdate, triggerExecution]);
+      setIsDirty(false);
+      setIsApplied(true);
+      resetExecution();
+    } catch (error) {
+      console.error('Failed to apply node changes', error);
+    }
+  }, [selectedNode, selectedNodeId, editedFields, onNodeDataUpdate, resetExecution]);
 
   const accent: AccentVariant = selectedNode
     ? getNodeAccent(selectedNode.data)
@@ -205,11 +222,7 @@ export function InspectorPanel() {
                 )}
               </motion.button>
               <p className="inspector__apply-hint">
-                {isDirty
-                  ? 'Unsaved changes — click Apply to update the graph'
-                  : isApplied
-                    ? 'Changes applied — graph updated'
-                    : 'Edit fields above to modify the query plan node'}
+                {resolveApplyHint(isDirty, isApplied, graph.lastEditResult)}
               </p>
             </div>
           </motion.div>

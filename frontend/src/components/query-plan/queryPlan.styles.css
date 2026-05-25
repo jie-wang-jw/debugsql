@@ -17,6 +17,13 @@
   background: var(--bg-base);
 }
 
+.qplan--expanded {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: var(--bg-base);
+}
+
 /* Removed ambient glow from ::before — clean canvas */
 
 /* ---- Header ---- */
@@ -70,6 +77,12 @@
   max-width: 280px;
 }
 
+.qplan__query-prefix {
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-weight: 600;
+}
+
 .qplan__icon-btn {
   display: flex;
   align-items: center;
@@ -93,12 +106,58 @@
   background: var(--bg-hover-md);
 }
 
+.qplan__icon-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+}
+
+.qplan__icon-btn--active {
+  color: var(--accent-blue-light);
+  border-color: rgba(107, 143, 191, 0.45);
+  background: var(--accent-blue-dim);
+}
+
+.qplan__icon-btn--spinning svg {
+  animation: qplan-spin 0.9s linear infinite;
+}
+
+@keyframes qplan-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 /* ---- Canvas wrapper ---- */
 .qplan__canvas {
   flex: 1;
   position: relative;
   z-index: 1;
   overflow: hidden;
+}
+
+.qplan__empty {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px;
+  text-align: center;
+}
+
+.qplan__empty-title {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.qplan__empty-copy {
+  max-width: 280px;
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.6;
 }
 
 /* ================================================
@@ -475,6 +534,11 @@
 .exec-badge--pending {
   color: var(--text-muted);
   background: rgba(255, 255, 255, 0.04);
+}
+
+.exec-badge--error {
+  color: var(--accent-red);
+  background: var(--accent-red-dim);
 }
 
 @keyframes spin {

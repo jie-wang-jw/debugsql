@@ -3,7 +3,7 @@ import { Handle, Position, type NodeProps } from 'reactflow';
 import { motion } from 'framer-motion';
 import {
   FiFilter, FiGitMerge, FiLayers, FiBarChart2,
-  FiList, FiDatabase, FiCheckCircle, FiLoader, FiClock,
+  FiList, FiDatabase, FiCheckCircle, FiLoader, FiClock, FiAlertCircle,
 } from 'react-icons/fi';
 import type { OperationNodeData, OperationType, ExecutionState } from '../queryPlan.types';
 
@@ -85,10 +85,13 @@ export const OperationNode = memo(function OperationNode({
 function ExecutionBadge({ state }: { state?: ExecutionState }) {
   if (!state) return null;
 
-  const config = {
+  const config: Record<ExecutionState, { icon: React.ReactNode; className: string }> = {
     done:    { icon: <FiCheckCircle size={10} />, className: 'exec-badge--done'    },
+    success: { icon: <FiCheckCircle size={10} />, className: 'exec-badge--done'    },
     running: { icon: <FiLoader    size={10} />, className: 'exec-badge--running'  },
     pending: { icon: <FiClock     size={10} />, className: 'exec-badge--pending'  },
+    skipped: { icon: <FiClock     size={10} />, className: 'exec-badge--pending'  },
+    error:   { icon: <FiAlertCircle size={10} />, className: 'exec-badge--error'  },
   };
 
   const { icon, className } = config[state];
