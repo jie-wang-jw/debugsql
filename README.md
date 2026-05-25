@@ -164,6 +164,20 @@ curl http://localhost:8000/auth/me
 curl http://localhost:8000/hello
 ```
 
+PostgreSQL is bound to localhost by default for host-side inspection tools:
+
+```bash
+pgcli postgresql://debugsql:debugsql_dev_password@127.0.0.1:5432/debugsql
+```
+
+The Compose mapping is intentionally localhost-only:
+
+```yaml
+127.0.0.1:${POSTGRES_HOST_PORT:-5432}:5432
+```
+
+Do not expose PostgreSQL on `0.0.0.0` for the demo server.
+
 Open frontend:
 
 ```text
