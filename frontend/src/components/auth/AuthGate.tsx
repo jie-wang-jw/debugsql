@@ -81,7 +81,8 @@ function LoginScreen({
   const [formError, setFormError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [resendAfter, setResendAfter] = useState(0);
-  const showDevRetry = import.meta.env.DEV && Boolean(error);
+  const isDev = import.meta.env.DEV;
+  const showDevRetry = isDev && Boolean(error);
 
   useEffect(() => {
     if (resendAfter <= 0) {
@@ -187,9 +188,11 @@ function LoginScreen({
             </button>
           </div>
         )}
-        <p className="auth-note">
-          Local development can still use dev auto-login when <code>DEBUGSQL_AUTO_LOGIN=1</code>.
-        </p>
+        {isDev && (
+          <p className="auth-note">
+            Local development can still use dev auto-login when <code>DEBUGSQL_AUTO_LOGIN=1</code>.
+          </p>
+        )}
       </section>
     </div>
   );
