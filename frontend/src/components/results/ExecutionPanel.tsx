@@ -25,6 +25,7 @@ import {
 } from 'react-icons/fi';
 import { useExecutionContext }  from '../../store/ExecutionContext';
 import { useQueryPlanContext } from '../../store/QueryPlanContext';
+import { useReexecutePlan } from '../../hooks/useReexecutePlan';
 import { ExecutionStatus }      from './ExecutionStatus';
 import { SQLPreview }           from './SQLPreview';
 import { ResultsTable }         from './ResultsTable';
@@ -35,6 +36,9 @@ import { ResultsTable }         from './ResultsTable';
 
 function PanelHeader() {
   const { status, result } = useExecutionContext();
+  const { canReexecute, blockedReason, isReexecuting, reexecutePlan } = useReexecutePlan();
+  const showRerun = status === 'success' || status === 'failed';
+
   return (
     <div className="exec-panel__header">
       <div className="exec-panel__header-left">
@@ -44,6 +48,21 @@ function PanelHeader() {
         <span className="exec-panel__title">Execution</span>
       </div>
       <div className="exec-panel__header-right">
+        {showRerun && (
+          <button
+            type="button"
+            className="exec-panel__rerun-btn"
+            disabled={!canReexecute || isReexecuting}
+            title={blockedReason ?? 'Re-run the query with the current plan'}
+            onClick={() => void reexecutePlan()}
+          >
+            <FiRefreshCw
+              size={11}
+              className={isReexecuting ? 'exec-panel__rerun-icon--spin' : ''}
+            />
+            Re-run
+          </button>
+        )}
         <ExecutionStatus
           status={status}
           executionTimeMs={result?.metrics.executionTimeMs}

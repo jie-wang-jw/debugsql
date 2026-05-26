@@ -110,6 +110,7 @@ function deriveDataSections(data: DataNodeData): InspectorSection[] {
       fields: [
         f('rowCount',      'Row Count', data.rowCount      ?? 0, true,  'number'),
         f('estimatedCost', 'Est. Cost', data.estimatedCost ?? 0, false, 'number'),
+        f('materialized',  'Materialized', data.materialized ?? false, false, 'string'),
         f('columns',       'Columns',   csv(data.columns),       true,  'string'),
       ],
     },

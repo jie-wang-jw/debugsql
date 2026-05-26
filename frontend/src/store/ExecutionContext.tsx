@@ -40,6 +40,8 @@ export interface ExecutionContextValue {
   error: string | null;
   /** Current step-by-step plan run, if one has been started. */
   planRun: PlanRun | null;
+  /** SQL from the most recent execution (for re-runs). */
+  lastExecutionSql: string | null;
   /**
    * Kick off backend execution for the given query/plan.
    * Sets status to "running", then resolves to "success" or "failed".
@@ -71,17 +73,24 @@ export function ExecutionProvider({ children }: { children: ReactNode }) {
   const [result, setResult] = useState<ExecutionResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [planRun, setPlanRun] = useState<PlanRun | null>(null);
+  const [lastExecutionSql, setLastExecutionSql] = useState<string | null>(null);
 
   const triggerExecution = useCallback(async (query: string, planId?: string | null) => {
-    if (!query.trim()) return;
+    if (!query.trim() && !planId) return;
 
     setStatus('running');
     setResult(null);
     setError(null);
+    if (query.trim()) {
+      setLastExecutionSql(query.trim());
+    }
 
     try {
       const execResult = await executeQuery(query, planId ?? undefined);
       setResult(execResult);
+      if (execResult.sql?.trim()) {
+        setLastExecutionSql(execResult.sql.trim());
+      }
       setStatus('success');
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Unknown execution error';
@@ -100,7 +109,12 @@ export function ExecutionProvider({ children }: { children: ReactNode }) {
     if (!preview) {
       setResult(null);
       setStatus('idle');
+      setLastExecutionSql(null);
       return;
+    }
+
+    if (preview.sql?.trim()) {
+      setLastExecutionSql(preview.sql.trim());
     }
 
     const rows = preview.rows ?? [];
@@ -126,6 +140,7 @@ export function ExecutionProvider({ children }: { children: ReactNode }) {
     setResult(null);
     setError(null);
     setPlanRun(null);
+    setLastExecutionSql(null);
   }, []);
 
   const applyPlanRun = useCallback((nextRun: PlanRun) => {
@@ -180,6 +195,7 @@ export function ExecutionProvider({ children }: { children: ReactNode }) {
         result,
         error,
         planRun,
+        lastExecutionSql,
         triggerExecution,
         startPlanRun,
         stepPlanRun,

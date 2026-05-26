@@ -16,11 +16,13 @@ import {
   FiZap,
   FiDatabase,
   FiGitMerge,
+  FiRefreshCw,
 } from 'react-icons/fi';
 import type { InspectorField } from '../../types';
 import type { FlowNodeData, QueryPlanEditResult } from '../query-plan/queryPlan.types';
 import { useQueryPlanContext } from '../../store/QueryPlanContext';
 import { useExecutionContext } from '../../store/ExecutionContext';
+import { useReexecutePlan } from '../../hooks/useReexecutePlan';
 import {
   deriveNodeSections,
   applyEditsToNodeData,
@@ -90,11 +92,18 @@ function resolveApplyHint(
 export function InspectorPanel() {
   const { graph, selectedNode, selectedNodeId, onNodeDataUpdate } = useQueryPlanContext();
   const { resetExecution } = useExecutionContext();
+  const {
+    canReexecute,
+    blockedReason,
+    isReexecuting,
+    reexecutePlan,
+  } = useReexecutePlan();
 
   // Flat list of all editable/read-only fields — reset on each new selection
   const [editedFields, setEditedFields] = useState<InspectorField[]>([]);
   const [isDirty,    setIsDirty]    = useState(false);
   const [isApplied,  setIsApplied]  = useState(false);
+  const [isRerunning, setIsRerunning] = useState(false);
 
   // Reset local field state whenever the selected node changes
   useEffect(() => {
@@ -133,12 +142,9 @@ export function InspectorPanel() {
     setIsApplied(false);
   }, []);
 
-  const handleApply = useCallback(async () => {
-    if (!selectedNode || !selectedNodeId) return;
+  const handleApply = useCallback(async (): Promise<boolean> => {
+    if (!selectedNode || !selectedNodeId) return false;
 
-    // TODO: PATCH /api/query-plan/:planId/nodes/:nodeId — sync node edits to backend
-    // TODO: Trigger query-regeneration pipeline after applying node changes
-    // TODO: Show diff preview before applying (future enhancement)
     const updatedData = applyEditsToNodeData(selectedNode.data, editedFields);
     try {
       await onNodeDataUpdate(selectedNodeId, updatedData);
@@ -146,10 +152,33 @@ export function InspectorPanel() {
       setIsDirty(false);
       setIsApplied(true);
       resetExecution();
+      return true;
     } catch (error) {
       console.error('Failed to apply node changes', error);
+      return false;
     }
   }, [selectedNode, selectedNodeId, editedFields, onNodeDataUpdate, resetExecution]);
+
+  const handleRerun = useCallback(async () => {
+    if (!canReexecute || isReexecuting || isRerunning) return;
+
+    setIsRerunning(true);
+    try {
+      if (isDirty) {
+        const applied = await handleApply();
+        if (!applied) return;
+      }
+      await reexecutePlan();
+    } finally {
+      setIsRerunning(false);
+    }
+  }, [canReexecute, handleApply, isDirty, isReexecuting, isRerunning, reexecutePlan]);
+
+  const rerunDisabled = !canReexecute || isReexecuting || isRerunning;
+  const rerunHint = blockedReason
+    ?? (isDirty
+      ? 'Pending edits will be applied before re-running'
+      : 'Re-run the full query using the updated plan');
 
   const accent: AccentVariant = selectedNode
     ? getNodeAccent(selectedNode.data)
@@ -202,27 +231,50 @@ export function InspectorPanel() {
               />
             ))}
 
-            {/* Apply / update button */}
+            {/* Apply / re-run actions */}
             <div className="inspector__actions">
-              <motion.button
-                className={[
-                  'inspector__apply-btn',
-                  isDirty   ? 'inspector__apply-btn--active'  : '',
-                  isApplied ? 'inspector__apply-btn--applied' : '',
-                ].join(' ')}
-                onClick={handleApply}
-                disabled={!isDirty}
-                whileTap={isDirty ? { scale: 0.97 } : {}}
-                transition={{ duration: 0.1 }}
-              >
-                {isApplied ? (
-                  <><FiCheckCircle size={11} /> Applied</>
-                ) : (
-                  <><FiPlay size={11} /> Apply Changes</>
-                )}
-              </motion.button>
+              <div className="inspector__action-row">
+                <motion.button
+                  type="button"
+                  className={[
+                    'inspector__apply-btn',
+                    isDirty   ? 'inspector__apply-btn--active'  : '',
+                    isApplied ? 'inspector__apply-btn--applied' : '',
+                  ].join(' ')}
+                  onClick={() => void handleApply()}
+                  disabled={!isDirty}
+                  whileTap={isDirty ? { scale: 0.97 } : {}}
+                  transition={{ duration: 0.1 }}
+                >
+                  {isApplied ? (
+                    <><FiCheckCircle size={11} /> Applied</>
+                  ) : (
+                    <><FiPlay size={11} /> Apply Changes</>
+                  )}
+                </motion.button>
+                <motion.button
+                  type="button"
+                  className={[
+                    'inspector__rerun-btn',
+                    !rerunDisabled ? 'inspector__rerun-btn--active' : '',
+                  ].join(' ')}
+                  onClick={() => void handleRerun()}
+                  disabled={rerunDisabled}
+                  whileTap={!rerunDisabled ? { scale: 0.97 } : {}}
+                  transition={{ duration: 0.1 }}
+                  title={rerunHint}
+                >
+                  <FiRefreshCw
+                    size={11}
+                    className={isReexecuting || isRerunning ? 'inspector__rerun-icon--spin' : ''}
+                  />
+                  {isReexecuting || isRerunning ? 'Re-ejecutando…' : 'Re-ejecutar plan'}
+                </motion.button>
+              </div>
               <p className="inspector__apply-hint">
-                {resolveApplyHint(isDirty, isApplied, graph.lastEditResult)}
+                {rerunDisabled && blockedReason
+                  ? blockedReason
+                  : resolveApplyHint(isDirty, isApplied, graph.lastEditResult)}
               </p>
             </div>
           </motion.div>

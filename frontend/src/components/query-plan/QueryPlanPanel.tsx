@@ -11,7 +11,8 @@ import './queryPlan.styles.css';
  * inspect and edit the selected node.
  */
 export function QueryPlanPanel() {
-  const { graph, selectedNodeId, activePlanId, loadPlan, onNodeSelect } = useQueryPlanContext();
+  const { graph, selectedNodeId, activePlanId, loadPlan, onNodeSelect, onNodeDeselect } =
+    useQueryPlanContext();
   const [isExpanded, setIsExpanded] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -48,6 +49,7 @@ export function QueryPlanPanel() {
             graph={graph}
             selectedNodeId={selectedNodeId}
             onNodeSelect={onNodeSelect}
+            onNodeDeselect={onNodeDeselect}
           />
         ) : (
           <div className="qplan__empty">

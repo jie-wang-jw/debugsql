@@ -69,6 +69,41 @@
   gap: var(--sp-2);
 }
 
+.exec-panel__rerun-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border-radius: var(--r-sm);
+  border: 1px solid rgba(103, 160, 122, 0.38);
+  background: var(--accent-green-dim);
+  color: var(--accent-green);
+  font-size: 10px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--t-fast), border-color var(--t-fast), color var(--t-fast);
+}
+
+.exec-panel__rerun-btn:hover:not(:disabled) {
+  background: var(--accent-green);
+  border-color: var(--accent-green);
+  color: #fff;
+}
+
+.exec-panel__rerun-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.exec-panel__rerun-icon--spin {
+  animation: exec-panel-rerun-spin 0.9s linear infinite;
+}
+
+@keyframes exec-panel-rerun-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
 /* ---- Body ---- */
 .exec-panel__body {
   flex: 1;

@@ -6,7 +6,7 @@ import { ChatPanel }          from '../chat/ChatPanel';
 import { QueryPlanPanel }     from '../query-plan/QueryPlanPanel';
 import { InspectorPanel }     from '../inspector/InspectorPanel';
 import { ExecutionPanel }     from '../results/ExecutionPanel';
-import { QueryPlanProvider }  from '../../store/QueryPlanContext';
+import { QueryPlanProvider, useQueryPlanContext } from '../../store/QueryPlanContext';
 import { ExecutionProvider, useExecutionContext } from '../../store/ExecutionContext';
 import { ExecutionStatus }    from '../results/ExecutionStatus';
 import '../results/ExecutionPanel.css';
@@ -40,7 +40,15 @@ export function AppShell() {
 /** Inner layout — must live inside ExecutionProvider to consume context. */
 function AppShellInner() {
   const { status } = useExecutionContext();
+  const { selectedNodeId } = useQueryPlanContext();
   const [activeTab, setActiveTab] = useState<'inspector' | 'execution'>('inspector');
+
+  // Focus Inspector when the user selects a plan node (unless a run is in progress)
+  useEffect(() => {
+    if (selectedNodeId && status !== 'running') {
+      setActiveTab('inspector');
+    }
+  }, [selectedNodeId, status]);
 
   // Auto-switch to the Execution tab whenever execution starts or finishes
   useEffect(() => {

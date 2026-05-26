@@ -41,9 +41,16 @@ export interface QueryPlanFlowProps {
   selectedNodeId: string | null;
   /** Fired when the user clicks a node. */
   onNodeSelect: (id: string) => void;
+  /** Fired when the user clicks the empty canvas. */
+  onNodeDeselect: () => void;
 }
 
-function QueryPlanFlowInner({ graph, selectedNodeId, onNodeSelect }: QueryPlanFlowProps) {
+function QueryPlanFlowInner({
+  graph,
+  selectedNodeId,
+  onNodeSelect,
+  onNodeDeselect,
+}: QueryPlanFlowProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState(graph.nodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(graph.edges);
   const nodeTypes = useMemo(() => NODE_TYPES, []);
@@ -64,6 +71,10 @@ function QueryPlanFlowInner({ graph, selectedNodeId, onNodeSelect }: QueryPlanFl
     [onNodeSelect],
   );
 
+  const handlePaneClick = useCallback(() => {
+    onNodeDeselect();
+  }, [onNodeDeselect]);
+
   return (
     <ReactFlow
       nodes={nodes}
@@ -72,6 +83,7 @@ function QueryPlanFlowInner({ graph, selectedNodeId, onNodeSelect }: QueryPlanFl
       onEdgesChange={onEdgesChange}
       nodeTypes={nodeTypes}
       onNodeClick={handleNodeClick}
+      onPaneClick={handlePaneClick}
       fitView
       fitViewOptions={{ padding: 0.18, minZoom: 0.35, maxZoom: 1 }}
       minZoom={0.2}
