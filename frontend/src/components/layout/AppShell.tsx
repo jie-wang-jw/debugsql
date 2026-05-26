@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiSliders, FiTerminal } from 'react-icons/fi';
 import { FadeIn }             from '../animations/FadeIn';
@@ -43,6 +43,37 @@ function AppShellInner() {
   const { selectedNodeId } = useQueryPlanContext();
   const [activeTab, setActiveTab] = useState<'inspector' | 'execution'>('inspector');
 
+  // Resizable split between query plan (top) and inspector/execution (bottom)
+  const [topRatio, setTopRatio] = useState(57); // percentage for top area
+  const rightPanelRef = useRef<HTMLDivElement>(null);
+  const isDragging = useRef(false);
+
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    isDragging.current = true;
+    document.body.style.cursor = 'row-resize';
+    document.body.style.userSelect = 'none';
+
+    const onMove = (ev: MouseEvent) => {
+      if (!isDragging.current || !rightPanelRef.current) return;
+      const rect = rightPanelRef.current.getBoundingClientRect();
+      const offsetY = ev.clientY - rect.top;
+      const pct = (offsetY / rect.height) * 100;
+      setTopRatio(Math.min(80, Math.max(25, pct)));
+    };
+
+    const onUp = () => {
+      isDragging.current = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  }, []);
+
   // Focus Inspector when the user selects a plan node (unless a run is in progress)
   useEffect(() => {
     if (selectedNodeId && status !== 'running') {
@@ -69,12 +100,26 @@ function AppShellInner() {
 
       {/* Right: Query plan + tabbed bottom panel */}
       <>
-        <div className="app-shell__right">
-          <FadeIn direction="up" delay={0.12} className="app-shell__top-right">
+        <div className="app-shell__right" ref={rightPanelRef}>
+          <div
+            className="app-shell__top-right"
+            style={{ flex: `0 0 ${topRatio}%` }}
+          >
             <QueryPlanPanel />
-          </FadeIn>
+          </div>
 
-          <FadeIn direction="up" delay={0.2} className="app-shell__bottom-right">
+          <div
+            className="app-shell__resize-handle"
+            onMouseDown={handleResizeStart}
+            role="separator"
+            aria-orientation="horizontal"
+            aria-label="Resize query plan and inspector panels"
+          />
+
+          <div
+            className="app-shell__bottom-right"
+            style={{ flex: `0 0 ${100 - topRatio}%` }}
+          >
             <div className="bottom-tabs">
               {/* Tab bar */}
               <div className="bottom-tabs__bar" role="tablist">
@@ -124,7 +169,7 @@ function AppShellInner() {
                 </AnimatePresence>
               </div>
             </div>
-          </FadeIn>
+          </div>
         </div>
       </>
     </div>

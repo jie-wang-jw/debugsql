@@ -62,7 +62,7 @@
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  padding: 12px 12px 14px;
+  padding: 12px 12px 24px;
   gap: 10px;
 }
 
@@ -100,9 +100,9 @@
 .field-row {
   display: grid;
   grid-template-columns: 130px 1fr;
-  align-items: center;
+  align-items: start;
   gap: 10px;
-  padding: 8px 11px;
+  padding: 9px 11px;
   border-bottom: 1px solid var(--border-subtle);
   transition: background var(--t-fast);
   border-left: 2px solid transparent;
@@ -149,9 +149,9 @@
   font-size: 11px;
   color: var(--text-secondary);
   font-family: var(--font-sans);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.5;
 }
 
 .field-row__value--mono {
@@ -167,7 +167,8 @@
   color: var(--text-primary);
   font-family: var(--font-sans);
   font-size: 11px;
-  padding: 4px 8px;
+  padding: 5px 8px;
+  min-height: 28px;
   outline: none;
   width: 100%;
   transition: border-color var(--t-fast), box-shadow var(--t-fast);
@@ -190,6 +191,8 @@
   flex-direction: column;
   gap: 7px;
   margin-top: 2px;
+  padding-bottom: 8px;
+  flex-shrink: 0;
 }
 
 .inspector__action-row {

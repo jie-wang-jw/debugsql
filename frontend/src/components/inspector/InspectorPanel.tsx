@@ -268,7 +268,7 @@ export function InspectorPanel() {
                     size={11}
                     className={isReexecuting || isRerunning ? 'inspector__rerun-icon--spin' : ''}
                   />
-                  {isReexecuting || isRerunning ? 'Re-ejecutando…' : 'Re-ejecutar plan'}
+                  {isReexecuting || isRerunning ? 'Re-executing…' : 'Re-execute plan'}
                 </motion.button>
               </div>
               <p className="inspector__apply-hint">
