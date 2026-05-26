@@ -259,5 +259,8 @@ function getAuthErrorMessage(error: unknown, fallback: string): string {
   if (message.includes('System database unavailable')) {
     return 'The login service is temporarily unavailable. Please try again later.';
   }
+  if (message.includes('Login service failed')) {
+    return 'The login service is temporarily unavailable. Please try again later.';
+  }
   return fallback;
 }

@@ -12,6 +12,7 @@ from app.auth import (
     dev_user_dict,
     email_code_hash,
     ensure_dev_user,
+    expire_pending_email_codes,
     expire_session_token,
     get_user_by_session_token,
     latest_pending_email_code,
@@ -108,6 +109,8 @@ def request_email_code(payload: EmailCodeRequest, request: Request) -> dict:
                     latest.status = "expired"
                 elif latest_created + timedelta(seconds=settings.email_login_resend_seconds) > now:
                     raise HTTPException(status_code=429, detail="Please wait before requesting another code")
+                else:
+                    expire_pending_email_codes(session, email)
 
             record = EmailLoginCode(
                 id=f"code_{secrets.token_hex(12)}",
@@ -159,31 +162,37 @@ def verify_email_code(payload: EmailCodeVerifyRequest, response: Response) -> di
     error: tuple[int, str] | None = None
     token: str | None = None
     data: dict | None = None
-    with session_scope() as session:
-        record = latest_pending_email_code(session, email)
-        if not record:
-            raise HTTPException(status_code=400, detail="No active verification code for this email")
+    try:
+        with session_scope() as session:
+            record = latest_pending_email_code(session, email)
+            if not record:
+                raise HTTPException(status_code=400, detail="No active verification code for this email")
 
-        if _with_timezone(record.expires_at) <= now:
-            record.status = "expired"
-            error = (400, "Verification code expired")
-        elif record.attempt_count >= settings.email_login_max_attempts:
-            record.status = "expired"
-            error = (429, "Too many verification attempts")
-        elif not secrets.compare_digest(record.code_hash, email_code_hash(email, code)):
-            record.attempt_count += 1
-            if record.attempt_count >= settings.email_login_max_attempts:
+            if _with_timezone(record.expires_at) <= now:
+                record.status = "expired"
+                error = (400, "Verification code expired")
+            elif record.attempt_count >= settings.email_login_max_attempts:
                 record.status = "expired"
                 error = (429, "Too many verification attempts")
+            elif not secrets.compare_digest(record.code_hash, email_code_hash(email, code)):
+                record.attempt_count += 1
+                if record.attempt_count >= settings.email_login_max_attempts:
+                    record.status = "expired"
+                    error = (429, "Too many verification attempts")
+                else:
+                    error = (400, "Invalid verification code")
             else:
-                error = (400, "Invalid verification code")
-        else:
-            user = upsert_email_user(session, email)
-            token, _record = create_session_record(session, user)
-            record.status = "used"
-            record.used_at = now
-            data = user_to_dict(user)
-            data["persistence"] = "database"
+                user = upsert_email_user(session, email)
+                token, _record = create_session_record(session, user)
+                record.status = "used"
+                record.used_at = now
+                data = user_to_dict(user)
+                data["persistence"] = "database"
+    except HTTPException:
+        raise
+    except SQLAlchemyError as exc:
+        print(f"[auth] Email verification database error for {email}: {exc}", flush=True)
+        raise HTTPException(status_code=500, detail="Login service failed while verifying the code") from exc
 
     if error:
         raise HTTPException(status_code=error[0], detail=error[1])

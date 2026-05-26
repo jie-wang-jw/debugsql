@@ -92,7 +92,17 @@ def latest_pending_email_code(session: Session, email: str) -> EmailLoginCode | 
         select(EmailLoginCode)
         .where(EmailLoginCode.email == normalized, EmailLoginCode.status == "pending")
         .order_by(desc(EmailLoginCode.created_at))
+        .limit(1)
     ).scalar_one_or_none()
+
+
+def expire_pending_email_codes(session: Session, email: str) -> None:
+    normalized = normalize_email(email)
+    records = session.execute(
+        select(EmailLoginCode).where(EmailLoginCode.email == normalized, EmailLoginCode.status == "pending")
+    ).scalars()
+    for record in records:
+        record.status = "expired"
 
 
 def get_user_by_session_token(session: Session, token: str | None) -> User | None:
