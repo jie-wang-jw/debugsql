@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     smtp_password: str = ""
     smtp_from: str = "DebugSQL <no-reply@debugsql.local>"
     smtp_use_tls: bool = True
+    smtp_use_ssl: bool = False
     debugsql_auto_login: bool = True
     debugsql_dev_user_email: str = "dev@debugsql.local"
     debugsql_dev_user_name: str = "DebugSQL Dev User"

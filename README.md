@@ -457,6 +457,19 @@ SMTP_USERNAME=
 SMTP_PASSWORD=
 SMTP_FROM=DebugSQL <no-reply@debugsql.local>
 SMTP_USE_TLS=1
+SMTP_USE_SSL=0
+```
+
+For 163 Mail, prefer implicit SSL on port 465:
+
+```env
+SMTP_HOST=smtp.163.com
+SMTP_PORT=465
+SMTP_USERNAME=debugsql@163.com
+SMTP_PASSWORD=replace_with_163_smtp_authorization_code
+SMTP_FROM=DebugSQL <debugsql@163.com>
+SMTP_USE_TLS=0
+SMTP_USE_SSL=1
 ```
 
 If `SMTP_HOST` is empty and `EMAIL_DEV_LOG_CODES=1`, verification codes are
