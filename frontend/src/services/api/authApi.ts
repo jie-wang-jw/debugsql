@@ -1,13 +1,13 @@
 // ================================================
 // DebugSQL - Auth API
 //
-// Current MVP behavior:
-// - GET /auth/me returns the dev auto-login user when DEBUGSQL_AUTO_LOGIN=1.
-// - POST /auth/logout is a stable placeholder until real sessions are added.
-// - GitHub OAuth will later be mounted at /auth/github/login.
+// Current behavior:
+// - GET /auth/me returns the active cookie-backed session user.
+// - POST /auth/email/request-code sends or logs a short-lived verification code.
+// - POST /auth/email/verify-code verifies the code and creates a cookie session.
 // ================================================
 
-import { apiGet, apiPost, API_BASE_URL } from './client';
+import { apiGet, apiPost } from './client';
 
 export interface CurrentUser {
   id: string;
@@ -25,10 +25,18 @@ export async function logout(): Promise<void> {
   return apiPost<void>('/auth/logout', {});
 }
 
-export function githubLoginUrl(): string {
-  return `${API_BASE_URL}/auth/github/login`;
+export interface EmailCodeRequestResult {
+  email: string;
+  expiresInSeconds: number;
+  resendAfterSeconds: number;
+  delivery: 'smtp' | 'dev_log';
+  warning?: string;
 }
 
-export function googleLoginUrl(): string {
-  return `${API_BASE_URL}/auth/google/login`;
+export async function requestEmailCode(email: string): Promise<EmailCodeRequestResult> {
+  return apiPost<EmailCodeRequestResult>('/auth/email/request-code', { email });
+}
+
+export async function verifyEmailCode(email: string, code: string): Promise<CurrentUser> {
+  return apiPost<CurrentUser>('/auth/email/verify-code', { email, code });
 }

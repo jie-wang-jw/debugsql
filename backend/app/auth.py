@@ -2,18 +2,20 @@ from __future__ import annotations
 
 import hmac
 import hashlib
+import re
 import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import desc, select
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
-from app.models.auth import OAuthAccount, SessionRecord, User, utc_now
+from app.models.auth import EmailLoginCode, OAuthAccount, SessionRecord, User, utc_now
 
 
 SESSION_TTL_DAYS = 7
+EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
 def stable_id(prefix: str, value: str) -> str:
@@ -28,6 +30,17 @@ def token_hash(token: str) -> str:
         token.encode("utf-8"),
         hashlib.sha256,
     ).hexdigest()
+
+
+def normalize_email(email: str) -> str:
+    normalized = email.strip().lower()
+    if not EMAIL_RE.match(normalized):
+        raise ValueError("Invalid email address")
+    return normalized
+
+
+def email_code_hash(email: str, code: str) -> str:
+    return token_hash(f"email-login:{normalize_email(email)}:{code.strip()}")
 
 
 def ensure_dev_user(session: Session) -> User:
@@ -50,6 +63,36 @@ def ensure_dev_user(session: Session) -> User:
     session.add(user)
     session.flush()
     return user
+
+
+def upsert_email_user(session: Session, email: str) -> User:
+    normalized = normalize_email(email)
+    now = utc_now()
+    user = session.execute(select(User).where(User.email == normalized)).scalar_one_or_none()
+    if user:
+        user.auth_mode = "email"
+        user.last_login_at = now
+        return user
+
+    user = User(
+        id=stable_id("user", normalized),
+        email=normalized,
+        display_name=normalized.split("@", 1)[0],
+        auth_mode="email",
+        last_login_at=now,
+    )
+    session.add(user)
+    session.flush()
+    return user
+
+
+def latest_pending_email_code(session: Session, email: str) -> EmailLoginCode | None:
+    normalized = normalize_email(email)
+    return session.execute(
+        select(EmailLoginCode)
+        .where(EmailLoginCode.email == normalized, EmailLoginCode.status == "pending")
+        .order_by(desc(EmailLoginCode.created_at))
+    ).scalar_one_or_none()
 
 
 def get_user_by_session_token(session: Session, token: str | None) -> User | None:

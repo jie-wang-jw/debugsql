@@ -1,6 +1,6 @@
 """SQLAlchemy models for DebugSQL persistence."""
 
-from app.models.auth import OAuthAccount, SessionRecord, User
+from app.models.auth import EmailLoginCode, OAuthAccount, SessionRecord, User
 from app.models.history import (
     Conversation,
     ExecutionRun,
@@ -12,6 +12,7 @@ from app.models.history import (
 
 __all__ = [
     "Conversation",
+    "EmailLoginCode",
     "ExecutionRun",
     "Message",
     "OAuthAccount",

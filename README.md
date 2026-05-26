@@ -334,10 +334,11 @@ FRONTEND_BASE_URL=http://SERVER_IP
 DEBUGSQL_AUTO_LOGIN=1
 BENCHMARK_HOST_DATA_DIR=/data/debugsql/data/benchmarks
 BENCHMARK_DATA_DIR=/app/data/benchmarks
+EMAIL_DEV_LOG_CODES=1
 ```
 
 `DEBUGSQL_AUTO_LOGIN=1` is suitable for the current private demo server. Change
-it to `0` after GitHub/Google OAuth is configured for real user testing.
+it to `0` after SMTP email delivery is configured for real user testing.
 
 Create the durable server data directories before starting Compose:
 
@@ -420,10 +421,8 @@ GET /db-health
 GET /hello
 GET /auth/me
 POST /auth/logout
-GET /auth/github/login
-GET /auth/github/callback
-GET /auth/google/login
-GET /auth/google/callback
+POST /auth/email/request-code
+POST /auth/email/verify-code
 GET /benchmarks
 GET /benchmarks/spider/databases
 POST /query
@@ -436,17 +435,26 @@ GET /history/conversations/{conversation_id}
 POST /planning/generate
 ```
 
-OAuth login uses cookie-backed sessions stored in the system database. Configure
-these variables before disabling dev auto-login:
+Email verification login uses cookie-backed sessions stored in the system
+database. Configure these variables before disabling dev auto-login:
 
 ```env
 SESSION_SECRET=replace_with_a_long_random_value
 AUTH_COOKIE_NAME=debugsql_session
-GITHUB_CLIENT_ID=
-GITHUB_CLIENT_SECRET=
-GOOGLE_CLIENT_ID=
-GOOGLE_CLIENT_SECRET=
+EMAIL_LOGIN_CODE_TTL_MINUTES=10
+EMAIL_LOGIN_RESEND_SECONDS=60
+EMAIL_LOGIN_MAX_ATTEMPTS=5
+EMAIL_DEV_LOG_CODES=1
+SMTP_HOST=
+SMTP_PORT=587
+SMTP_USERNAME=
+SMTP_PASSWORD=
+SMTP_FROM=DebugSQL <no-reply@debugsql.local>
+SMTP_USE_TLS=1
 ```
+
+If `SMTP_HOST` is empty and `EMAIL_DEV_LOG_CODES=1`, verification codes are
+printed in backend logs for local/server smoke testing.
 
 ## IR-to-Plan Provider
 

@@ -90,14 +90,16 @@ async function request<T>(
 
   if (!response.ok) {
     let apiError: ApiError | undefined;
+    let detail: string | undefined;
     try {
-      const errBody = await response.json() as { error?: ApiError };
+      const errBody = await response.json() as { detail?: string; error?: ApiError };
       apiError = errBody.error;
+      detail = typeof errBody.detail === 'string' ? errBody.detail : undefined;
     } catch {
       // Response body was not valid JSON — ignore and use status text.
     }
     throw new ApiClientError(
-      apiError?.message ?? `HTTP ${response.status} ${response.statusText}`,
+      apiError?.message ?? detail ?? `HTTP ${response.status} ${response.statusText}`,
       response.status,
       apiError,
     );

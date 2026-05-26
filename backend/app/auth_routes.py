@@ -1,33 +1,40 @@
 from __future__ import annotations
 
-import json
 import secrets
-from typing import Any
-from urllib.error import HTTPError, URLError
-from urllib.parse import urlencode
-from urllib.request import Request as UrlRequest
-from urllib.request import urlopen
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, HTTPException, Request, Response
-from fastapi.responses import RedirectResponse
+from pydantic import BaseModel
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.auth import (
     create_session_record,
     dev_user_dict,
+    email_code_hash,
     ensure_dev_user,
     expire_session_token,
     get_user_by_session_token,
-    upsert_oauth_user,
+    latest_pending_email_code,
+    normalize_email,
+    upsert_email_user,
     user_to_dict,
 )
 from app.config import get_settings
 from app.database import session_scope
+from app.email_sender import EmailDeliveryError, send_login_code
+from app.models.auth import EmailLoginCode, utc_now
 
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-OAUTH_STATE_COOKIE = "debugsql_oauth_state"
+
+class EmailCodeRequest(BaseModel):
+    email: str
+
+
+class EmailCodeVerifyRequest(BaseModel):
+    email: str
+    code: str
 
 
 @router.get("/me")
@@ -78,131 +85,125 @@ def logout(request: Request, response: Response) -> dict:
     return {"success": True, "data": None}
 
 
-@router.get("/github/login")
-def github_login() -> RedirectResponse:
+@router.post("/email/request-code")
+def request_email_code(payload: EmailCodeRequest, request: Request) -> dict:
     settings = get_settings()
-    if not settings.github_client_id or not settings.github_client_secret:
-        raise HTTPException(status_code=501, detail="GitHub OAuth is not configured yet")
-    state = secrets.token_urlsafe(24)
-    params = urlencode(
-        {
-            "client_id": settings.github_client_id,
-            "redirect_uri": f"{settings.app_base_url}/auth/github/callback",
-            "scope": "read:user user:email",
-            "state": state,
-        }
-    )
-    response = RedirectResponse(f"https://github.com/login/oauth/authorize?{params}")
-    _set_state_cookie(response, state)
-    return response
+    try:
+        email = normalize_email(payload.email)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
+    now = utc_now()
+    code = f"{secrets.randbelow(1_000_000):06d}"
+    client_ip = request.client.host if request.client else None
+    user_agent = request.headers.get("user-agent")
 
-@router.get("/github/callback")
-def github_callback(code: str, state: str, request: Request) -> RedirectResponse:
-    _validate_state(request, state)
-    settings = get_settings()
-    token = _post_json(
-        "https://github.com/login/oauth/access_token",
-        {
-            "client_id": settings.github_client_id,
-            "client_secret": settings.github_client_secret,
-            "code": code,
-            "redirect_uri": f"{settings.app_base_url}/auth/github/callback",
+    try:
+        with session_scope() as session:
+            latest = latest_pending_email_code(session, email)
+            if latest:
+                latest_created = _with_timezone(latest.created_at)
+                latest_expires = _with_timezone(latest.expires_at)
+                if latest_expires <= now:
+                    latest.status = "expired"
+                elif latest_created + timedelta(seconds=settings.email_login_resend_seconds) > now:
+                    raise HTTPException(status_code=429, detail="Please wait before requesting another code")
+
+            record = EmailLoginCode(
+                id=f"code_{secrets.token_hex(12)}",
+                email=email,
+                code_hash=email_code_hash(email, code),
+                status="pending",
+                attempt_count=0,
+                expires_at=now + timedelta(minutes=settings.email_login_code_ttl_minutes),
+                created_at=now,
+                request_ip=client_ip,
+                user_agent=user_agent,
+            )
+            session.add(record)
+    except HTTPException:
+        raise
+    except SQLAlchemyError as exc:
+        raise HTTPException(status_code=500, detail="System database unavailable") from exc
+
+    try:
+        delivery = send_login_code(email, code)
+    except EmailDeliveryError as exc:
+        _expire_email_code(email, code)
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    return {
+        "success": True,
+        "data": {
+            "email": email,
+            "expiresInSeconds": settings.email_login_code_ttl_minutes * 60,
+            "resendAfterSeconds": settings.email_login_resend_seconds,
+            **delivery,
         },
-        {"Accept": "application/json"},
-    ).get("access_token")
-    if not token:
-        raise HTTPException(status_code=400, detail="GitHub did not return an access token")
-
-    user = _get_json("https://api.github.com/user", {"Authorization": f"Bearer {token}"})
-    email = user.get("email") or _github_primary_email(token)
-    if not email:
-        raise HTTPException(status_code=400, detail="GitHub account did not provide an email address")
-    return _complete_oauth_login(
-        provider="github",
-        provider_user_id=str(user.get("id")),
-        email=email,
-        display_name=user.get("name") or user.get("login"),
-        avatar_url=user.get("avatar_url"),
-        profile=user,
-    )
+    }
 
 
-@router.get("/google/login")
-def google_login() -> RedirectResponse:
+@router.post("/email/verify-code")
+def verify_email_code(payload: EmailCodeVerifyRequest, response: Response) -> dict:
     settings = get_settings()
-    if not settings.google_client_id or not settings.google_client_secret:
-        raise HTTPException(status_code=501, detail="Google OAuth is not configured yet")
-    state = secrets.token_urlsafe(24)
-    params = urlencode(
-        {
-            "client_id": settings.google_client_id,
-            "redirect_uri": f"{settings.app_base_url}/auth/google/callback",
-            "response_type": "code",
-            "scope": "openid email profile",
-            "state": state,
-        }
-    )
-    response = RedirectResponse(f"https://accounts.google.com/o/oauth2/v2/auth?{params}")
-    _set_state_cookie(response, state)
-    return response
+    try:
+        email = normalize_email(payload.email)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
+    code = payload.code.strip()
+    if not code.isdigit() or len(code) != 6:
+        raise HTTPException(status_code=400, detail="Enter the 6-digit verification code")
 
-@router.get("/google/callback")
-def google_callback(code: str, state: str, request: Request) -> RedirectResponse:
-    _validate_state(request, state)
-    settings = get_settings()
-    token_payload = _post_json(
-        "https://oauth2.googleapis.com/token",
-        {
-            "client_id": settings.google_client_id,
-            "client_secret": settings.google_client_secret,
-            "code": code,
-            "redirect_uri": f"{settings.app_base_url}/auth/google/callback",
-            "grant_type": "authorization_code",
-        },
-    )
-    access_token = token_payload.get("access_token")
-    if not access_token:
-        raise HTTPException(status_code=400, detail="Google did not return an access token")
-
-    profile = _get_json("https://www.googleapis.com/oauth2/v2/userinfo", {"Authorization": f"Bearer {access_token}"})
-    email = profile.get("email")
-    if not email:
-        raise HTTPException(status_code=400, detail="Google account did not provide an email address")
-    return _complete_oauth_login(
-        provider="google",
-        provider_user_id=str(profile.get("id")),
-        email=email,
-        display_name=profile.get("name"),
-        avatar_url=profile.get("picture"),
-        profile=profile,
-    )
-
-
-def _complete_oauth_login(
-    *,
-    provider: str,
-    provider_user_id: str,
-    email: str,
-    display_name: str | None,
-    avatar_url: str | None,
-    profile: dict[str, Any],
-) -> RedirectResponse:
-    settings = get_settings()
+    now = utc_now()
+    error: tuple[int, str] | None = None
+    token: str | None = None
+    data: dict | None = None
     with session_scope() as session:
-        user = upsert_oauth_user(
-            session,
-            provider=provider,
-            provider_user_id=provider_user_id,
-            email=email,
-            display_name=display_name,
-            avatar_url=avatar_url,
-            profile=profile,
-        )
-        token, _record = create_session_record(session, user)
+        record = latest_pending_email_code(session, email)
+        if not record:
+            raise HTTPException(status_code=400, detail="No active verification code for this email")
 
-    response = RedirectResponse(settings.frontend_base_url)
+        if _with_timezone(record.expires_at) <= now:
+            record.status = "expired"
+            error = (400, "Verification code expired")
+        elif record.attempt_count >= settings.email_login_max_attempts:
+            record.status = "expired"
+            error = (429, "Too many verification attempts")
+        elif not secrets.compare_digest(record.code_hash, email_code_hash(email, code)):
+            record.attempt_count += 1
+            if record.attempt_count >= settings.email_login_max_attempts:
+                record.status = "expired"
+                error = (429, "Too many verification attempts")
+            else:
+                error = (400, "Invalid verification code")
+        else:
+            user = upsert_email_user(session, email)
+            token, _record = create_session_record(session, user)
+            record.status = "used"
+            record.used_at = now
+            data = user_to_dict(user)
+            data["persistence"] = "database"
+
+    if error:
+        raise HTTPException(status_code=error[0], detail=error[1])
+    if not token or data is None:
+        raise HTTPException(status_code=400, detail="Unable to verify code")
+
+    _set_session_cookie(response, token)
+    return {"success": True, "data": data}
+
+
+@router.get("/github/login")
+@router.get("/github/callback")
+@router.get("/google/login")
+@router.get("/google/callback")
+def oauth_disabled() -> dict:
+    raise HTTPException(status_code=410, detail="OAuth login has been disabled. Use email verification login.")
+
+
+def _set_session_cookie(response: Response, token: str) -> None:
+    settings = get_settings()
     response.set_cookie(
         settings.auth_cookie_name,
         token,
@@ -212,60 +213,19 @@ def _complete_oauth_login(
         path="/",
         max_age=7 * 24 * 60 * 60,
     )
-    response.delete_cookie(OAUTH_STATE_COOKIE, path="/")
-    return response
 
 
-def _set_state_cookie(response: RedirectResponse, state: str) -> None:
-    settings = get_settings()
-    response.set_cookie(
-        OAUTH_STATE_COOKIE,
-        state,
-        httponly=True,
-        secure=settings.auth_cookie_secure,
-        samesite="lax",
-        path="/",
-        max_age=10 * 60,
-    )
-
-
-def _validate_state(request: Request, state: str) -> None:
-    expected = request.cookies.get(OAUTH_STATE_COOKIE)
-    if not expected or not secrets.compare_digest(expected, state):
-        raise HTTPException(status_code=400, detail="Invalid OAuth state")
-
-
-def _github_primary_email(token: str) -> str | None:
-    emails = _get_json("https://api.github.com/user/emails", {"Authorization": f"Bearer {token}"})
-    if not isinstance(emails, list):
-        return None
-    primary = next((item for item in emails if item.get("primary") and item.get("verified")), None)
-    fallback = next((item for item in emails if item.get("verified")), None)
-    chosen = primary or fallback
-    return chosen.get("email") if chosen else None
-
-
-def _post_json(url: str, payload: dict[str, Any], headers: dict[str, str] | None = None) -> dict[str, Any]:
-    encoded = urlencode(payload).encode("utf-8")
-    request = UrlRequest(
-        url,
-        data=encoded,
-        headers={"Content-Type": "application/x-www-form-urlencoded", "User-Agent": "DebugSQL", **(headers or {})},
-        method="POST",
-    )
-    return _open_json(request)
-
-
-def _get_json(url: str, headers: dict[str, str] | None = None) -> Any:
-    request = UrlRequest(url, headers={"User-Agent": "DebugSQL", **(headers or {})}, method="GET")
-    return _open_json(request)
-
-
-def _open_json(request: UrlRequest) -> Any:
+def _expire_email_code(email: str, code: str) -> None:
     try:
-        with urlopen(request, timeout=15) as response:
-            return json.loads(response.read().decode("utf-8"))
-    except HTTPError as exc:
-        raise HTTPException(status_code=400, detail=f"OAuth provider error: {exc.read().decode('utf-8')}") from exc
-    except (URLError, TimeoutError) as exc:
-        raise HTTPException(status_code=400, detail=f"OAuth provider request failed: {exc}") from exc
+        with session_scope() as session:
+            record = latest_pending_email_code(session, email)
+            if record and secrets.compare_digest(record.code_hash, email_code_hash(email, code)):
+                record.status = "expired"
+    except SQLAlchemyError:
+        pass
+
+
+def _with_timezone(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value
