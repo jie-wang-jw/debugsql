@@ -165,6 +165,12 @@ Apply database migrations:
 docker compose exec backend alembic upgrade head
 ```
 
+After the server is initialized, deploy later updates with:
+
+```bash
+bash scripts/deploy_server.sh
+```
+
 Check backend:
 
 ```bash
