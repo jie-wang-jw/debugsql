@@ -101,12 +101,10 @@ function LoginScreen({
       const result = await requestEmailCode(email);
       setStatus('sent');
       setResendAfter(result.resendAfterSeconds);
-      setNotice(result.delivery === 'dev_log'
-        ? 'Code generated. Check the backend logs for the verification code.'
-        : `Code sent to ${result.email}.`);
+      setNotice(getCodeSentMessage(result.email, result.delivery));
     } catch (requestError) {
       setStatus('idle');
-      setFormError(requestError instanceof Error ? requestError.message : 'Unable to send verification code');
+      setFormError(getAuthErrorMessage(requestError, 'Unable to send the verification code. Please try again.'));
     }
   };
 
@@ -118,7 +116,7 @@ function LoginScreen({
       onAuthenticated(user);
     } catch (verifyError) {
       setStatus('sent');
-      setFormError(verifyError instanceof Error ? verifyError.message : 'Unable to verify code');
+      setFormError(getAuthErrorMessage(verifyError, 'Unable to verify the code. Please try again.'));
     }
   };
 
@@ -223,4 +221,40 @@ async function handleLogout(setState: Dispatch<SetStateAction<AuthState>>) {
   } finally {
     setState({ status: 'unauthenticated', user: null, error: null });
   }
+}
+
+function getCodeSentMessage(email: string, delivery: 'smtp' | 'dev_log'): string {
+  if (delivery === 'dev_log' && import.meta.env.DEV) {
+    return `Verification code generated for ${email}. Check the backend logs in this local development environment.`;
+  }
+  return `Verification code sent to ${email}. Please check your inbox.`;
+}
+
+function getAuthErrorMessage(error: unknown, fallback: string): string {
+  const message = error instanceof Error ? error.message : '';
+  if (!message) {
+    return fallback;
+  }
+  if (message.includes('Please wait')) {
+    return 'Please wait before requesting another verification code.';
+  }
+  if (message.includes('Invalid verification code')) {
+    return 'The verification code is incorrect. Please check the code and try again.';
+  }
+  if (message.includes('expired')) {
+    return 'The verification code has expired. Please request a new one.';
+  }
+  if (message.includes('Too many verification attempts')) {
+    return 'Too many incorrect attempts. Please request a new verification code.';
+  }
+  if (message.includes('Email delivery failed') || message.includes('SMTP')) {
+    return 'We could not send the verification email. Please try again later.';
+  }
+  if (message.includes('Invalid email')) {
+    return 'Please enter a valid email address.';
+  }
+  if (message.includes('System database unavailable')) {
+    return 'The login service is temporarily unavailable. Please try again later.';
+  }
+  return fallback;
 }
