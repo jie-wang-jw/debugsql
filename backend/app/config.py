@@ -25,14 +25,14 @@ class Settings(BaseSettings):
     debugsql_auto_login: bool = True
     debugsql_dev_user_email: str = "dev@debugsql.local"
     debugsql_dev_user_name: str = "DebugSQL Dev User"
-    nl2ir_provider: str = "stub"
+    nl2ir_provider: str = "kddcup"
     kddcup_agent_model: str = "gpt-4.1-mini"
     kddcup_agent_api_base: str = "https://api.openai.com/v1"
     kddcup_agent_api_key: str = ""
     kddcup_agent_max_steps: int = 8
     kddcup_agent_timeout_seconds: int = 120
     kddcup_work_dir: str = "/tmp/debugsql-kddcup"
-    ir_to_plan_provider: str = "stub"
+    ir_to_plan_provider: str = "internal"
     ir_to_plan_api_url: str = ""
     ir_to_plan_api_key: str = ""
     ir_to_plan_timeout_seconds: int = 30

@@ -7,6 +7,7 @@ from app.auth_routes import router as auth_router
 from app.chat_routes import router as chat_router
 from app.benchmark_routes import router as benchmark_router
 from app.execution_routes import router as execution_router
+from app.evaluation_routes import router as evaluation_router
 from app.history_routes import router as history_router
 from app.planning.routes import router as planning_router
 from app.query_plan_routes import router as query_plan_router
@@ -31,6 +32,7 @@ app.include_router(chat_router)
 app.include_router(query_plan_router)
 app.include_router(execution_router)
 app.include_router(history_router)
+app.include_router(evaluation_router)
 
 
 @app.get("/health")

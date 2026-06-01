@@ -107,6 +107,10 @@ const OP_ICON: Record<OperationType, React.ComponentType<{ size?: number }>> = {
   SORT:      FiList,
   AGGREGATE: FiBarChart2,
   LIMIT:     FiList,
+  SQL:       FiDatabase,
+  TOOL:      FiGitMerge,
+  ANSWER:    FiCheckCircle,
+  MERGED:    FiGitMerge,
 };
 
 const OP_COLOR: Record<OperationType, string> = {
@@ -117,6 +121,10 @@ const OP_COLOR: Record<OperationType, string> = {
   SORT:      'var(--accent-cyan)',
   AGGREGATE: 'var(--accent-cyan)',
   LIMIT:     'var(--text-secondary)',
+  SQL:       'var(--accent-blue-light)',
+  TOOL:      'var(--accent-purple)',
+  ANSWER:    'var(--accent-green)',
+  MERGED:    'var(--accent-purple)',
 };
 
 const OP_LABEL: Record<OperationType, string> = {
@@ -127,4 +135,8 @@ const OP_LABEL: Record<OperationType, string> = {
   SORT:      'SORT',
   AGGREGATE: 'AGGREGATE',
   LIMIT:     'LIMIT',
+  SQL:       'SQL',
+  TOOL:      'TOOL',
+  ANSWER:    'ANSWER',
+  MERGED:    'MERGED',
 };

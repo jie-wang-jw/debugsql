@@ -21,7 +21,11 @@ export type OperationType =
   | 'JOIN'
   | 'SORT'
   | 'AGGREGATE'
-  | 'LIMIT';
+  | 'LIMIT'
+  | 'SQL'
+  | 'TOOL'
+  | 'ANSWER'
+  | 'MERGED';
 
 export type ExecutionState = 'pending' | 'running' | 'success' | 'error' | 'skipped' | 'done';
 
@@ -44,6 +48,7 @@ export interface QueryPlanEditResult {
   executableSqlChanged?: boolean;
   requiresProvider?: boolean;
   operationType?: string;
+  mergedNodeIds?: string[];
 }
 
 export interface OperationNodeData {

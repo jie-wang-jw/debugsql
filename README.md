@@ -434,11 +434,14 @@ GET /benchmarks/spider/databases
 POST /query
 GET /query-plan/{plan_id}
 PATCH /query-plan/{plan_id}/nodes/{node_id}
+POST /query-plan/{plan_id}/nodes/merge
 POST /execute
 GET /execute/{run_id}/result
 GET /history/summary
 GET /history/conversations/{conversation_id}
 POST /planning/generate
+POST /evaluation/run
+GET /evaluation/runs/{run_id}
 ```
 
 Email verification login uses cookie-backed sessions stored in the system
@@ -486,7 +489,7 @@ generate_plan(intent_ir, schema_context, options) -> QueryPlan
 Provider selection is controlled by environment variables:
 
 ```env
-IR_TO_PLAN_PROVIDER=stub
+IR_TO_PLAN_PROVIDER=internal
 IR_TO_PLAN_API_URL=
 IR_TO_PLAN_API_KEY=
 IR_TO_PLAN_TIMEOUT_SECONDS=30
@@ -495,12 +498,12 @@ IR_TO_PLAN_TIMEOUT_SECONDS=30
 Supported provider slots:
 
 ```text
-stub      local deterministic baseline for frontend/backend development
+internal  default in-process relational planner for proposal demos
+stub      local deterministic baseline for offline frontend/backend development
 http      future external API owned by another team
-internal  future in-process Python package or algorithm module
 ```
 
-The first implementation uses `StubIRToPlanProvider`. It generates a simple relational plan chain:
+The first internal implementation delegates to the deterministic relational planner, but keeps the provider boundary stable for a later algorithm package. It generates a connected relational plan chain:
 
 ```text
 Intent -> Scan -> Filter -> Join -> Group By -> Aggregate -> Sort -> Limit -> Result Data
@@ -595,14 +598,27 @@ KDDCUP_AGENT_MAX_STEPS=8
 ```
 
 This mode uses the vendored `backend/vendor/kddcup2026-data-agents-starter-kit`
-agent trace to generate DebugSQL IR. Leave `NL2IR_PROVIDER=stub` for offline demo
-development.
+agent trace to generate DebugSQL IR and is the default proposal path. If no
+`KDDCUP_AGENT_API_KEY` is configured, the backend returns an inspectable
+`agent_trace_error` IR and marks the plan as `needs_replan` instead of inventing
+fake SQL. Use `NL2IR_PROVIDER=stub` only for offline demo development.
+
+Evaluation endpoint:
+
+```bash
+curl -X POST http://127.0.0.1:8000/evaluation/run \
+  -H "Content-Type: application/json" \
+  -d '{"benchmark":"bird","dbId":"card_games","limit":10}'
+```
+
+The MVP evaluation computes first-pass execution accuracy, placeholder repair
+metrics (DRR/IRR/EI until controlled edits are supplied), timing, and error type
+distribution for BIRD/Spider subsets.
 
 ## Next Steps
 
-1. Connect and tune the KDDCup data-agent provider against larger Spider/BIRD subsets.
-2. Expand Spider/BIRD benchmark execution beyond exact sample-question matching.
-3. Add evaluation scripts for Execution Accuracy, DRR, IRR, and edit counts.
-4. Add richer Inspector JSON editing for complex IR payloads.
-5. Add streaming execution progress and cancellation.
+1. Tune the KDDCup data-agent provider against larger Spider/BIRD subsets.
+2. Feed controlled edit scenarios into DRR/IRR/EI evaluation.
+3. Add richer Inspector JSON editing for complex IR payloads.
+4. Add streaming execution progress and cancellation.
 

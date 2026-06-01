@@ -68,3 +68,15 @@ export async function updateQueryPlanNode(
   const { patchQueryPlanNode } = await import('../api/queryPlanApi');
   return patchQueryPlanNode(planId, nodeId, { nodeId, data: _data });
 }
+
+export async function mergeQueryPlanNodes(
+  planId: string,
+  nodeIds: string[],
+): Promise<QueryPlanGraph | void> {
+  if (USE_MOCK_SERVICES) {
+    return fetchMockQueryPlan(planId);
+  }
+
+  const { postQueryPlanNodeMerge } = await import('../api/queryPlanApi');
+  return postQueryPlanNodeMerge(planId, { nodeIds });
+}

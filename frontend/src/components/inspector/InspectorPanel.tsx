@@ -90,7 +90,7 @@ function resolveApplyHint(
 // ---- Main component ----
 
 export function InspectorPanel() {
-  const { graph, selectedNode, selectedNodeId, onNodeDataUpdate } = useQueryPlanContext();
+  const { graph, selectedNode, selectedNodeId, onNodeDataUpdate, onSelectedNodeMergeWithNext } = useQueryPlanContext();
   const { resetExecution } = useExecutionContext();
   const {
     canReexecute,
@@ -104,6 +104,7 @@ export function InspectorPanel() {
   const [isDirty,    setIsDirty]    = useState(false);
   const [isApplied,  setIsApplied]  = useState(false);
   const [isRerunning, setIsRerunning] = useState(false);
+  const [isMerging, setIsMerging] = useState(false);
 
   // Reset local field state whenever the selected node changes
   useEffect(() => {
@@ -175,10 +176,30 @@ export function InspectorPanel() {
   }, [canReexecute, handleApply, isDirty, isReexecuting, isRerunning, reexecutePlan]);
 
   const rerunDisabled = !canReexecute || isReexecuting || isRerunning;
+  const canMergeWithNext = selectedNode?.data.kind === 'operation'
+    && graph.edges.some((edge) =>
+      edge.source === selectedNodeId
+      && graph.nodes.find((node) => node.id === edge.target)?.data.kind === 'operation'
+    );
   const rerunHint = blockedReason
     ?? (isDirty
       ? 'Pending edits will be applied before re-running'
       : 'Re-run the full query using the updated plan');
+
+  const handleMergeWithNext = useCallback(async () => {
+    if (!canMergeWithNext || isMerging) return;
+    setIsMerging(true);
+    try {
+      const updatedGraph = await onSelectedNodeMergeWithNext();
+      if (updatedGraph) {
+        setIsDirty(false);
+        setIsApplied(true);
+        resetExecution();
+      }
+    } finally {
+      setIsMerging(false);
+    }
+  }, [canMergeWithNext, isMerging, onSelectedNodeMergeWithNext, resetExecution]);
 
   const accent: AccentVariant = selectedNode
     ? getNodeAccent(selectedNode.data)
@@ -269,6 +290,21 @@ export function InspectorPanel() {
                     className={isReexecuting || isRerunning ? 'inspector__rerun-icon--spin' : ''}
                   />
                   {isReexecuting || isRerunning ? 'Re-executing…' : 'Re-execute plan'}
+                </motion.button>
+                <motion.button
+                  type="button"
+                  className={[
+                    'inspector__rerun-btn',
+                    canMergeWithNext ? 'inspector__rerun-btn--active' : '',
+                  ].join(' ')}
+                  onClick={() => void handleMergeWithNext()}
+                  disabled={!canMergeWithNext || isMerging}
+                  whileTap={canMergeWithNext ? { scale: 0.97 } : {}}
+                  transition={{ duration: 0.1 }}
+                  title="Merge this operation node with the next adjacent operation node"
+                >
+                  <FiGitMerge size={11} />
+                  {isMerging ? 'Merging...' : 'Merge with next'}
                 </motion.button>
               </div>
               <p className="inspector__apply-hint">

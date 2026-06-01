@@ -248,6 +248,92 @@ def update_plan_node(
     return graph
 
 
+def merge_plan_nodes(
+    plan_id: str,
+    node_ids: list[str],
+    user_id: str | None = None,
+) -> dict[str, Any] | None:
+    graph = get_plan_graph(plan_id, user_id=user_id)
+    stored = get_plan_record(plan_id, user_id=user_id)
+    if not graph or not stored:
+        return None
+
+    selected_ids = [node_id for node_id in node_ids if node_id]
+    if len(selected_ids) < 2:
+        graph["lastEditResult"] = _merge_result("needs_replan", "Select at least two operation nodes to merge.", selected_ids)
+        return graph
+
+    selected_nodes = [_graph_node(graph, node_id) for node_id in selected_ids]
+    if any(node is None for node in selected_nodes):
+        graph["lastEditResult"] = _merge_result("needs_replan", "One or more selected nodes were not found.", selected_ids)
+        return graph
+    if any((node or {}).get("data", {}).get("kind") != "operation" for node in selected_nodes):
+        graph["lastEditResult"] = _merge_result("needs_replan", "Only operation nodes can be merged in the MVP.", selected_ids)
+        return graph
+
+    ordered = [node_id for node_id in _plan_node_order(graph) if node_id in selected_ids]
+    if set(ordered) != set(selected_ids) or not _nodes_form_adjacent_path(graph, ordered):
+        graph["lastEditResult"] = _merge_result(
+            "needs_replan",
+            "Only adjacent operation nodes on the same query-plan path can be merged.",
+            selected_ids,
+        )
+        return graph
+
+    operation_types = [
+        str((_graph_node(graph, node_id) or {}).get("data", {}).get("operationType") or "").upper()
+        for node_id in ordered
+    ]
+    if not _merge_supported(operation_types):
+        graph["lastEditResult"] = _merge_result(
+            "needs_replan",
+            f"Merge is not supported for operation sequence: {' + '.join(operation_types)}.",
+            selected_ids,
+        )
+        return graph
+
+    target_id = ordered[0]
+    target = _graph_node(graph, target_id)
+    assert target is not None
+    target_data = target.setdefault("data", {})
+    old_data = dict(target_data)
+    merged_details = [
+        str((_graph_node(graph, node_id) or {}).get("data", {}).get("detail") or "")
+        for node_id in ordered
+    ]
+    target_data.update(
+        {
+            "kind": "operation",
+            "operationType": "MERGED",
+            "label": " + ".join(operation_types),
+            "detail": " | ".join(detail for detail in merged_details if detail),
+            "mergedFrom": ordered,
+            "executionState": "pending",
+            "_lastEditedAt": int(time.time()),
+            "_editVersion": int(target_data.get("_editVersion") or 0) + 1,
+        }
+    )
+
+    removed = set(ordered[1:])
+    graph["nodes"] = [node for node in graph.get("nodes", []) if node.get("id") not in removed]
+    graph["edges"] = _rewire_merged_edges(graph.get("edges", []), target_id, removed)
+    downstream = _mark_downstream_pending(graph, target_id)
+    _clear_plan_run_state(plan_id, graph)
+
+    edit_result = _merge_result(
+        "graph_updated",
+        f"Merged adjacent operation nodes: {' + '.join(operation_types)}.",
+        ordered,
+        downstream,
+    )
+    graph["editStatus"] = edit_result
+    graph["lastEditResult"] = edit_result
+    graph["needsReplan"] = False
+    _record_plan_edit(plan_id, target_id, old_data, target_data, edit_result)
+    _persist_latest_plan_edit(plan_id, user_id=user_id)
+    return graph
+
+
 def run_demo_execution(
     sql_or_query: str,
     session_id: str | None = None,
@@ -1338,6 +1424,63 @@ def _graph_node(graph: dict[str, Any], node_id: str) -> dict[str, Any] | None:
         if node.get("id") == node_id:
             return node
     return None
+
+
+def _nodes_form_adjacent_path(graph: dict[str, Any], ordered_node_ids: list[str]) -> bool:
+    edges = {(edge.get("source"), edge.get("target")) for edge in graph.get("edges", [])}
+    return all((source, target) in edges for source, target in zip(ordered_node_ids, ordered_node_ids[1:]))
+
+
+def _merge_supported(operation_types: list[str]) -> bool:
+    compact = [item for item in operation_types if item]
+    supported_pairs = {
+        ("SELECT", "FILTER"),
+        ("FILTER", "JOIN"),
+        ("JOIN", "GROUP_BY"),
+        ("GROUP_BY", "AGGREGATE"),
+        ("SORT", "LIMIT"),
+        ("AGGREGATE", "SORT"),
+    }
+    return all((source, target) in supported_pairs for source, target in zip(compact, compact[1:]))
+
+
+def _rewire_merged_edges(
+    edges: list[dict[str, Any]],
+    target_id: str,
+    removed: set[str],
+) -> list[dict[str, Any]]:
+    rewired: list[dict[str, Any]] = []
+    seen: set[tuple[str, str]] = set()
+    for edge in edges:
+        source = target_id if edge.get("source") in removed else edge.get("source")
+        target = target_id if edge.get("target") in removed else edge.get("target")
+        if not source or not target or source == target:
+            continue
+        key = (source, target)
+        if key in seen:
+            continue
+        seen.add(key)
+        rewired.append({**edge, "id": f"{source}-{target}", "source": source, "target": target})
+    return rewired
+
+
+def _merge_result(
+    status: str,
+    message: str,
+    node_ids: list[str],
+    downstream: set[str] | None = None,
+) -> dict[str, Any]:
+    needs_replan = status == "needs_replan"
+    return {
+        "status": status,
+        "message": message,
+        "needsReplan": needs_replan,
+        "executableAvailable": not needs_replan,
+        "editedNodeId": node_ids[0] if node_ids else None,
+        "downstreamNodeIds": sorted(downstream or set()),
+        "mergedNodeIds": node_ids,
+        "operationType": "plan_node_merge",
+    }
 
 
 def _replace_sql_limit(sql: str, limit: int) -> str:

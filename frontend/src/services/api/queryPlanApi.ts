@@ -8,6 +8,7 @@
 // Backend endpoints:
 //   GET   /api/query-plan/:planId
 //   PATCH /api/query-plan/:planId/nodes/:nodeId
+//   POST  /api/query-plan/:planId/nodes/merge
 //   POST  /api/query-plan/:planId/snapshot
 // ================================================
 
@@ -20,6 +21,10 @@ import type { PlanRun } from '../../types/execution.types';
 export interface NodeUpdateRequest {
   nodeId: string;
   data: FlowNodeData;
+}
+
+export interface NodeMergeRequest {
+  nodeIds: string[];
 }
 
 export interface PlanSnapshotRequest {
@@ -51,6 +56,14 @@ export async function patchQueryPlanNode(
   options?: RequestOptions,
 ): Promise<QueryPlanGraph> {
   return apiPatch<QueryPlanGraph>(`/query-plan/${planId}/nodes/${nodeId}`, body, options);
+}
+
+export async function postQueryPlanNodeMerge(
+  planId: string,
+  body: NodeMergeRequest,
+  options?: RequestOptions,
+): Promise<QueryPlanGraph> {
+  return apiPost<QueryPlanGraph>(`/query-plan/${planId}/nodes/merge`, body, options);
 }
 
 /**

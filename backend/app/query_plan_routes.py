@@ -9,6 +9,7 @@ from app.demo_pipeline import (
     get_plan_run,
     reset_plan_run,
     run_full_plan,
+    merge_plan_nodes,
     step_plan_run,
     update_plan_node,
 )
@@ -21,6 +22,10 @@ router = APIRouter(prefix="/query-plan", tags=["query-plan"])
 class NodeUpdateRequest(BaseModel):
     nodeId: str
     data: dict[str, Any]
+
+
+class NodeMergeRequest(BaseModel):
+    nodeIds: list[str]
 
 
 @router.get("/{plan_id}")
@@ -39,6 +44,18 @@ def patch_query_plan_node(
     http_request: Request,
 ) -> dict:
     graph = update_plan_node(plan_id, node_id, request.data, user_id=request_user_id(http_request))
+    if graph is None:
+        raise HTTPException(status_code=404, detail=f"Query plan {plan_id} was not found")
+    return {"success": True, "data": graph}
+
+
+@router.post("/{plan_id}/nodes/merge")
+def merge_query_plan_nodes(
+    plan_id: str,
+    request: NodeMergeRequest,
+    http_request: Request,
+) -> dict:
+    graph = merge_plan_nodes(plan_id, request.nodeIds, user_id=request_user_id(http_request))
     if graph is None:
         raise HTTPException(status_code=404, detail=f"Query plan {plan_id} was not found")
     return {"success": True, "data": graph}

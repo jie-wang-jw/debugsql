@@ -13,6 +13,7 @@ import type {
 import {
   fetchQueryPlan,
   getInitialPlan,
+  mergeQueryPlanNodes,
   updateQueryPlanNode,
 } from '../services/adapters/queryPlanAdapter';
 
@@ -28,6 +29,7 @@ export interface QueryPlanContextValue {
   onNodeSelect: (id: string) => void;
   onNodeDeselect: () => void;
   onNodeDataUpdate: (nodeId: string, updatedData: FlowNodeData) => Promise<QueryPlanGraph | null>;
+  onSelectedNodeMergeWithNext: () => Promise<QueryPlanGraph | null>;
 }
 
 const QueryPlanContext = createContext<QueryPlanContextValue | null>(null);
@@ -94,6 +96,25 @@ export function QueryPlanProvider({ children }: { children: ReactNode }) {
     [activePlanId]
   );
 
+  const onSelectedNodeMergeWithNext = useCallback(async () => {
+    if (!activePlanId || !selectedNodeId) return null;
+    const nextOperationId = graph.edges
+      .filter((edge) => edge.source === selectedNodeId)
+      .map((edge) => edge.target)
+      .find((targetId) => graph.nodes.find((node) => node.id === targetId)?.data.kind === 'operation');
+    if (!nextOperationId) return null;
+
+    const updatedGraph = await mergeQueryPlanNodes(activePlanId, [selectedNodeId, nextOperationId]);
+    if (updatedGraph) {
+      setGraph(updatedGraph);
+      setSelectedNodeId((prev) =>
+        updatedGraph.nodes.some((node) => node.id === prev) ? prev : selectedNodeId,
+      );
+      return updatedGraph;
+    }
+    return null;
+  }, [activePlanId, graph.edges, graph.nodes, selectedNodeId]);
+
   return (
     <QueryPlanContext.Provider
       value={{
@@ -106,6 +127,7 @@ export function QueryPlanProvider({ children }: { children: ReactNode }) {
         onNodeSelect,
         onNodeDeselect,
         onNodeDataUpdate,
+        onSelectedNodeMergeWithNext,
       }}
     >
       {children}

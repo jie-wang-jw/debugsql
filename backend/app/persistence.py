@@ -395,6 +395,38 @@ def persist_execution_run(
     best_effort("persist_execution_run", write, user_id=user_id)
 
 
+def persist_operation_log(
+    *,
+    operation_type: str,
+    payload: dict[str, Any],
+    target_type: str | None = None,
+    target_id: str | None = None,
+    session_id: str | None = None,
+    user_id: str | None = None,
+) -> None:
+    def write(session: Session, user_id: str) -> None:
+        session.add(
+            OperationLog(
+                id=_stable_id(
+                    "op",
+                    {
+                        "type": operation_type,
+                        "target": target_id,
+                        "time": time.time(),
+                    },
+                ),
+                user_id=user_id,
+                session_id=session_id,
+                operation_type=operation_type,
+                target_type=target_type,
+                target_id=target_id,
+                payload=_safe_json(payload),
+            )
+        )
+
+    best_effort("persist_operation_log", write, user_id=user_id)
+
+
 def history_summary(limit: int = 20, offset: int = 0, user_id: str | None = None) -> dict[str, Any]:
     with session_scope() as session:
         user = session.get(User, user_id) if user_id else ensure_dev_user(session)

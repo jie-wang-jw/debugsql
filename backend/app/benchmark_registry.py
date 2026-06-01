@@ -124,6 +124,31 @@ def find_benchmark_gold_sql(benchmark: str, db_id: str | None, question: str) ->
     return None
 
 
+def benchmark_questions(
+    benchmark: str,
+    db_id: str | None = None,
+    limit: int = 20,
+) -> list[dict[str, Any]]:
+    if benchmark not in SQLITE_ROOTS:
+        return []
+    grouped = _load_questions_by_db(benchmark, full=True)
+    rows: list[dict[str, Any]] = []
+    source = {db_id: grouped.get(db_id, [])} if db_id else grouped
+    for current_db_id in sorted(source):
+        for item in source.get(current_db_id, []):
+            rows.append(
+                {
+                    "benchmark": benchmark,
+                    "db_id": current_db_id,
+                    "question": item.get("question") or "",
+                    "query": item.get("query") or "",
+                }
+            )
+            if len(rows) >= limit:
+                return rows
+    return rows
+
+
 def execute_spider_sql(db_id: str, sql: str) -> dict[str, Any]:
     return execute_benchmark_sql("spider", db_id, sql)
 
