@@ -1,5 +1,6 @@
 from functools import lru_cache
 
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -28,7 +29,12 @@ class Settings(BaseSettings):
     nl2ir_provider: str = "kddcup"
     kddcup_agent_model: str = "gpt-4.1-mini"
     kddcup_agent_api_base: str = "https://api.openai.com/v1"
-    kddcup_agent_api_key: str = ""
+    # LLM (OpenAI-compatible) API key for the KDDCup data-agent. Prefer
+    # KDDCUP_LLM_API_KEY; KDDCUP_AGENT_API_KEY is kept as a backward-compatible alias.
+    kddcup_llm_api_key: str = Field(
+        default="",
+        validation_alias=AliasChoices("KDDCUP_LLM_API_KEY", "KDDCUP_AGENT_API_KEY"),
+    )
     kddcup_agent_max_steps: int = 8
     kddcup_agent_timeout_seconds: int = 120
     kddcup_work_dir: str = "/tmp/debugsql-kddcup"

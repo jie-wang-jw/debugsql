@@ -27,10 +27,11 @@ class KDDCupTraceNL2IRProvider:
 
     def generate_ir(self, request: NL2IRRequest) -> NL2IRResult:
         settings = get_settings()
-        if not settings.kddcup_agent_api_key:
+        if not settings.kddcup_llm_api_key:
             return _setup_error_result(
                 request,
-                "KDDCup NL2IR provider is enabled, but KDDCUP_AGENT_API_KEY is not configured.",
+                "KDDCup NL2IR provider is enabled, but KDDCUP_LLM_API_KEY "
+                "(alias KDDCUP_AGENT_API_KEY) is not configured.",
             )
         if not VENDOR_SRC.is_dir():
             return _setup_error_result(
@@ -68,7 +69,7 @@ class KDDCupTraceNL2IRProvider:
         model = OpenAIModelAdapter(
             model=settings.kddcup_agent_model,
             api_base=settings.kddcup_agent_api_base,
-            api_key=settings.kddcup_agent_api_key,
+            api_key=settings.kddcup_llm_api_key,
             temperature=0.0,
         )
         agent = ReActAgent(

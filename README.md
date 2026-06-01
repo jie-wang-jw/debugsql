@@ -593,13 +593,23 @@ KDDCup data-agent NL2IR provider:
 NL2IR_PROVIDER=kddcup
 KDDCUP_AGENT_MODEL=gpt-4.1-mini
 KDDCUP_AGENT_API_BASE=https://api.openai.com/v1
-KDDCUP_AGENT_API_KEY=...
+KDDCUP_LLM_API_KEY=...
 KDDCUP_AGENT_MAX_STEPS=8
 ```
 
 This mode uses the vendored `backend/vendor/kddcup2026-data-agents-starter-kit`
-agent trace to generate DebugSQL IR and is the default proposal path. If no
-`KDDCUP_AGENT_API_KEY` is configured, the backend returns an inspectable
+agent trace to generate DebugSQL IR and is the default proposal path.
+
+`KDDCUP_LLM_API_KEY` is an **LLM (OpenAI-compatible) API key**, not a key
+issued by the KDDCup website. The vendored baseline is a ReAct agent: it uses an
+LLM to reason step by step (inspect schema → run SQL → observe → decide the next
+action) before producing SQL, so it needs a key to call `KDDCUP_AGENT_MODEL`.
+`KDDCUP_AGENT_API_BASE` can target any OpenAI-compatible endpoint (OpenAI, a
+self-hosted vLLM/Ollama gateway, or another provider); set the key and model to
+match that endpoint. The legacy name `KDDCUP_AGENT_API_KEY` still works as a
+backward-compatible alias.
+
+If no key is configured, the backend returns an inspectable
 `agent_trace_error` IR and marks the plan as `needs_replan` instead of inventing
 fake SQL. Use `NL2IR_PROVIDER=stub` only for offline demo development.
 
