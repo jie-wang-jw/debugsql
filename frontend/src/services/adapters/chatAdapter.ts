@@ -7,8 +7,8 @@
 // Default mode calls the real backend API. Set VITE_USE_MOCK_SERVICES=true
 // only when intentionally running isolated frontend mock services.
 //
-// TODO: Integrate authentication/session handling and pass a real sessionId.
-// TODO: Persist query history via backend session storage.
+// Auth is cookie-based; callers pass the current sessionId and the backend
+// persists conversation history for authenticated users.
 // ================================================
 
 import type { ChatQueryRequest, ChatQueryResponse } from '../api/chatApi';

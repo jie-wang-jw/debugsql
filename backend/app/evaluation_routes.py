@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import hashlib
+import csv
+import io
 import json
 import time
 from typing import Any
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, HTTPException, Query, Request, Response
 from pydantic import BaseModel
 
 from app.benchmark_registry import benchmark_questions, execute_benchmark_sql
@@ -74,6 +76,23 @@ def get_evaluation_run(run_id: str) -> dict:
     return {"success": True, "data": result}
 
 
+@router.get("/runs/{run_id}/export")
+def export_evaluation_run(
+    run_id: str,
+    format: str = Query(default="json", pattern="^(json|csv)$"),
+):
+    result = EVALUATION_RUNS.get(run_id)
+    if not result:
+        raise HTTPException(status_code=404, detail=f"Evaluation run {run_id} was not found in memory.")
+    if format == "csv":
+        return Response(
+            content=_evaluation_cases_csv(result.get("cases") or []),
+            media_type="text/csv",
+            headers={"Content-Disposition": f'attachment; filename="{run_id}-cases.csv"'},
+        )
+    return {"success": True, "data": result}
+
+
 def _evaluate_case(item: dict[str, Any], run_id: str) -> dict[str, Any]:
     benchmark = item["benchmark"]
     db_id = item["db_id"]
@@ -107,9 +126,9 @@ def _evaluate_case(item: dict[str, Any], run_id: str) -> dict[str, Any]:
             "generatedSql": generated_sql,
             "goldSql": gold_sql,
             "firstPassExecutionAccuracy": execution_correct,
-            "debugRecoveryRate": 0.0,
-            "intentRepairRate": 0.0,
-            "editInterventions": 0,
+            "debugRecoveryRate": None,
+            "intentRepairRate": None,
+            "editInterventions": None,
             "timeToCorrectMs": int((time.perf_counter() - started) * 1000),
             "errorType": error_type,
         }
@@ -122,9 +141,9 @@ def _evaluate_case(item: dict[str, Any], run_id: str) -> dict[str, Any]:
             "generatedSql": "",
             "goldSql": gold_sql,
             "firstPassExecutionAccuracy": False,
-            "debugRecoveryRate": 0.0,
-            "intentRepairRate": 0.0,
-            "editInterventions": 0,
+            "debugRecoveryRate": None,
+            "intentRepairRate": None,
+            "editInterventions": None,
             "timeToCorrectMs": int((time.perf_counter() - started) * 1000),
             "errorType": type(exc).__name__,
             "errorMessage": str(exc),
@@ -142,10 +161,12 @@ def _summarize_cases(cases: list[dict[str, Any]]) -> dict[str, Any]:
     return {
         "totalCases": total,
         "firstPassExecutionAccuracy": correct / total if total else 0.0,
-        "debugRecoveryRate": 0.0,
-        "intentRepairRate": 0.0,
-        "schemaLinkingCorrectionRate": 0.0,
-        "averageEditInterventions": 0.0,
+        "debugRecoveryRate": None,
+        "intentRepairRate": None,
+        "schemaLinkingCorrectionRate": None,
+        "averageEditInterventions": None,
+        "repairMetricsAvailable": False,
+        "repairMetricsNote": "DRR, IRR, EI, and schema-linking correction require controlled edit scenarios.",
         "averageTimeToCorrectMs": (
             sum(int(item.get("timeToCorrectMs") or 0) for item in cases) / total if total else 0.0
         ),
@@ -170,6 +191,27 @@ def _has_execution_error(result: dict[str, Any]) -> bool:
 
 def _normalized_rows(rows: Any) -> list[str]:
     return sorted(json.dumps(row, sort_keys=True, default=str) for row in (rows or []))
+
+
+def _evaluation_cases_csv(cases: list[dict[str, Any]]) -> str:
+    buffer = io.StringIO()
+    fieldnames = [
+        "caseId",
+        "benchmark",
+        "dbId",
+        "question",
+        "planId",
+        "firstPassExecutionAccuracy",
+        "errorType",
+        "timeToCorrectMs",
+        "generatedSql",
+        "goldSql",
+    ]
+    writer = csv.DictWriter(buffer, fieldnames=fieldnames)
+    writer.writeheader()
+    for item in cases:
+        writer.writerow({key: item.get(key) for key in fieldnames})
+    return buffer.getvalue()
 
 
 def _stable_id(prefix: str, payload: dict[str, Any]) -> str:

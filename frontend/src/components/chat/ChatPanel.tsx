@@ -23,16 +23,13 @@ import { useQueryPlanContext } from '../../store/QueryPlanContext';
 import { generateId } from '../../utils';
 import './ChatPanel.css';
 
-// TODO: Initialize messages from server session history.
 const INITIAL_MESSAGES: ChatMessage[] = [];
 const HISTORY_SUMMARY_LIMIT = 20;
 
 /**
  * Left-panel AI chat orchestrator.
- * Manages conversation state, backend AI/demo response lifecycle, and scrolling.
- *
- * TODO: Persist messages to backend conversation history.
- * TODO: Restore previous session messages on page load.
+ * Manages current-session messages, backend response lifecycle, history restore,
+ * and scrolling.
  */
 export function ChatPanel() {
   const [messages, setMessages] = useState<ChatMessage[]>(INITIAL_MESSAGES);

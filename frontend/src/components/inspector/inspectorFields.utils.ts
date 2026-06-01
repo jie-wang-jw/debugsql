@@ -43,6 +43,17 @@ const splitCSV = (v: string | number | boolean | null): string[] =>
     .map((s) => s.trim())
     .filter(Boolean);
 
+const previewColumnLabels = (data: DataNodeData): string =>
+  (data.previewColumns ?? [])
+    .map((column) => column.label || column.key)
+    .filter(Boolean)
+    .join(', ');
+
+const previewRows = (data: DataNodeData): string =>
+  data.previewRows && data.previewRows.length > 0
+    ? JSON.stringify(data.previewRows.slice(0, 5), null, 2)
+    : '';
+
 // ---- Derivation: IntentNode ----
 
 function deriveIntentSections(data: IntentNodeData): InspectorSection[] {
@@ -112,6 +123,17 @@ function deriveDataSections(data: DataNodeData): InspectorSection[] {
         f('estimatedCost', 'Est. Cost', data.estimatedCost ?? 0, false, 'number'),
         f('materialized',  'Materialized', data.materialized ?? false, false, 'string'),
         f('columns',       'Columns',   csv(data.columns),       true,  'string'),
+      ],
+    },
+    {
+      title: 'Preview',
+      accent: 'var(--accent-blue-light)',
+      fields: [
+        f('previewStatus', 'Preview Status', data.previewStatus ?? 'not_materialized', false, 'string'),
+        f('previewMessage', 'Preview Message', data.previewMessage ?? 'No preview has been materialized for this data node.', false, 'string'),
+        f('previewRowCount', 'Preview Rows', data.previewRowCount ?? 0, false, 'number'),
+        f('previewColumns', 'Preview Columns', previewColumnLabels(data), false, 'string'),
+        f('previewRows', 'Preview Data', previewRows(data), false, 'code'),
       ],
     },
   ];

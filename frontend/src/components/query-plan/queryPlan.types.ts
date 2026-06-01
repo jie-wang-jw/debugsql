@@ -72,6 +72,11 @@ export interface DataNodeData {
   columns?: string[];
   executionState?: ExecutionState;
   materialized?: boolean;
+  previewStatus?: string;
+  previewMessage?: string;
+  previewRowCount?: number;
+  previewColumns?: Array<{ key?: string; label?: string }>;
+  previewRows?: Array<Record<string, unknown>>;
 }
 
 // Union discriminated by `kind`

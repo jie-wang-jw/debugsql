@@ -10,7 +10,7 @@ import type { DataNodeData } from '../queryPlan.types';
  * Source nodes:  green accent — connects to the JOIN via side handles
  * Result nodes:  blue/purple accent — terminal node, no outbound edges
  *
- * TODO: Clicking a result node should display row previews in the Inspector
+ * Selecting a result node shows available preview metadata in the Inspector.
  */
 export const DataNode = memo(function DataNode({
   data,

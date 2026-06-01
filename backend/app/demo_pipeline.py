@@ -374,6 +374,7 @@ def run_demo_execution(
                 "estimatedRows": 1200,
             },
         }
+    _apply_execution_result_to_result_nodes(plan_id, result)
     RUN_STORE[run_id] = result
     RUN_OWNER_STORE[run_id] = user_id
     _persist_execution(run_id, plan_id, session_id, "sql", "success", result.get("sql"), result, user_id=user_id)
@@ -451,10 +452,12 @@ def step_plan_run(plan_id: str, run_id: str, user_id: str | None = None) -> dict
         return _public_plan_run(run)
 
     node_id = order[index]
+    node_preview = _node_step_preview(plan_id, node_id)
     run["status"] = "running"
     run["currentNodeId"] = node_id
     run["nextNodeId"] = order[index + 1] if index + 1 < len(order) else None
     run["nodeStates"][node_id] = "running"
+    run.setdefault("nodePreviews", {})[node_id] = node_preview
     _apply_plan_run_to_graph(plan_id, run)
 
     try:
@@ -463,6 +466,7 @@ def step_plan_run(plan_id: str, run_id: str, user_id: str | None = None) -> dict
             result = get_execution_result(execution["runId"], user_id=user_id or run.get("userId"))
             run["resultRunId"] = execution["runId"]
             run["result"] = result
+            run.setdefault("nodePreviews", {})[node_id] = _result_step_preview(result)
         run["nodeStates"][node_id] = "success"
         run["stepsCompleted"] = index + 1
         run["status"] = "success" if run["stepsCompleted"] >= len(order) else "running"
@@ -472,6 +476,12 @@ def step_plan_run(plan_id: str, run_id: str, user_id: str | None = None) -> dict
         run["nodeStates"][node_id] = "error"
         run["status"] = "error"
         run["error"] = str(exc)
+        run.setdefault("nodePreviews", {})[node_id] = {
+            "status": "error",
+            "message": str(exc),
+            "rows": [],
+            "columns": [{"key": "error", "label": "error"}],
+        }
 
     run["updatedAt"] = time.time()
     _apply_plan_run_to_graph(plan_id, run)
@@ -517,6 +527,7 @@ def reset_plan_run(plan_id: str, run_id: str, user_id: str | None = None) -> dic
     run["currentNodeId"] = None
     run["nextNodeId"] = order[0] if order else None
     run["nodeStates"] = {node_id: "pending" for node_id in order}
+    run["nodePreviews"] = {}
     run["stepsCompleted"] = 0
     run["resultRunId"] = None
     run["result"] = None
@@ -596,6 +607,7 @@ def _restore_execution_result_from_database(run_id: str, user_id: str | None = N
             if user_id and record.user_id != user_id:
                 return None
             result = _execution_result_from_record(record)
+            _apply_execution_result_to_result_nodes(record.plan_id, result, persist=False)
             RUN_STORE[run_id] = result
             RUN_OWNER_STORE[run_id] = record.user_id
             return result
@@ -1399,6 +1411,13 @@ def _apply_plan_run_to_graph(plan_id: str, run: dict[str, Any]) -> None:
         if node_id in run.get("nodeStates", {}):
             data["executionState"] = run["nodeStates"][node_id]
             data["_runId"] = run["runId"]
+            preview = (run.get("nodePreviews") or {}).get(node_id)
+            if preview and data.get("kind") == "data":
+                data["previewStatus"] = preview.get("status")
+                data["previewMessage"] = preview.get("message")
+                data["previewRows"] = preview.get("rows", [])
+                data["previewColumns"] = preview.get("columns", [])
+                data["previewRowCount"] = preview.get("rowCount", len(preview.get("rows", [])))
             if data.get("kind") == "data":
                 data["materialized"] = run["nodeStates"][node_id] == "success"
 
@@ -1415,8 +1434,117 @@ def _public_plan_run(run: dict[str, Any]) -> dict[str, Any]:
         "totalSteps": run["totalSteps"],
         "resultRunId": run.get("resultRunId"),
         "result": run.get("result"),
+        "nodePreviews": run.get("nodePreviews", {}),
         "error": run.get("error"),
     }
+
+
+def _node_step_preview(plan_id: str, node_id: str) -> dict[str, Any]:
+    stored = get_plan_record(plan_id)
+    graph = (stored or {}).get("graph") or {}
+    node = _graph_node(graph, node_id)
+    data = (node or {}).get("data") or {}
+    kind = data.get("kind")
+
+    if kind == "data":
+        columns = [{"key": column, "label": column} for column in data.get("columns", [])]
+        role = data.get("nodeRole")
+        if role == "source":
+            return {
+                "status": "metadata_only",
+                "message": "Source table metadata is available; rows are not materialized at this step.",
+                "columns": columns,
+                "rows": [],
+                "rowCount": int(data.get("rowCount") or 0),
+            }
+        return {
+            "status": "not_materialized",
+            "message": "Result rows will be materialized when the final SQL step completes.",
+            "columns": columns,
+            "rows": [],
+            "rowCount": 0,
+        }
+
+    if kind == "operation":
+        return {
+            "status": "planned",
+            "message": (
+                f"{data.get('operationType', 'Operation')} is planned. "
+                "Intermediate SQL fragments are not materialized for this node yet."
+            ),
+            "columns": [],
+            "rows": [],
+            "rowCount": 0,
+        }
+
+    return {
+        "status": "planned",
+        "message": "Intent node inspected; no data is materialized at this step.",
+        "columns": [],
+        "rows": [],
+        "rowCount": 0,
+    }
+
+
+def _result_step_preview(result: dict[str, Any] | None) -> dict[str, Any]:
+    if not result:
+        return {
+            "status": "not_materialized",
+            "message": "No execution result is available for this data node.",
+            "columns": [],
+            "rows": [],
+            "rowCount": 0,
+        }
+    rows = result.get("rows") or []
+    return {
+        "status": "materialized",
+        "message": "Final SQL result materialized for this data node.",
+        "columns": result.get("columns") or [],
+        "rows": rows[:20],
+        "rowCount": len(rows),
+    }
+
+
+def _apply_execution_result_to_result_nodes(
+    plan_id: str | None,
+    result: dict[str, Any] | None,
+    *,
+    persist: bool = True,
+) -> None:
+    if not plan_id or not result:
+        return
+    stored = get_plan_record(plan_id)
+    if not stored:
+        return
+    graph = stored.get("graph") or {}
+    preview = _result_step_preview(result)
+    for node in graph.get("nodes", []):
+        data = node.setdefault("data", {})
+        if data.get("kind") != "data" or data.get("nodeRole") != "result":
+            continue
+        data["materialized"] = True
+        data["executionState"] = "success"
+        data["previewStatus"] = preview["status"]
+        data["previewMessage"] = preview["message"]
+        data["previewRows"] = preview["rows"]
+        data["previewColumns"] = preview["columns"]
+        data["previewRowCount"] = preview["rowCount"]
+        data["rowCount"] = preview["rowCount"]
+        labels = [
+            str(column.get("label") or column.get("key"))
+            for column in preview["columns"]
+            if isinstance(column, dict) and (column.get("label") or column.get("key"))
+        ]
+        if labels:
+            data["columns"] = labels
+    if not persist:
+        return
+    try:
+        from app.persistence import persist_query_plan
+
+        persist_query_plan(plan_id, stored.get("session_id"), user_id=stored.get("user_id"))
+    except Exception as exc:  # pragma: no cover - defensive preview persistence.
+        print(f"[persistence] result-node preview skipped: {exc}")
 
 
 def _graph_node(graph: dict[str, Any], node_id: str) -> dict[str, Any] | None:

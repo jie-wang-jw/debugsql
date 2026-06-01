@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import hashlib
+import csv
+import io
 import json
 import time
 from datetime import datetime, timezone
@@ -551,3 +553,47 @@ def conversation_detail(conversation_id: str, user_id: str | None = None) -> dic
                 for item in executions
             ],
         }
+
+
+def operation_logs_export(
+    *,
+    user_id: str | None = None,
+    limit: int = 200,
+    output_format: str = "json",
+) -> str | list[dict[str, Any]]:
+    limit = max(1, min(limit, 1000))
+    with session_scope() as session:
+        user = session.get(User, user_id) if user_id else ensure_dev_user(session)
+        if not user:
+            raise ValueError("User not found")
+        rows = session.execute(
+            select(OperationLog)
+            .where(OperationLog.user_id == user.id)
+            .order_by(desc(OperationLog.created_at))
+            .limit(limit)
+        ).scalars().all()
+        items = [
+            {
+                "id": item.id,
+                "sessionId": item.session_id,
+                "operationType": item.operation_type,
+                "targetType": item.target_type,
+                "targetId": item.target_id,
+                "payload": item.payload or {},
+                "createdAt": item.created_at.isoformat(),
+            }
+            for item in rows
+        ]
+
+    if output_format == "csv":
+        buffer = io.StringIO()
+        writer = csv.DictWriter(
+            buffer,
+            fieldnames=["id", "sessionId", "operationType", "targetType", "targetId", "payload", "createdAt"],
+        )
+        writer.writeheader()
+        for item in items:
+            writer.writerow({**item, "payload": json.dumps(item["payload"], sort_keys=True, default=str)})
+        return buffer.getvalue()
+
+    return items

@@ -5,7 +5,6 @@
 // Mock services bypass this client entirely — they are routed by the
 // adapter layer (services/adapters/*.ts).
 //
-// TODO: Add Authorization header once auth is implemented
 // TODO: Add request retry logic with exponential back-off
 // TODO: Integrate with global toast/notification system for API errors
 // TODO: Add request/response interceptors for logging and telemetry
@@ -81,8 +80,7 @@ async function request<T>(
     credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
-      // TODO: Add Authorization header once auth is implemented:
-      // ...(getAuthToken() ? { Authorization: `Bearer ${getAuthToken()}` } : {}),
+      // Auth uses the httpOnly debugsql_session cookie via credentials: 'include'.
     },
     body:   body !== undefined ? JSON.stringify(body) : undefined,
     signal: effectiveSignal,

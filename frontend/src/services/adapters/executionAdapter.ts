@@ -9,7 +9,7 @@
 //
 // TODO: Add query cancellation support with AbortController.
 // TODO: Connect websocket/live execution updates for streaming progress.
-// TODO: Replace backend demo execution with real SQLite benchmark execution.
+// Backend execution already uses SQLite for benchmark-backed plans.
 // ================================================
 
 import type { ExecutionResult } from '../../types/execution.types';
