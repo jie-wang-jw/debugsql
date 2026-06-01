@@ -584,9 +584,23 @@ Development history endpoint:
 curl http://127.0.0.1:8000/history/summary
 ```
 
+KDDCup data-agent NL2IR provider:
+
+```bash
+NL2IR_PROVIDER=kddcup
+KDDCUP_AGENT_MODEL=gpt-4.1-mini
+KDDCUP_AGENT_API_BASE=https://api.openai.com/v1
+KDDCUP_AGENT_API_KEY=...
+KDDCUP_AGENT_MAX_STEPS=8
+```
+
+This mode uses the vendored `backend/vendor/kddcup2026-data-agents-starter-kit`
+agent trace to generate DebugSQL IR. Leave `NL2IR_PROVIDER=stub` for offline demo
+development.
+
 ## Next Steps
 
-1. Replace the deterministic demo NL2SQL path with a real NL-to-IR provider.
+1. Connect and tune the KDDCup data-agent provider against larger Spider/BIRD subsets.
 2. Expand Spider/BIRD benchmark execution beyond exact sample-question matching.
 3. Add evaluation scripts for Execution Accuracy, DRR, IRR, and edit counts.
 4. Add richer Inspector JSON editing for complex IR payloads.

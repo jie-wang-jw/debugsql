@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from app.benchmark_registry import SQLITE_ROOTS, find_benchmark_gold_sql, get_schema_context
+from app.config import get_settings
 from app.conversation.schemas import ConversationIntent
 from app.simple_nl2sql import can_generate_simple_schema_nl2sql
 
@@ -50,6 +51,18 @@ def classify_message(message: str, dataset_context: dict | None = None) -> Conve
         )
 
     if benchmark in SQLITE_ROOTS and db_id:
+        if get_settings().nl2ir_provider.lower() == "kddcup":
+            return ConversationIntent(
+                intent_type="benchmark_query",
+                confidence=0.8,
+                requires_plan=True,
+                requires_execution=True,
+                reason=(
+                    f"Message will be handled by the KDDCup trace-based NL2IR provider for "
+                    f"{benchmark.upper()}."
+                ),
+            )
+
         gold_sql = find_benchmark_gold_sql(benchmark, db_id, message)
         if gold_sql:
             return ConversationIntent(

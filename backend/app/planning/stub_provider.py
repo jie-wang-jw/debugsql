@@ -63,6 +63,9 @@ class StubIRToPlanProvider:
     def _build_operation_nodes(
         self, intent_ir: dict[str, Any], schema_context: dict[str, Any]
     ) -> list[PlanNode]:
+        if intent_ir.get("provider") == "kddcup_data_agent" and intent_ir.get("operations"):
+            return self._build_agent_trace_nodes(intent_ir)
+
         table = self._infer_table(intent_ir, schema_context)
         nodes = [
             PlanNode(
@@ -147,6 +150,33 @@ class StubIRToPlanProvider:
                 )
             )
 
+        return nodes
+
+    def _build_agent_trace_nodes(self, intent_ir: dict[str, Any]) -> list[PlanNode]:
+        nodes: list[PlanNode] = []
+        for index, operation in enumerate(self._as_list(intent_ir.get("operations")), start=1):
+            if not isinstance(operation, dict):
+                continue
+            action = str(operation.get("op") or "agent_step")
+            nodes.append(
+                PlanNode(
+                    node_id=f"op_agent_{index}",
+                    node_type="operation",
+                    operation_type=_agent_operation_type(action),
+                    label=_agent_operation_label(action),
+                    payload=operation,
+                )
+            )
+        if not nodes:
+            nodes.append(
+                PlanNode(
+                    node_id="op_agent_trace",
+                    node_type="operation",
+                    operation_type="tool",
+                    label="AGENT TRACE",
+                    payload={"message": "No agent steps were returned."},
+                )
+            )
         return nodes
 
     def _build_sql(
@@ -253,3 +283,27 @@ class StubIRToPlanProvider:
         payload = json.dumps(intent_ir, sort_keys=True, default=str)
         digest = hashlib.sha1(payload.encode("utf-8")).hexdigest()[:10]
         return f"plan_stub_{digest}"
+
+
+def _agent_operation_type(action: str) -> str:
+    if action == "execute_context_sql":
+        return "execute_sql"
+    if action == "inspect_sqlite_schema":
+        return "scan"
+    if action == "answer":
+        return "answer"
+    return "tool"
+
+
+def _agent_operation_label(action: str) -> str:
+    labels = {
+        "answer": "ANSWER",
+        "execute_context_sql": "EXECUTE SQL",
+        "execute_python": "EXECUTE PYTHON",
+        "inspect_sqlite_schema": "INSPECT SQLITE",
+        "list_context": "LIST CONTEXT",
+        "read_csv": "READ CSV",
+        "read_doc": "READ DOC",
+        "read_json": "READ JSON",
+    }
+    return labels.get(action, action.replace("_", " ").upper())

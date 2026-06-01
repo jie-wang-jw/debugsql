@@ -13,6 +13,7 @@ RUN pip install --no-cache-dir uv \
     && uv pip install --system --no-cache -r requirements.txt
 
 COPY app ./app
+COPY vendor ./vendor
 COPY alembic.ini ./alembic.ini
 COPY alembic ./alembic
 
