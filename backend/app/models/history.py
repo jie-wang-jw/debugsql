@@ -91,6 +91,7 @@ class ExecutionRun(Base):
     status: Mapped[str] = mapped_column(String(64), nullable=False)
     sql: Mapped[str | None] = mapped_column(Text, nullable=True)
     node_states: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    node_previews: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     result_preview: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     metrics: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -98,6 +99,20 @@ class ExecutionRun(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False
     )
+
+
+class RepairCase(Base):
+    __tablename__ = "repair_cases"
+
+    id: Mapped[str] = mapped_column(String(128), primary_key=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    plan_id: Mapped[str] = mapped_column(String(128), index=True, nullable=False)
+    original_run_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    post_edit_run_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    gold_sql: Mapped[str | None] = mapped_column(Text, nullable=True)
+    gold_result: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    metrics: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
 
 
 class OperationLog(Base):

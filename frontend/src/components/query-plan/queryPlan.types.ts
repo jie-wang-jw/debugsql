@@ -15,6 +15,7 @@ export interface IntentNodeData {
 }
 
 export type OperationType =
+  | 'SCAN'
   | 'SELECT'
   | 'FILTER'
   | 'GROUP_BY'
@@ -59,6 +60,12 @@ export interface OperationNodeData {
   estimatedRows?: number;
   cost?: number;
   executionState?: ExecutionState;
+  previewStatus?: string;
+  previewMessage?: string;
+  fragmentSql?: string | null;
+  previewRowCount?: number;
+  previewColumns?: Array<{ key?: string; label?: string }>;
+  previewRows?: Array<Record<string, unknown>>;
 }
 
 export type DataNodeRole = 'source' | 'result';
@@ -74,6 +81,7 @@ export interface DataNodeData {
   materialized?: boolean;
   previewStatus?: string;
   previewMessage?: string;
+  fragmentSql?: string | null;
   previewRowCount?: number;
   previewColumns?: Array<{ key?: string; label?: string }>;
   previewRows?: Array<Record<string, unknown>>;

@@ -100,6 +100,7 @@ function ExecutionBadge({ state }: { state?: ExecutionState }) {
 
 /* ---- Look-up tables ---- */
 const OP_ICON: Record<OperationType, React.ComponentType<{ size?: number }>> = {
+  SCAN:      FiDatabase,
   SELECT:    FiDatabase,
   FILTER:    FiFilter,
   GROUP_BY:  FiLayers,
@@ -114,6 +115,7 @@ const OP_ICON: Record<OperationType, React.ComponentType<{ size?: number }>> = {
 };
 
 const OP_COLOR: Record<OperationType, string> = {
+  SCAN:      'var(--accent-blue-light)',
   SELECT:    'var(--accent-blue-light)',
   FILTER:    'var(--accent-orange)',
   GROUP_BY:  'var(--accent-purple)',
@@ -128,6 +130,7 @@ const OP_COLOR: Record<OperationType, string> = {
 };
 
 const OP_LABEL: Record<OperationType, string> = {
+  SCAN:      'SCAN',
   SELECT:    'SELECT',
   FILTER:    'FILTER',
   GROUP_BY:  'GROUP BY',

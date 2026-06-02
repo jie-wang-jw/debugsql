@@ -467,6 +467,8 @@ def step_plan_run(plan_id: str, run_id: str, user_id: str | None = None) -> dict
             run["resultRunId"] = execution["runId"]
             run["result"] = result
             run.setdefault("nodePreviews", {})[node_id] = _result_step_preview(result)
+        elif node_preview.get("status") == "error":
+            raise ValueError(node_preview.get("errorMessage") or node_preview.get("message") or "Node materialization failed.")
         run["nodeStates"][node_id] = "success"
         run["stepsCompleted"] = index + 1
         run["status"] = "success" if run["stepsCompleted"] >= len(order) else "running"
@@ -477,10 +479,10 @@ def step_plan_run(plan_id: str, run_id: str, user_id: str | None = None) -> dict
         run["status"] = "error"
         run["error"] = str(exc)
         run.setdefault("nodePreviews", {})[node_id] = {
+            **node_preview,
             "status": "error",
             "message": str(exc),
-            "rows": [],
-            "columns": [{"key": "error", "label": "error"}],
+            "errorMessage": str(exc),
         }
 
     run["updatedAt"] = time.time()
@@ -495,6 +497,7 @@ def step_plan_run(plan_id: str, run_id: str, user_id: str | None = None) -> dict
         run.get("result"),
         run.get("nodeStates"),
         run.get("error"),
+        node_previews=run.get("nodePreviews"),
         user_id=user_id or run.get("userId"),
     )
     return _public_plan_run(run)
@@ -533,6 +536,7 @@ def reset_plan_run(plan_id: str, run_id: str, user_id: str | None = None) -> dic
     run["result"] = None
     run.pop("error", None)
     run["updatedAt"] = time.time()
+    _clear_graph_previews(PLAN_STORE.get(plan_id, {}).get("graph") or {}, set(order))
     _apply_plan_run_to_graph(plan_id, run)
     _persist_execution(run_id, plan_id, None, "plan_step", "idle", None, None, run["nodeStates"], user_id=user_id or run.get("userId"))
     return _public_plan_run(run)
@@ -666,6 +670,7 @@ def _restore_plan_run_from_database(run_id: str, user_id: str | None = None) -> 
                 "currentNodeId": current_node_id,
                 "nextNodeId": None if record.status in {"success", "error"} else next_node_id,
                 "nodeStates": node_states,
+                "nodePreviews": record.node_previews or {},
                 "stepsCompleted": steps_completed,
                 "totalSteps": len(order),
                 "resultRunId": record.id if record.result_preview else None,
@@ -1103,7 +1108,7 @@ def _flow_node_data(node: PlanNode) -> dict[str, Any]:
 
 def _operation_type(operation_type: str | None) -> str:
     mapping = {
-        "scan": "SELECT",
+        "scan": "SCAN",
         "filter": "FILTER",
         "group_by": "GROUP_BY",
         "join": "JOIN",
@@ -1306,6 +1311,7 @@ def _persist_execution(
     result: dict[str, Any] | None,
     node_states: dict[str, Any] | None = None,
     error_message: str | None = None,
+    node_previews: dict[str, Any] | None = None,
     user_id: str | None = None,
 ) -> None:
     try:
@@ -1320,6 +1326,7 @@ def _persist_execution(
             sql=sql,
             result=result,
             node_states=node_states,
+            node_previews=node_previews,
             error_message=error_message,
             user_id=user_id,
         )
@@ -1329,6 +1336,7 @@ def _persist_execution(
 
 def _mark_downstream_pending(graph: dict[str, Any], node_id: str) -> set[str]:
     downstream = _downstream_node_ids(graph, node_id)
+    _clear_graph_previews(graph, downstream | {node_id})
     for node in graph.get("nodes", []):
         data = node.get("data", {})
         if node.get("id") in downstream and data.get("kind") == "operation":
@@ -1337,6 +1345,23 @@ def _mark_downstream_pending(graph: dict[str, Any], node_id: str) -> set[str]:
             data["materialized"] = False
             data["executionState"] = "pending"
     return downstream
+
+
+def _clear_graph_previews(graph: dict[str, Any], node_ids: set[str]) -> None:
+    preview_keys = {
+        "fragmentSql",
+        "previewColumns",
+        "previewMessage",
+        "previewRowCount",
+        "previewRows",
+        "previewStatus",
+    }
+    for node in graph.get("nodes", []):
+        if node.get("id") not in node_ids:
+            continue
+        data = node.setdefault("data", {})
+        for key in preview_keys:
+            data.pop(key, None)
 
 
 def _clear_plan_run_state(plan_id: str, graph: dict[str, Any]) -> None:
@@ -1412,9 +1437,10 @@ def _apply_plan_run_to_graph(plan_id: str, run: dict[str, Any]) -> None:
             data["executionState"] = run["nodeStates"][node_id]
             data["_runId"] = run["runId"]
             preview = (run.get("nodePreviews") or {}).get(node_id)
-            if preview and data.get("kind") == "data":
+            if preview:
                 data["previewStatus"] = preview.get("status")
                 data["previewMessage"] = preview.get("message")
+                data["fragmentSql"] = preview.get("fragmentSql")
                 data["previewRows"] = preview.get("rows", [])
                 data["previewColumns"] = preview.get("columns", [])
                 data["previewRowCount"] = preview.get("rowCount", len(preview.get("rows", [])))
@@ -1450,15 +1476,9 @@ def _node_step_preview(plan_id: str, node_id: str) -> dict[str, Any]:
         columns = [{"key": column, "label": column} for column in data.get("columns", [])]
         role = data.get("nodeRole")
         if role == "source":
-            return {
-                "status": "metadata_only",
-                "message": "Source table metadata is available; rows are not materialized at this step.",
-                "columns": columns,
-                "rows": [],
-                "rowCount": int(data.get("rowCount") or 0),
-            }
+            return _execute_node_fragment(stored, _scan_fragment(str(data.get("tableName") or "")), metadata_columns=columns)
         return {
-            "status": "not_materialized",
+            "status": "not_materializable",
             "message": "Result rows will be materialized when the final SQL step completes.",
             "columns": columns,
             "rows": [],
@@ -1466,19 +1486,10 @@ def _node_step_preview(plan_id: str, node_id: str) -> dict[str, Any]:
         }
 
     if kind == "operation":
-        return {
-            "status": "planned",
-            "message": (
-                f"{data.get('operationType', 'Operation')} is planned. "
-                "Intermediate SQL fragments are not materialized for this node yet."
-            ),
-            "columns": [],
-            "rows": [],
-            "rowCount": 0,
-        }
+        return _execute_node_fragment(stored, _operation_fragment(stored, data))
 
     return {
-        "status": "planned",
+        "status": "metadata_only",
         "message": "Intent node inspected; no data is materialized at this step.",
         "columns": [],
         "rows": [],
@@ -1489,20 +1500,137 @@ def _node_step_preview(plan_id: str, node_id: str) -> dict[str, Any]:
 def _result_step_preview(result: dict[str, Any] | None) -> dict[str, Any]:
     if not result:
         return {
-            "status": "not_materialized",
+            "status": "not_materializable",
             "message": "No execution result is available for this data node.",
             "columns": [],
             "rows": [],
             "rowCount": 0,
         }
     rows = result.get("rows") or []
+    if _result_has_error(result):
+        message = str((rows[0] if rows else {}).get("message") or (rows[0] if rows else {}).get("error") or "Execution failed.")
+        return {
+            "status": "error",
+            "message": message,
+            "errorMessage": message,
+            "fragmentSql": result.get("sql") or "",
+            "columns": result.get("columns") or [],
+            "rows": rows[:20],
+            "rowCount": len(rows),
+        }
     return {
         "status": "materialized",
         "message": "Final SQL result materialized for this data node.",
+        "fragmentSql": result.get("sql") or "",
         "columns": result.get("columns") or [],
         "rows": rows[:20],
         "rowCount": len(rows),
     }
+
+
+def _operation_fragment(stored: dict[str, Any] | None, data: dict[str, Any]) -> str | None:
+    if not stored:
+        return None
+    sql = str((((stored.get("plan") or {}).get("executable") or {}).get("content") or "")).strip()
+    operation_type = str(data.get("operationType") or "").upper()
+    table = _fragment_table(stored, sql, data)
+
+    if operation_type in {"SCAN", "SELECT"}:
+        return _scan_fragment(table)
+    if operation_type == "FILTER":
+        where_clause = _extract_sql_section(sql, "where", ("group by", "order by", "limit"))
+        scan = _scan_fragment(table, include_limit=False)
+        return f"{scan}\nWHERE {where_clause}\nLIMIT 20" if scan and where_clause else None
+    if operation_type in {"GROUP_BY", "AGGREGATE"}:
+        return _preview_limit(_strip_sql_suffix(sql, ("order by", "limit"))) if "group by" in sql.lower() else None
+    if operation_type == "SORT":
+        return _preview_limit(_strip_sql_suffix(sql, ("limit",))) if re.search(r"\border\s+by\b", sql, re.IGNORECASE) else None
+    if operation_type == "LIMIT":
+        limit = _extract_limit(str(data.get("detail") or "")) or _extract_limit(sql)
+        return _replace_sql_limit(sql, limit).rstrip(";") if limit is not None and sql else None
+    if operation_type == "SQL":
+        return sql or None
+    return None
+
+
+def _execute_node_fragment(
+    stored: dict[str, Any] | None,
+    fragment_sql: str | None,
+    *,
+    metadata_columns: list[dict[str, str]] | None = None,
+) -> dict[str, Any]:
+    if not fragment_sql:
+        return {
+            "status": "not_materializable",
+            "message": "This node cannot be safely represented as an executable SQL preview.",
+            "fragmentSql": None,
+            "columns": metadata_columns or [],
+            "rows": [],
+            "rowCount": 0,
+        }
+    context = (stored or {}).get("dataset_context") or ((stored or {}).get("plan") or {}).get("metadata", {}).get("dataset_context")
+    benchmark = (context or {}).get("benchmark")
+    db_id = (context or {}).get("dbId")
+    if benchmark not in SQLITE_ROOTS or not db_id:
+        return {
+            "status": "not_materializable",
+            "message": "No resolvable read-only SQLite database is attached to this node.",
+            "fragmentSql": fragment_sql,
+            "columns": metadata_columns or [],
+            "rows": [],
+            "rowCount": 0,
+        }
+    preview = _result_step_preview(execute_benchmark_sql(benchmark, db_id, fragment_sql))
+    if preview["status"] == "materialized":
+        preview["message"] = f"Materialized preview from {len(preview.get('rows') or [])} row(s)."
+    return preview
+
+
+def _fragment_table(stored: dict[str, Any], sql: str, data: dict[str, Any]) -> str | None:
+    detail_match = re.search(r"\btable\s*=\s*(.+)$", str(data.get("detail") or ""), flags=re.IGNORECASE)
+    candidate = detail_match.group(1).strip() if detail_match else None
+    candidate = candidate or str((stored.get("ir") or {}).get("table") or "").strip()
+    if not candidate:
+        from_match = re.search(r"\bfrom\s+((?:\"[^\"]+\"|`[^`]+`|\[[^\]]+\]|[\w.]+))", sql, flags=re.IGNORECASE)
+        candidate = from_match.group(1) if from_match else ""
+    return candidate if _safe_table_reference(candidate) else None
+
+
+def _safe_table_reference(table: str | None) -> bool:
+    if not table:
+        return False
+    identifier = r'(?:[\w]+|"[^"]+"|`[^`]+`|\[[^\]]+\])'
+    return bool(re.fullmatch(rf"{identifier}(?:\.{identifier})?", table))
+
+
+def _scan_fragment(table: str | None, *, include_limit: bool = True) -> str | None:
+    if not _safe_table_reference(table):
+        return None
+    return f"SELECT * FROM {table}" + ("\nLIMIT 20" if include_limit else "")
+
+
+def _extract_sql_section(sql: str, start: str, endings: tuple[str, ...]) -> str | None:
+    ending_pattern = "|".join(rf"\b{re.escape(item)}\b" for item in endings)
+    match = re.search(rf"\b{re.escape(start)}\b\s+(.+?)(?={ending_pattern}|$)", sql.rstrip(";"), flags=re.IGNORECASE | re.DOTALL)
+    return match.group(1).strip() if match else None
+
+
+def _strip_sql_suffix(sql: str, clauses: tuple[str, ...]) -> str:
+    stripped = sql.strip().rstrip(";")
+    starts = [
+        match.start()
+        for clause in clauses
+        if (match := re.search(rf"\b{re.escape(clause)}\b", stripped, flags=re.IGNORECASE))
+    ]
+    return stripped[: min(starts)].rstrip() if starts else stripped
+
+
+def _preview_limit(sql: str) -> str:
+    return f"{sql.rstrip(';')}\nLIMIT 20"
+
+
+def _result_has_error(result: dict[str, Any] | None) -> bool:
+    return any(isinstance(row, dict) and row.get("error") for row in ((result or {}).get("rows") or []))
 
 
 def _apply_execution_result_to_result_nodes(
@@ -1522,10 +1650,11 @@ def _apply_execution_result_to_result_nodes(
         data = node.setdefault("data", {})
         if data.get("kind") != "data" or data.get("nodeRole") != "result":
             continue
-        data["materialized"] = True
-        data["executionState"] = "success"
+        data["materialized"] = preview["status"] == "materialized"
+        data["executionState"] = "error" if preview["status"] == "error" else "success"
         data["previewStatus"] = preview["status"]
         data["previewMessage"] = preview["message"]
+        data["fragmentSql"] = preview.get("fragmentSql")
         data["previewRows"] = preview["rows"]
         data["previewColumns"] = preview["columns"]
         data["previewRowCount"] = preview["rowCount"]

@@ -8,6 +8,7 @@ from app.models.history import (
     OperationLog,
     PlanEdit,
     QueryPlanRecord,
+    RepairCase,
 )
 
 __all__ = [
@@ -19,6 +20,7 @@ __all__ = [
     "OperationLog",
     "PlanEdit",
     "QueryPlanRecord",
+    "RepairCase",
     "SessionRecord",
     "User",
 ]

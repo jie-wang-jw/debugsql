@@ -22,6 +22,7 @@ from app.demo_pipeline import (
     update_plan_node,
 )
 from app.persistence import persist_query_plan
+from app.persistence import persist_execution_run
 
 
 @pytest.fixture(autouse=True)
@@ -221,3 +222,121 @@ def test_evaluation_export_marks_repair_metrics_unavailable() -> None:
     csv_response = client.get(f"/evaluation/runs/{run_id}/export?format=csv")
     assert csv_response.status_code == 200
     assert "firstPassExecutionAccuracy" in csv_response.text
+
+
+def _materialization_plan(plan_id: str = "plan-materialization") -> str:
+    PLAN_STORE[plan_id] = {
+        "message": "preview cards",
+        "session_id": "pytest-materialization",
+        "dataset_context": {"benchmark": "bird", "dbId": "card_games"},
+        "ir": {"table": "cards"},
+        "plan": {
+            "plan_id": plan_id,
+            "executable": {"type": "sql", "dialect": "sqlite", "content": "SELECT id, name FROM cards ORDER BY id LIMIT 10"},
+            "metadata": {"dataset_context": {"benchmark": "bird", "dbId": "card_games"}},
+        },
+        "graph": {
+            "queryLabel": "preview cards",
+            "totalCost": 1,
+            "nodes": [
+                {"id": "intent", "data": {"kind": "intent", "intentLabel": "preview"}},
+                {"id": "op_scan", "data": {"kind": "operation", "operationType": "SCAN", "detail": "table = cards"}},
+                {"id": "op_join", "data": {"kind": "operation", "operationType": "JOIN", "detail": "unsupported"}},
+                {"id": "op_limit", "data": {"kind": "operation", "operationType": "LIMIT", "detail": "LIMIT 3"}},
+                {"id": "data_result", "data": {"kind": "data", "nodeRole": "result", "tableName": "Result"}},
+            ],
+            "edges": [
+                {"source": "intent", "target": "op_scan"},
+                {"source": "op_scan", "target": "op_join"},
+                {"source": "op_join", "target": "op_limit"},
+                {"source": "op_limit", "target": "data_result"},
+            ],
+        },
+        "created_at": 1,
+    }
+    return plan_id
+
+
+def test_true_per_node_materialization_scan_limit_unsupported_and_final_result() -> None:
+    plan_id = _materialization_plan()
+    run = create_plan_run(plan_id)
+    assert run is not None
+
+    step_plan_run(plan_id, run["runId"])  # intent
+    stepped = step_plan_run(plan_id, run["runId"])  # scan
+    scan_preview = stepped["nodePreviews"]["op_scan"]
+    assert scan_preview["status"] == "materialized"
+    assert scan_preview["fragmentSql"] == "SELECT * FROM cards\nLIMIT 20"
+    assert len(scan_preview["rows"]) == 20
+
+    stepped = step_plan_run(plan_id, run["runId"])  # unsupported join
+    assert stepped["nodePreviews"]["op_join"]["status"] == "not_materializable"
+
+    stepped = step_plan_run(plan_id, run["runId"])  # limit
+    assert stepped["nodePreviews"]["op_limit"]["status"] == "materialized"
+    assert len(stepped["nodePreviews"]["op_limit"]["rows"]) == 3
+
+    stepped = step_plan_run(plan_id, run["runId"])  # final result
+    assert stepped["nodePreviews"]["data_result"]["status"] == "materialized"
+    assert stepped["result"]["rows"]
+
+
+def test_repair_case_metrics_compute_drr_irr_and_edit_interventions() -> None:
+    plan_id = _materialization_plan("plan-repair-controlled")
+    persist_execution_run(
+        run_id="run-before",
+        plan_id=plan_id,
+        session_id="repair",
+        run_type="sql",
+        status="error",
+        sql="SELECT missing FROM cards",
+        result={"rows": [{"error": "execution_error"}], "columns": []},
+    )
+    intent = PLAN_STORE[plan_id]["graph"]["nodes"][0]
+    update_plan_node(
+        plan_id,
+        "intent",
+        {**intent["data"], "intentLabel": "fixed preview", "targetColumns": ["id", "name"]},
+    )
+    limit = PLAN_STORE[plan_id]["graph"]["nodes"][3]
+    update_plan_node(plan_id, "op_limit", {**limit["data"], "detail": "LIMIT 2"})
+    persist_execution_run(
+        run_id="run-after",
+        plan_id=plan_id,
+        session_id="repair",
+        run_type="sql",
+        status="success",
+        sql="SELECT id, name FROM cards LIMIT 2",
+        result={"rows": [{"id": 1, "name": "Ancestor's Chosen"}], "columns": [{"key": "id", "label": "id"}]},
+    )
+
+    client = _client()
+    response = client.post(
+        "/evaluation/repair-cases",
+        json={"planId": plan_id, "originalRunId": "run-before", "postEditRunId": "run-after"},
+    )
+    assert response.status_code == 200
+    metrics = response.json()["data"]["metrics"]
+    assert metrics["metricsAvailable"] is True
+    assert metrics["debugRecoveryRate"] is True
+    assert metrics["intentRepairRate"] is True
+    assert metrics["editInterventions"] == 2
+    assert metrics["schemaLinkingCorrectionRate"] is True
+    assert metrics["schemaLinkingMetricsAvailable"] is True
+
+    case_id = response.json()["data"]["caseId"]
+    assert client.get(f"/evaluation/repair-cases/{case_id}").json()["data"]["metrics"] == metrics
+
+    summary = client.get("/evaluation/repair-summary").json()["data"]
+    assert summary["debugRecoveryRate"] == 1.0
+    assert summary["intentRepairRate"] == 1.0
+    assert summary["averageEditInterventions"] == 2.0
+    assert summary["schemaLinkingCorrectionRate"] == 1.0
+
+
+def test_repair_case_without_controlled_logs_marks_metrics_unavailable() -> None:
+    _materialization_plan("plan-repair-unavailable")
+    response = _client().post("/evaluation/repair-cases", json={"planId": "plan-repair-unavailable"})
+    assert response.status_code == 200
+    assert response.json()["data"]["metrics"]["metricsAvailable"] is False
+    assert response.json()["data"]["metrics"]["debugRecoveryRate"] is None

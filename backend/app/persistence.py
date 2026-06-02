@@ -358,6 +358,7 @@ def persist_execution_run(
     sql: str | None,
     result: dict[str, Any] | None = None,
     node_states: dict[str, Any] | None = None,
+    node_previews: dict[str, Any] | None = None,
     error_message: str | None = None,
     user_id: str | None = None,
 ) -> None:
@@ -371,6 +372,7 @@ def persist_execution_run(
             "status": status,
             "sql": sql,
             "node_states": _safe_json(node_states) if node_states else None,
+            "node_previews": _safe_json(node_previews) if node_previews else None,
             "result_preview": _safe_json(_result_preview(result)),
             "metrics": _safe_json(result.get("metrics")) if result else None,
             "error_message": error_message,

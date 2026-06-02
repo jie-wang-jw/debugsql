@@ -50,5 +50,13 @@ export interface PlanRun {
   totalSteps: number;
   resultRunId?: string | null;
   result?: ExecutionResult | null;
+  nodePreviews?: Record<string, {
+    status: 'materialized' | 'metadata_only' | 'not_materializable' | 'error';
+    message: string;
+    fragmentSql?: string | null;
+    columns: ExecutionColumn[];
+    rows: ExecutionRow[];
+    rowCount: number;
+  }>;
   error?: string | null;
 }

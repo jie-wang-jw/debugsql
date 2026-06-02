@@ -9,9 +9,14 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query, Request, Response
 from pydantic import BaseModel
+from sqlalchemy import select
 
+from app.auth import ensure_dev_user
 from app.benchmark_registry import benchmark_questions, execute_benchmark_sql
+from app.database import session_scope
 from app.demo_pipeline import generate_plan_for_message
+from app.models.auth import User
+from app.models.history import ExecutionRun, PlanEdit, RepairCase
 from app.persistence import persist_operation_log
 from app.request_auth import request_user_id
 
@@ -25,6 +30,14 @@ class EvaluationRunRequest(BaseModel):
     benchmark: str
     dbId: str | None = None
     limit: int = 20
+
+
+class RepairCaseRequest(BaseModel):
+    planId: str
+    originalRunId: str | None = None
+    postEditRunId: str | None = None
+    goldSql: str | None = None
+    goldResult: dict[str, Any] | None = None
 
 
 @router.post("/run")
@@ -91,6 +104,67 @@ def export_evaluation_run(
             headers={"Content-Disposition": f'attachment; filename="{run_id}-cases.csv"'},
         )
     return {"success": True, "data": result}
+
+
+@router.post("/repair-cases")
+def create_repair_case(payload: RepairCaseRequest, request: Request) -> dict:
+    user_id = request_user_id(request)
+    case_id = _stable_id("repair_case", {"plan": payload.planId, "time": time.time()})
+    with session_scope() as session:
+        user = session.get(User, user_id) if user_id else ensure_dev_user(session)
+        if not user:
+            raise HTTPException(status_code=404, detail="User was not found")
+        effective_user_id = user.id
+        metrics, original_run_id, post_edit_run_id = _compute_repair_metrics(
+            session,
+            effective_user_id,
+            payload.planId,
+            payload.originalRunId,
+            payload.postEditRunId,
+        )
+        repair_case = RepairCase(
+            id=case_id,
+            user_id=effective_user_id,
+            plan_id=payload.planId,
+            original_run_id=original_run_id,
+            post_edit_run_id=post_edit_run_id,
+            gold_sql=payload.goldSql,
+            gold_result=payload.goldResult,
+            metrics=metrics,
+        )
+        session.add(repair_case)
+        session.flush()
+        data = _repair_case_json(repair_case)
+    persist_operation_log(
+        operation_type="repair_case_evaluated",
+        target_type="repair_case",
+        target_id=case_id,
+        payload=data,
+        user_id=user_id,
+    )
+    return {"success": True, "data": data}
+
+
+@router.get("/repair-cases/{case_id}")
+def get_repair_case(case_id: str, request: Request) -> dict:
+    user_id = request_user_id(request)
+    with session_scope() as session:
+        repair_case = session.get(RepairCase, case_id)
+        if not repair_case or (user_id and repair_case.user_id != user_id):
+            raise HTTPException(status_code=404, detail=f"Repair case {case_id} was not found")
+        return {"success": True, "data": _repair_case_json(repair_case)}
+
+
+@router.get("/repair-summary")
+def get_repair_summary(request: Request) -> dict:
+    user_id = request_user_id(request)
+    with session_scope() as session:
+        user = ensure_dev_user(session) if not user_id else None
+        effective_user_id = user_id or user.id
+        cases = session.execute(
+            select(RepairCase).where(RepairCase.user_id == effective_user_id).order_by(RepairCase.created_at)
+        ).scalars().all()
+    return {"success": True, "data": _repair_summary(cases)}
 
 
 def _evaluate_case(item: dict[str, Any], run_id: str) -> dict[str, Any]:
@@ -212,6 +286,132 @@ def _evaluation_cases_csv(cases: list[dict[str, Any]]) -> str:
     for item in cases:
         writer.writerow({key: item.get(key) for key in fieldnames})
     return buffer.getvalue()
+
+
+def _compute_repair_metrics(
+    session,
+    user_id: str,
+    plan_id: str,
+    original_run_id: str | None,
+    post_edit_run_id: str | None,
+) -> tuple[dict[str, Any], str | None, str | None]:
+    runs = session.execute(
+        select(ExecutionRun)
+        .where(ExecutionRun.user_id == user_id, ExecutionRun.plan_id == plan_id, ExecutionRun.run_type == "sql")
+        .order_by(ExecutionRun.created_at)
+    ).scalars().all()
+    original = session.get(ExecutionRun, original_run_id) if original_run_id else next(
+        (run for run in runs if _execution_failed(run)),
+        None,
+    )
+    post_edit = session.get(ExecutionRun, post_edit_run_id) if post_edit_run_id else next(
+        (run for run in runs if original and run.created_at > original.created_at and _execution_succeeded(run)),
+        None,
+    )
+    if (
+        not original
+        or not post_edit
+        or original.user_id != user_id
+        or post_edit.user_id != user_id
+        or original.plan_id != plan_id
+        or post_edit.plan_id != plan_id
+        or post_edit.created_at <= original.created_at
+    ):
+        return _unavailable_repair_metrics(), getattr(original, "id", None), getattr(post_edit, "id", None)
+
+    edits = session.execute(
+        select(PlanEdit)
+        .where(
+            PlanEdit.user_id == user_id,
+            PlanEdit.plan_id == plan_id,
+            PlanEdit.created_at >= original.created_at,
+            PlanEdit.created_at <= post_edit.created_at,
+        )
+        .order_by(PlanEdit.created_at)
+    ).scalars().all()
+    if not edits:
+        return _unavailable_repair_metrics(), original.id, post_edit.id
+
+    recovered = _execution_failed(original) and _execution_succeeded(post_edit)
+    schema_edits = [edit for edit in edits if _changes_schema_binding(edit.old_data, edit.new_data)]
+    return {
+        "metricsAvailable": True,
+        "debugRecoveryRate": recovered,
+        "intentRepairRate": any(edit.node_id == "intent" for edit in edits),
+        "editInterventions": len(edits),
+        "timeToCorrectMs": max(0, int((post_edit.created_at - original.created_at).total_seconds() * 1000)),
+        "schemaLinkingCorrectionRate": recovered if schema_edits else None,
+        "schemaLinkingMetricsAvailable": bool(schema_edits),
+    }, original.id, post_edit.id
+
+
+def _execution_failed(run: ExecutionRun) -> bool:
+    return run.status in {"error", "failed"} or any(
+        isinstance(row, dict) and row.get("error")
+        for row in ((run.result_preview or {}).get("rows") or [])
+    )
+
+
+def _execution_succeeded(run: ExecutionRun) -> bool:
+    return run.status == "success" and not _execution_failed(run)
+
+
+def _changes_schema_binding(old_data: dict[str, Any] | None, new_data: dict[str, Any] | None) -> bool:
+    binding_keys = {"table", "tableName", "column", "columns", "targetColumns", "groupBy"}
+    old_data = old_data or {}
+    new_data = new_data or {}
+    return any(old_data.get(key) != new_data.get(key) for key in binding_keys if key in old_data or key in new_data)
+
+
+def _unavailable_repair_metrics() -> dict[str, Any]:
+    return {
+        "metricsAvailable": False,
+        "debugRecoveryRate": None,
+        "intentRepairRate": None,
+        "editInterventions": None,
+        "timeToCorrectMs": None,
+        "schemaLinkingCorrectionRate": None,
+        "schemaLinkingMetricsAvailable": False,
+    }
+
+
+def _repair_case_json(repair_case: RepairCase) -> dict[str, Any]:
+    return {
+        "caseId": repair_case.id,
+        "planId": repair_case.plan_id,
+        "originalRunId": repair_case.original_run_id,
+        "postEditRunId": repair_case.post_edit_run_id,
+        "goldSql": repair_case.gold_sql,
+        "goldResult": repair_case.gold_result,
+        "metrics": repair_case.metrics or _unavailable_repair_metrics(),
+        "createdAt": repair_case.created_at.isoformat(),
+    }
+
+
+def _repair_summary(cases: list[RepairCase]) -> dict[str, Any]:
+    available = [case.metrics or {} for case in cases if (case.metrics or {}).get("metricsAvailable")]
+    schema_available = [metrics for metrics in available if metrics.get("schemaLinkingMetricsAvailable")]
+    return {
+        "totalCases": len(cases),
+        "controlledCases": len(available),
+        "metricsAvailable": bool(available),
+        "debugRecoveryRate": _boolean_rate(available, "debugRecoveryRate"),
+        "intentRepairRate": _boolean_rate(available, "intentRepairRate"),
+        "averageEditInterventions": _number_average(available, "editInterventions"),
+        "averageTimeToCorrectMs": _number_average(available, "timeToCorrectMs"),
+        "schemaLinkingCorrectionRate": _boolean_rate(schema_available, "schemaLinkingCorrectionRate"),
+        "schemaLinkingMetricsAvailable": bool(schema_available),
+    }
+
+
+def _boolean_rate(items: list[dict[str, Any]], key: str) -> float | None:
+    values = [bool(item[key]) for item in items if item.get(key) is not None]
+    return sum(values) / len(values) if values else None
+
+
+def _number_average(items: list[dict[str, Any]], key: str) -> float | None:
+    values = [float(item[key]) for item in items if item.get(key) is not None]
+    return sum(values) / len(values) if values else None
 
 
 def _stable_id(prefix: str, payload: dict[str, Any]) -> str:
