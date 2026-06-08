@@ -105,8 +105,12 @@ function QueryPlanPanelHeader({
         {selectedNodeId && (
           <StatusBadge label={`node: ${selectedNodeId}`} variant="blue" dot />
         )}
-        <StatusBadge label={`${nodeCount} nodes`} variant="gray" />
-        <StatusBadge label={`cost ${totalCost.toFixed(1)}`} variant="orange" />
+        {nodeCount > 0 && (
+          <>
+            <StatusBadge label={`${nodeCount} nodes`} variant="gray" />
+            <StatusBadge label={`cost ${totalCost.toFixed(1)}`} variant="orange" />
+          </>
+        )}
         <button
           className={`qplan__icon-btn ${isRefreshing ? 'qplan__icon-btn--spinning' : ''}`}
           type="button"
