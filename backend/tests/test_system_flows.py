@@ -21,6 +21,8 @@ from app.demo_pipeline import (
     step_plan_run,
     update_plan_node,
 )
+from app.models.auth import User
+from app.models.history import Conversation, Message
 from app.persistence import persist_query_plan
 from app.persistence import persist_execution_run
 
@@ -77,10 +79,74 @@ def test_email_login_logout_cookie_lifecycle(monkeypatch) -> None:
     response = client.post("/auth/email/verify-code", json={"email": "student@example.com", "code": "123456"})
     assert response.status_code == 200
     assert response.json()["data"]["email"] == "student@example.com"
+    assert response.json()["data"]["isAdmin"] is False
     assert client.get("/auth/me").status_code == 200
 
     assert client.post("/auth/logout").status_code == 200
     assert client.get("/auth/me").status_code == 401
+
+
+def test_admin_history_requires_admin_and_can_view_all_users() -> None:
+    client = _client()
+    user_response = client.get("/auth/me")
+    assert user_response.status_code == 200
+    current_user = user_response.json()["data"]
+    assert current_user["isAdmin"] is False
+
+    with get_session_factory()() as session:
+        other_user = User(
+            id="user_other_admin_history",
+            email="other@example.com",
+            display_name="Other User",
+            auth_mode="email",
+        )
+        session.add(other_user)
+        session.add(
+            Conversation(
+                id="conv_other_admin_history",
+                user_id=other_user.id,
+                session_id="other-admin-history-session",
+                title="Other user question",
+                dataset_context={"benchmark": "bird", "dbId": "card_games"},
+                active_plan_id="plan_other_admin_history",
+            )
+        )
+        session.add(
+            Message(
+                id="msg_other_admin_history",
+                conversation_id="conv_other_admin_history",
+                user_id=other_user.id,
+                role="user",
+                content="show other user history",
+                dataset_context={"benchmark": "bird", "dbId": "card_games"},
+            )
+        )
+        session.commit()
+
+    assert client.get("/admin/history/summary").status_code == 403
+
+    with get_session_factory()() as session:
+        admin = session.get(User, current_user["id"])
+        assert admin is not None
+        admin.is_admin = True
+        session.commit()
+
+    admin_me = client.get("/auth/me").json()["data"]
+    assert admin_me["isAdmin"] is True
+
+    summary_response = client.get("/admin/history/summary")
+    assert summary_response.status_code == 200
+    summary = summary_response.json()["data"]
+    assert any(item["user"]["email"] == "other@example.com" for item in summary["conversations"])
+
+    detail_response = client.get("/admin/history/conversations/conv_other_admin_history")
+    assert detail_response.status_code == 200
+    detail = detail_response.json()["data"]
+    assert detail["user"]["email"] == "other@example.com"
+    assert detail["messages"][0]["content"] == "show other user history"
+
+    own_summary = client.get("/history/summary").json()["data"]
+    assert all(item["id"] != "conv_other_admin_history" for item in own_summary["conversations"])
 
 
 def test_history_summary_detail_and_export_are_user_scoped() -> None:

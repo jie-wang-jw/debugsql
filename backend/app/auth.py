@@ -232,6 +232,7 @@ def user_to_dict(user: User) -> dict:
         "displayName": user.display_name,
         "avatarUrl": user.avatar_url,
         "authMode": user.auth_mode,
+        "isAdmin": bool(user.is_admin),
     }
 
 
@@ -243,5 +244,6 @@ def dev_user_dict(persistence: str = "database") -> dict:
         "displayName": settings.debugsql_dev_user_name,
         "avatarUrl": None,
         "authMode": "dev",
+        "isAdmin": False,
         "persistence": persistence,
     }

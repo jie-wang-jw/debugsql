@@ -3,11 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 
 // Lazy-loaded pages for code splitting
 const Dashboard = lazy(() => import('../pages/Dashboard/Dashboard'));
-
-// TODO: Add these pages in future phases
-// const Login    = lazy(() => import('../pages/Login/Login'));
-// const History  = lazy(() => import('../pages/History/History'));
-// const Settings = lazy(() => import('../pages/Settings/Settings'));
+const AdminHistory = lazy(() => import('../pages/AdminHistory/AdminHistory'));
 
 function PageLoader() {
   return (
@@ -37,11 +33,7 @@ export function AppRouter() {
           {/* Main dashboard workspace */}
           <Route path="/" element={<Dashboard />} />
           <Route path="/dashboard" element={<Dashboard />} />
-
-          {/* Prepared routes for future phases */}
-          {/* <Route path="/login"    element={<Login />}    /> */}
-          {/* <Route path="/history"  element={<History />}  /> */}
-          {/* <Route path="/settings" element={<Settings />} /> */}
+          <Route path="/admin/history" element={<AdminHistory />} />
 
           {/* Catch-all: redirect unknown paths to dashboard */}
           <Route path="*" element={<Navigate to="/" replace />} />

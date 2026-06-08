@@ -153,6 +153,7 @@
 
 .auth-primary,
 .auth-secondary,
+.user-strip__admin,
 .user-strip__logout {
   display: inline-flex;
   align-items: center;
@@ -183,6 +184,7 @@
 }
 
 .auth-secondary,
+.user-strip__admin,
 .user-strip__logout {
   background: var(--bg-elevated);
   color: var(--text-secondary);
@@ -190,6 +192,7 @@
 
 .auth-primary:hover,
 .auth-secondary:hover,
+.user-strip__admin:hover,
 .user-strip__logout:hover {
   border-color: var(--border-strong);
   color: var(--text-primary);
@@ -267,5 +270,14 @@
   min-height: 26px;
   padding: 4px 9px;
   border-radius: var(--r-full);
+  font-size: 10.5px;
+}
+
+.user-strip__admin {
+  min-height: 26px;
+  padding: 4px 9px;
+  border-radius: var(--r-full);
+  color: var(--accent-blue-light);
+  text-decoration: none;
   font-size: 10.5px;
 }

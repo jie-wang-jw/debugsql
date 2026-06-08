@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_cors_origins, get_settings
 from app.database import check_database
+from app.admin_routes import router as admin_router
 from app.auth_routes import router as auth_router
 from app.chat_routes import router as chat_router
 from app.benchmark_routes import router as benchmark_router
@@ -26,6 +27,7 @@ app.add_middleware(
 )
 
 app.include_router(planning_router)
+app.include_router(admin_router)
 app.include_router(auth_router)
 app.include_router(benchmark_router)
 app.include_router(chat_router)

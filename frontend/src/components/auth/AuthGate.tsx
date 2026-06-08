@@ -1,5 +1,5 @@
 import { useEffect, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react';
-import { FiDatabase, FiLoader, FiLogOut, FiMail } from 'react-icons/fi';
+import { FiArchive, FiDatabase, FiLoader, FiLogOut, FiMail } from 'react-icons/fi';
 import {
   getCurrentUser,
   logout,
@@ -211,6 +211,11 @@ function UserStrip({ user, onLogout }: { user: CurrentUser; onLogout: () => void
         <span className="user-strip__name">{user.displayName || user.email}</span>
         <span className="user-strip__mode">{user.authMode}</span>
       </div>
+      {user.isAdmin && (
+        <a className="user-strip__admin" href="/admin/history">
+          <FiArchive size={12} /> All History
+        </a>
+      )}
       <button className="user-strip__logout" type="button" onClick={onLogout}>
         <FiLogOut size={12} /> Logout
       </button>

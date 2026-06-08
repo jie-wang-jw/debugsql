@@ -15,6 +15,7 @@ export interface CurrentUser {
   displayName?: string | null;
   avatarUrl?: string | null;
   authMode: string;
+  isAdmin: boolean;
 }
 
 export async function getCurrentUser(): Promise<CurrentUser> {

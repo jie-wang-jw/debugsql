@@ -557,6 +557,105 @@ def conversation_detail(conversation_id: str, user_id: str | None = None) -> dic
         }
 
 
+def admin_history_summary(limit: int = 20, offset: int = 0) -> dict[str, Any]:
+    limit = max(1, min(limit, 100))
+    offset = max(0, offset)
+    with session_scope() as session:
+        total_conversations = session.scalar(select(func.count()).select_from(Conversation)) or 0
+        rows = session.execute(
+            select(Conversation, User)
+            .join(User, Conversation.user_id == User.id)
+            .order_by(desc(Conversation.updated_at))
+            .offset(offset)
+            .limit(limit)
+        ).all()
+        return {
+            "pagination": {
+                "limit": limit,
+                "offset": offset,
+                "totalConversations": total_conversations,
+                "hasMoreConversations": offset + len(rows) < total_conversations,
+            },
+            "conversations": [
+                {
+                    "id": conversation.id,
+                    "sessionId": conversation.session_id,
+                    "title": conversation.title,
+                    "activePlanId": conversation.active_plan_id,
+                    "datasetContext": conversation.dataset_context,
+                    "updatedAt": conversation.updated_at.isoformat(),
+                    "user": {
+                        "id": user.id,
+                        "email": user.email,
+                        "displayName": user.display_name,
+                    },
+                }
+                for conversation, user in rows
+            ],
+        }
+
+
+def admin_conversation_detail(conversation_id: str) -> dict[str, Any] | None:
+    with session_scope() as session:
+        conversation = session.get(Conversation, conversation_id)
+        if not conversation:
+            return None
+        user = session.get(User, conversation.user_id)
+        if not user:
+            return None
+        messages = session.execute(
+            select(Message)
+            .where(Message.conversation_id == conversation.id)
+            .order_by(Message.created_at)
+        ).scalars().all()
+        executions = session.execute(
+            select(ExecutionRun)
+            .where(ExecutionRun.user_id == user.id, ExecutionRun.session_id == conversation.session_id)
+            .order_by(desc(ExecutionRun.updated_at))
+            .limit(5)
+        ).scalars().all()
+        latest_execution = executions[0] if executions else None
+        return {
+            "id": conversation.id,
+            "sessionId": conversation.session_id,
+            "title": conversation.title,
+            "datasetContext": conversation.dataset_context,
+            "activePlanId": conversation.active_plan_id,
+            "latestExecutionRunId": latest_execution.id if latest_execution else None,
+            "latestExecutionStatus": latest_execution.status if latest_execution else None,
+            "latestExecutionResultPreview": _execution_restore_preview(latest_execution),
+            "updatedAt": conversation.updated_at.isoformat(),
+            "user": {
+                "id": user.id,
+                "email": user.email,
+                "displayName": user.display_name,
+            },
+            "messages": [
+                {
+                    "id": item.id,
+                    "role": item.role,
+                    "content": item.content,
+                    "timestamp": item.created_at.isoformat(),
+                    "planId": item.plan_id,
+                    "sql": item.sql,
+                    "datasetContext": item.dataset_context,
+                }
+                for item in messages
+            ],
+            "executionRuns": [
+                {
+                    "id": item.id,
+                    "planId": item.plan_id,
+                    "runType": item.run_type,
+                    "status": item.status,
+                    "resultPreview": item.result_preview,
+                    "updatedAt": item.updated_at.isoformat(),
+                }
+                for item in executions
+            ],
+        }
+
+
 def operation_logs_export(
     *,
     user_id: str | None = None,
