@@ -81,6 +81,8 @@ function deriveIntentSections(data: IntentNodeData): InspectorSection[] {
 // ---- Derivation: OperationNode ----
 
 function deriveOperationSections(data: OperationNodeData): InspectorSection[] {
+  const sqlEditable = data.operationType === 'SQL';
+
   return [
     {
       title: 'Operation',
@@ -106,7 +108,7 @@ function deriveOperationSections(data: OperationNodeData): InspectorSection[] {
       fields: [
         f('previewStatus', 'Preview Status', data.previewStatus ?? 'not_materializable', false, 'string'),
         f('previewMessage', 'Preview Message', data.previewMessage ?? 'No node preview has been executed.', false, 'string'),
-        f('fragmentSql', 'Fragment SQL', data.fragmentSql ?? '', false, 'code'),
+        f('fragmentSql', 'Fragment SQL', data.fragmentSql ?? '', sqlEditable, 'code'),
         f('previewRowCount', 'Preview Rows', data.previewRowCount ?? 0, false, 'number'),
         f('previewColumns', 'Preview Columns', previewColumnLabels(data), false, 'string'),
         f('previewRows', 'Preview Data', previewRows(data), false, 'code'),
@@ -200,6 +202,7 @@ export function applyEditsToNodeData(
         ...original,
         label:         getStr(editedFields, 'label'),
         detail:        getStr(editedFields, 'detail') || undefined,
+        fragmentSql:   getStr(editedFields, 'fragmentSql') || original.fragmentSql,
         estimatedRows: getNum(editedFields, 'estimatedRows', original.estimatedRows),
       };
 

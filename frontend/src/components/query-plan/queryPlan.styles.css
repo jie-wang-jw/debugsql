@@ -160,6 +160,79 @@
   line-height: 1.6;
 }
 
+.qplan__loading {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 24px;
+}
+
+.qplan__loading-skeleton {
+  width: min(320px, 90%);
+}
+
+.qplan__loading-text {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.qplan__error {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px;
+  text-align: center;
+}
+
+.qplan__error-icon {
+  color: var(--accent-orange);
+  margin-bottom: 4px;
+}
+
+.qplan__error-title {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.qplan__error-copy {
+  max-width: 320px;
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.qplan__retry-btn {
+  margin-top: 8px;
+  padding: 6px 14px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border-default);
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.qplan__retry-btn:hover:not(:disabled) {
+  border-color: var(--accent-blue);
+  color: var(--accent-blue-light);
+}
+
+.qplan__retry-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* ================================================
    React Flow — global overrides
    ================================================ */

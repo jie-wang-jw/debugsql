@@ -157,9 +157,18 @@ export function ChatPanel() {
         setMessages((prev) => [...prev, aiMsg]);
 
         if (requiresPlan && planId) {
-          await loadPlan(planId);
+          const loaded = await loadPlan(planId);
 
-          if (requiresExecution) {
+          if (!loaded) {
+            const planErrorMsg: ChatMessage = {
+              id: generateId(),
+              role: 'assistant',
+              content:
+                'The query plan was created but could not be loaded. Use Retry in the Query Plan panel.',
+              timestamp: new Date(),
+            };
+            setMessages((prev) => [...prev, planErrorMsg]);
+          } else if (requiresExecution) {
             triggerExecution(sql ?? trimmed, planId);
           }
         }

@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_cors_origins, get_settings
 from app.database import check_database
+from app.gemini import log_gemini_startup
 from app.admin_routes import router as admin_router
 from app.auth_routes import router as auth_router
 from app.chat_routes import router as chat_router
@@ -15,6 +16,7 @@ from app.query_plan_routes import router as query_plan_router
 
 
 settings = get_settings()
+log_gemini_startup(settings)
 
 app = FastAPI(title=settings.app_name)
 
@@ -43,6 +45,8 @@ def health() -> dict:
         "status": "ok",
         "service": "debugsql-backend",
         "nl2ir_provider": settings.nl2ir_provider,
+        "query_plan_provider": settings.query_plan_provider,
+        "gemini_configured": bool(settings.gemini_api_key.strip()),
     }
 
 

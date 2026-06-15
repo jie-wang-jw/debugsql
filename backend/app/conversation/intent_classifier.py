@@ -27,6 +27,14 @@ EDIT_TERMS = (
 )
 
 
+def _gemini_configured() -> bool:
+    settings = get_settings()
+    return (
+        settings.query_plan_provider.lower() == "gemini"
+        and bool(settings.gemini_api_key.strip())
+    )
+
+
 def classify_message(message: str, dataset_context: dict | None = None) -> ConversationIntent:
     text = message.lower().strip()
     benchmark = (dataset_context or {}).get("benchmark")
@@ -84,6 +92,15 @@ def classify_message(message: str, dataset_context: dict | None = None) -> Conve
                 ),
             )
 
+        if _gemini_configured():
+            return ConversationIntent(
+                intent_type="benchmark_query",
+                confidence=0.7,
+                requires_plan=True,
+                requires_execution=True,
+                reason="Message will be handled by the Gemini query-plan provider.",
+            )
+
         return ConversationIntent(
             intent_type="unsupported",
             confidence=0.75,
@@ -92,6 +109,15 @@ def classify_message(message: str, dataset_context: dict | None = None) -> Conve
             reason=(
                 f"{benchmark.upper()} question does not match a sample and no NL2SQL provider is connected."
             ),
+        )
+
+    if _gemini_configured():
+        return ConversationIntent(
+            intent_type="benchmark_query",
+            confidence=0.7,
+            requires_plan=True,
+            requires_execution=True,
+            reason="Message will be handled by the Gemini query-plan provider.",
         )
 
     return ConversationIntent(

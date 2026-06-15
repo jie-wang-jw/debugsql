@@ -19,12 +19,17 @@ import {
 
 const INITIAL_GRAPH: QueryPlanGraph = getInitialPlan();
 
+export type PlanLoadStatus = 'idle' | 'loading' | 'ready' | 'error';
+
 export interface QueryPlanContextValue {
   graph: QueryPlanGraph;
   selectedNodeId: string | null;
   selectedNode: FlowNode | null;
   activePlanId: string | null;
-  loadPlan: (planId: string) => Promise<void>;
+  planLoadStatus: PlanLoadStatus;
+  planLoadError: string | null;
+  loadPlan: (planId: string) => Promise<boolean>;
+  retryLoadPlan: () => Promise<boolean>;
   refreshActivePlan: () => Promise<void>;
   onNodeSelect: (id: string) => void;
   onNodeDeselect: () => void;
@@ -46,6 +51,8 @@ export function QueryPlanProvider({ children }: { children: ReactNode }) {
   const [graph, setGraph] = useState<QueryPlanGraph>(INITIAL_GRAPH);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [activePlanId, setActivePlanId] = useState<string | null>(null);
+  const [planLoadStatus, setPlanLoadStatus] = useState<PlanLoadStatus>('idle');
+  const [planLoadError, setPlanLoadError] = useState<string | null>(null);
 
   const selectedNode: FlowNode | null = selectedNodeId
     ? (graph.nodes.find((node) => node.id === selectedNodeId) ?? null)
@@ -59,17 +66,50 @@ export function QueryPlanProvider({ children }: { children: ReactNode }) {
     setSelectedNodeId(null);
   }, []);
 
-  const loadPlan = useCallback(async (planId: string) => {
-    const nextGraph = await fetchQueryPlan(planId);
-    setGraph(nextGraph);
-    setActivePlanId(planId);
-    setSelectedNodeId(null);
+  const loadPlan = useCallback(async (planId: string): Promise<boolean> => {
+    setPlanLoadStatus('loading');
+    setPlanLoadError(null);
+
+    try {
+      const nextGraph = await fetchQueryPlan(planId);
+      setGraph(nextGraph);
+      setActivePlanId(planId);
+      setSelectedNodeId(null);
+      setPlanLoadStatus('ready');
+      return true;
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Failed to load the query plan.';
+      setPlanLoadStatus('error');
+      setPlanLoadError(message);
+      return false;
+    }
   }, []);
+
+  const retryLoadPlan = useCallback(async (): Promise<boolean> => {
+    if (!activePlanId) {
+      setPlanLoadError('No active plan to retry.');
+      setPlanLoadStatus('error');
+      return false;
+    }
+    return loadPlan(activePlanId);
+  }, [activePlanId, loadPlan]);
 
   const refreshActivePlan = useCallback(async () => {
     if (!activePlanId) return;
-    const nextGraph = await fetchQueryPlan(activePlanId);
-    setGraph(nextGraph);
+    setPlanLoadStatus('loading');
+    setPlanLoadError(null);
+
+    try {
+      const nextGraph = await fetchQueryPlan(activePlanId);
+      setGraph(nextGraph);
+      setPlanLoadStatus('ready');
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Failed to refresh the query plan.';
+      setPlanLoadStatus('error');
+      setPlanLoadError(message);
+    }
   }, [activePlanId]);
 
   const onNodeDataUpdate = useCallback(
@@ -122,7 +162,10 @@ export function QueryPlanProvider({ children }: { children: ReactNode }) {
         selectedNodeId,
         selectedNode,
         activePlanId,
+        planLoadStatus,
+        planLoadError,
         loadPlan,
+        retryLoadPlan,
         refreshActivePlan,
         onNodeSelect,
         onNodeDeselect,

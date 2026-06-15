@@ -1,7 +1,16 @@
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+_BACKEND_ROOT = Path(__file__).resolve().parents[1]
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+
+
+def _discover_env_files() -> tuple[str, ...]:
+    candidates = (_REPO_ROOT / ".env", _BACKEND_ROOT / ".env", Path(".env"))
+    return tuple(str(path) for path in candidates if path.is_file())
 
 
 class Settings(BaseSettings):
@@ -42,10 +51,18 @@ class Settings(BaseSettings):
     ir_to_plan_api_url: str = ""
     ir_to_plan_api_key: str = ""
     ir_to_plan_timeout_seconds: int = 30
+    gemini_api_key: str = ""
+    gemini_model: str = "gemini-2.0-flash"
+    gemini_timeout_seconds: int = 30
+    query_plan_provider: str = "gemini"
     benchmark_data_dir: str = "data/benchmarks"
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=_discover_env_files() or (".env",),
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
 
 
 @lru_cache

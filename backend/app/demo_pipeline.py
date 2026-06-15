@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import re
 import time
 from typing import Any
@@ -12,11 +13,17 @@ from app.benchmark_registry import (
     find_benchmark_gold_sql,
     get_schema_context,
 )
+from app.config import get_settings
+from app.gemini import GeminiService, QueryPlanParseError, gemini_plan_to_graph
+from app.gemini.schemas import GeminiConfigError
 from app.nl2ir.provider import get_nl2ir_provider
 from app.nl2ir.schemas import NL2IRRequest, NL2IRResult
 from app.planning.provider import get_ir_to_plan_provider
 from app.planning.schemas import ExecutablePlan, PlanNode, PlanningRequest, QueryPlan
 from app.simple_nl2sql import build_simple_schema_nl2sql
+
+
+logger = logging.getLogger(__name__)
 
 
 PLAN_STORE: dict[str, dict[str, Any]] = {}
@@ -77,6 +84,61 @@ def build_demo_ir(message: str) -> dict[str, Any]:
     }
 
 
+def _should_use_gemini() -> bool:
+    settings = get_settings()
+    return (
+        settings.query_plan_provider.lower() == "gemini"
+        and bool(settings.gemini_api_key.strip())
+    )
+
+
+def generate_gemini_plan_for_message(
+    message: str,
+    session_id: str | None = None,
+    dataset_context: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    benchmark = (dataset_context or {}).get("benchmark")
+    db_id = (dataset_context or {}).get("dbId")
+    schema_context = (
+        get_schema_context(benchmark, db_id)
+        if benchmark in SQLITE_ROOTS and db_id
+        else None
+    )
+
+    service = GeminiService()
+    gemini_plan = service.generate_query_plan(message, schema_context)
+    graph = gemini_plan_to_graph(gemini_plan, message)
+    plan_id = _stable_id("plan_gemini", {"message": message, "session": session_id})
+    sql = gemini_plan.sql or ""
+
+    stored = {
+        "message": message,
+        "session_id": session_id,
+        "dataset_context": dataset_context,
+        "ir": {
+            "intent_type": "gemini",
+            "raw_query": message,
+            "goal": gemini_plan.goal,
+        },
+        "plan": {
+            "plan_id": plan_id,
+            "plan_type": "linear",
+            "data_source_type": "relational",
+            "executable": {"type": "sql", "dialect": "sqlite", "content": sql},
+            "metadata": {
+                "provider": "gemini",
+                "template": "gemini",
+                "goal": gemini_plan.goal,
+            },
+        },
+        "graph": graph,
+        "assistant_content": _gemini_assistant_content(gemini_plan),
+        "created_at": time.time(),
+    }
+    PLAN_STORE[plan_id] = stored
+    return stored
+
+
 def generate_plan_for_message(
     message: str,
     session_id: str | None = None,
@@ -89,6 +151,12 @@ def generate_plan_for_message(
         stored = _build_sales_store_demo(message, session_id)
         PLAN_STORE[stored["plan"]["plan_id"]] = stored
         return stored
+
+    if _should_use_gemini():
+        try:
+            return generate_gemini_plan_for_message(message, session_id, dataset_context)
+        except (GeminiConfigError, QueryPlanParseError, TimeoutError, RuntimeError) as exc:
+            logger.warning("Gemini plan generation failed, falling back to legacy pipeline: %s", exc)
 
     schema_context = get_schema_context(benchmark, db_id)
     nl2ir_result = (
@@ -888,6 +956,18 @@ def _assistant_content(sql: str, graph: dict[str, Any]) -> str:
     )
 
 
+def _gemini_assistant_content(plan) -> str:
+    step_count = len(plan.steps)
+    sql_block = f"\n\n```sql\n{plan.sql}\n```" if plan.sql else ""
+    return (
+        f"I generated a query plan for your question.\n\n"
+        f"**Goal:** {plan.goal}\n\n"
+        f"The plan has **{step_count}** step(s). "
+        "Open the Query Plan panel to inspect each step."
+        f"{sql_block}"
+    )
+
+
 def _apply_nl2ir_result_to_plan(plan: QueryPlan, result: NL2IRResult) -> None:
     metadata = plan.metadata
     metadata["provider"] = result.provider_name
@@ -1207,9 +1287,41 @@ def _apply_node_edit_to_executable(plan_id: str, node_id: str) -> dict[str, Any]
             "requiresProvider": True,
         }
 
+    if template == "gemini":
+        return _apply_gemini_node_edit(stored, node)
+
     return {
         "status": "graph_updated",
         "message": "Node payload was saved. This plan type does not require SQL regeneration.",
+        "executableAvailable": bool((stored.get("plan", {}).get("executable") or {}).get("content")),
+    }
+
+
+def _apply_gemini_node_edit(stored: dict[str, Any], node: dict[str, Any] | None) -> dict[str, Any]:
+    data = (node or {}).get("data") or {}
+    operation_type = str(data.get("operationType") or "").upper()
+    if operation_type == "SQL":
+        sql = str(data.get("fragmentSql") or data.get("detail") or "").strip()
+        if sql:
+            executable = stored.get("plan", {}).setdefault("executable", {})
+            executable["content"] = sql
+            data["fragmentSql"] = sql
+            data["detail"] = sql
+            node["data"] = data
+            return {
+                "status": "regenerated",
+                "message": "Gemini SQL was updated from the edited SQL node.",
+                "executableAvailable": True,
+            }
+        return {
+            "status": "needs_replan",
+            "message": "The SQL node does not contain executable SQL.",
+            "executableAvailable": False,
+        }
+
+    return {
+        "status": "graph_updated",
+        "message": "Plan step metadata was updated.",
         "executableAvailable": bool((stored.get("plan", {}).get("executable") or {}).get("content")),
     }
 
@@ -1361,6 +1473,12 @@ def _clear_graph_previews(graph: dict[str, Any], node_ids: set[str]) -> None:
             continue
         data = node.setdefault("data", {})
         for key in preview_keys:
+            if (
+                key == "fragmentSql"
+                and data.get("kind") == "operation"
+                and str(data.get("operationType") or "").upper() == "SQL"
+            ):
+                continue
             data.pop(key, None)
 
 

@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
-import { FiCpu, FiRefreshCw, FiMaximize2, FiMinimize2 } from 'react-icons/fi';
+import { FiCpu, FiRefreshCw, FiMaximize2, FiMinimize2, FiAlertCircle } from 'react-icons/fi';
 import { StatusBadge } from '../ui/StatusBadge';
+import { SkeletonLoader } from '../ui/SkeletonLoader';
 import { QueryPlanFlow } from './QueryPlanFlow';
 import { useQueryPlanContext } from '../../store/QueryPlanContext';
 import './queryPlan.styles.css';
@@ -11,10 +12,21 @@ import './queryPlan.styles.css';
  * inspect and edit the selected node.
  */
 export function QueryPlanPanel() {
-  const { graph, selectedNodeId, activePlanId, loadPlan, onNodeSelect, onNodeDeselect } =
-    useQueryPlanContext();
+  const {
+    graph,
+    selectedNodeId,
+    activePlanId,
+    planLoadStatus,
+    planLoadError,
+    loadPlan,
+    retryLoadPlan,
+    onNodeSelect,
+    onNodeDeselect,
+  } = useQueryPlanContext();
   const [isExpanded, setIsExpanded] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const isLoading = planLoadStatus === 'loading' || isRefreshing;
 
   const handleRefresh = useCallback(async () => {
     if (!activePlanId || isRefreshing) {
@@ -29,6 +41,10 @@ export function QueryPlanPanel() {
     }
   }, [activePlanId, isRefreshing, loadPlan]);
 
+  const handleRetry = useCallback(async () => {
+    await retryLoadPlan();
+  }, [retryLoadPlan]);
+
   return (
     <div className={`qplan ${isExpanded ? 'qplan--expanded' : ''}`}>
       <QueryPlanPanelHeader
@@ -37,14 +53,43 @@ export function QueryPlanPanel() {
         totalCost={graph.totalCost}
         selectedNodeId={selectedNodeId}
         hasActivePlan={Boolean(activePlanId)}
-        isRefreshing={isRefreshing}
+        isRefreshing={isLoading}
         isExpanded={isExpanded}
         onRefresh={handleRefresh}
         onToggleExpanded={() => setIsExpanded((prev) => !prev)}
       />
 
       <div className="qplan__canvas">
-        {graph.nodes.length > 0 ? (
+        {isLoading ? (
+          <div className="qplan__loading" role="status" aria-live="polite" aria-busy="true">
+            <SkeletonLoader
+              className="qplan__loading-skeleton"
+              lines={[
+                { width: 'medium', size: 'lg' },
+                { width: 'long' },
+                { width: 'long' },
+                { width: 'short' },
+              ]}
+            />
+            <p className="qplan__loading-text">Loading query plan…</p>
+          </div>
+        ) : planLoadStatus === 'error' ? (
+          <div className="qplan__error" role="alert">
+            <div className="qplan__error-icon" aria-hidden="true">
+              <FiAlertCircle size={20} />
+            </div>
+            <p className="qplan__error-title">Could not load query plan</p>
+            <p className="qplan__error-copy">{planLoadError ?? 'An unexpected error occurred.'}</p>
+            <button
+              className="qplan__retry-btn"
+              type="button"
+              onClick={handleRetry}
+              disabled={!activePlanId}
+            >
+              Retry
+            </button>
+          </div>
+        ) : graph.nodes.length > 0 ? (
           <QueryPlanFlow
             graph={graph}
             selectedNodeId={selectedNodeId}
