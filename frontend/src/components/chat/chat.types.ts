@@ -10,6 +10,9 @@ export interface ChatMessage {
   timestamp: Date;
   proposedActions?: import('../../services/api/chatApi').ProposedToolAction[];
   actionResults?: Record<string, string>;
+  confidence?: number | null;
+  assumptions?: string[];
+  tablesUsed?: string[];
 }
 
 /** A parsed segment of a message (plain text vs. code block). */

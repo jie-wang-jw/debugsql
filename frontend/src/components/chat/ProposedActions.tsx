@@ -10,6 +10,7 @@ interface ProposedActionsProps {
   datasetContext?: DatasetContext;
   sessionId?: string;
   onResult: (actionId: string, summary: string) => void;
+  onAssistantFollowup?: (content: string) => void;
   onExecutionResult?: (sql: string, data: Record<string, unknown>) => void;
 }
 
@@ -18,6 +19,7 @@ export function ProposedActions({
   datasetContext,
   sessionId,
   onResult,
+  onAssistantFollowup,
   onExecutionResult,
 }: ProposedActionsProps) {
   const [runningId, setRunningId] = useState<string | null>(null);
@@ -50,7 +52,9 @@ export function ProposedActions({
         if (action.tool === 'run_sql') {
           const sql = String(action.arguments.sql ?? '');
           onExecutionResult?.(sql, result.data);
-          onResult(action.id, summarizeExecutionResult(result.data));
+          const summary = summarizeExecutionResult(result.data);
+          onResult(action.id, summary);
+          onAssistantFollowup?.(summary);
         } else if (action.tool === 'run_sql_preview') {
           onResult(action.id, String(result.data.message ?? 'SQL validation completed.'));
         } else if (action.tool === 'introspect_schema') {

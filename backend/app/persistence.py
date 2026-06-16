@@ -64,6 +64,25 @@ def _execution_restore_preview(run: ExecutionRun | None) -> dict[str, Any] | Non
     return preview
 
 
+def _message_history_payload(item: Message) -> dict[str, Any]:
+    extra = item.extra or {}
+    return {
+        "id": item.id,
+        "role": item.role,
+        "content": item.content,
+        "timestamp": item.created_at.isoformat(),
+        "planId": item.plan_id,
+        "sql": item.sql,
+        "datasetContext": item.dataset_context,
+        "proposedActions": extra.get("proposedActions") or [],
+        "requiresApproval": extra.get("requiresApproval"),
+        "confidence": extra.get("confidence"),
+        "assumptions": extra.get("assumptions") or [],
+        "tablesUsed": extra.get("tablesUsed") or [],
+        "explanation": extra.get("explanation"),
+    }
+
+
 def best_effort(operation: str, fn, user_id: str | None = None) -> None:
     try:
         with session_scope() as session:
@@ -536,18 +555,7 @@ def conversation_detail(conversation_id: str, user_id: str | None = None) -> dic
             "latestExecutionStatus": latest_execution.status if latest_execution else None,
             "latestExecutionResultPreview": _execution_restore_preview(latest_execution),
             "updatedAt": conversation.updated_at.isoformat(),
-            "messages": [
-                {
-                    "id": item.id,
-                    "role": item.role,
-                    "content": item.content,
-                    "timestamp": item.created_at.isoformat(),
-                    "planId": item.plan_id,
-                    "sql": item.sql,
-                    "datasetContext": item.dataset_context,
-                }
-                for item in messages
-            ],
+            "messages": [_message_history_payload(item) for item in messages],
             "executionRuns": [
                 {
                     "id": item.id,
@@ -635,18 +643,7 @@ def admin_conversation_detail(conversation_id: str) -> dict[str, Any] | None:
                 "email": user.email,
                 "displayName": user.display_name,
             },
-            "messages": [
-                {
-                    "id": item.id,
-                    "role": item.role,
-                    "content": item.content,
-                    "timestamp": item.created_at.isoformat(),
-                    "planId": item.plan_id,
-                    "sql": item.sql,
-                    "datasetContext": item.dataset_context,
-                }
-                for item in messages
-            ],
+            "messages": [_message_history_payload(item) for item in messages],
             "executionRuns": [
                 {
                     "id": item.id,

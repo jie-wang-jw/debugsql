@@ -69,6 +69,7 @@ export function ChatMessage({ message, isLatest }: ChatMessageProps) {
               <p key={i} className="chat-msg__text">{seg.content}</p>
             )
           )}
+          {!isUser && <MessageMetadata message={message} />}
         </div>
       </div>
 
@@ -79,6 +80,38 @@ export function ChatMessage({ message, isLatest }: ChatMessageProps) {
         </div>
       )}
     </motion.div>
+  );
+}
+
+function MessageMetadata({ message }: { message: ChatMessage }) {
+  const assumptions = message.assumptions?.filter(Boolean) ?? [];
+  const tables = message.tablesUsed?.filter(Boolean) ?? [];
+  const hasConfidence = typeof message.confidence === 'number';
+  if (!assumptions.length && !tables.length && !hasConfidence) return null;
+
+  return (
+    <div className="chat-msg__metadata" aria-label="AI response metadata">
+      {hasConfidence && (
+        <span className="chat-msg__metadata-pill">
+          confidence {Math.round((message.confidence ?? 0) * 100)}%
+        </span>
+      )}
+      {tables.length > 0 && (
+        <span className="chat-msg__metadata-pill">
+          tables {tables.join(', ')}
+        </span>
+      )}
+      {assumptions.length > 0 && (
+        <div className="chat-msg__metadata-block">
+          <span>Assumptions</span>
+          <ul>
+            {assumptions.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
   );
 }
 

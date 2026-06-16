@@ -25,6 +25,7 @@ from app.models.auth import User
 from app.models.history import Conversation, Message
 from app.persistence import persist_query_plan
 from app.persistence import persist_execution_run
+from app.persistence import persist_chat_interaction
 
 
 @pytest.fixture(autouse=True)
@@ -154,7 +155,7 @@ def test_history_summary_detail_and_export_are_user_scoped() -> None:
     query_response = client.post(
         "/query",
         json={
-            "message": "how many card games?",
+            "message": "show cards",
             "sessionId": "pytest-history-session",
             "datasetContext": {"benchmark": "bird", "dbId": "card_games"},
         },
@@ -176,6 +177,47 @@ def test_history_summary_detail_and_export_are_user_scoped() -> None:
     csv_response = client.get("/history/operation-logs/export?format=csv")
     assert csv_response.status_code == 200
     assert "operationType" in csv_response.text
+
+
+def test_history_detail_restores_assistant_actions_and_metadata() -> None:
+    client = _client()
+    user_id = client.get("/auth/me").json()["data"]["id"]
+    persist_chat_interaction(
+        session_id="pytest-history-extra-session",
+        user_message="show cards",
+        assistant_content="I prepared a read-only SQL query.",
+        dataset_context={"benchmark": "bird", "dbId": "card_games"},
+        response={
+            "intentType": "benchmark_query",
+            "requiresPlan": False,
+            "requiresExecution": True,
+            "sql": "SELECT id FROM cards LIMIT 5",
+            "proposedActions": [
+                {
+                    "id": "run_sql_test",
+                    "tool": "run_sql",
+                    "label": "Run SQL",
+                    "description": "Execute the approved SQL.",
+                    "arguments": {"sql": "SELECT id FROM cards LIMIT 5"},
+                    "requiresApproval": True,
+                }
+            ],
+            "requiresApproval": True,
+            "confidence": 0.82,
+            "assumptions": ["Use the cards table."],
+            "tablesUsed": ["cards"],
+        },
+        user_id=user_id,
+    )
+
+    summary = client.get("/history/summary").json()["data"]
+    conversation_id = summary["conversations"][0]["id"]
+    detail = client.get(f"/history/conversations/{conversation_id}").json()["data"]
+    assistant_message = detail["messages"][1]
+    assert assistant_message["proposedActions"][0]["id"] == "run_sql_test"
+    assert assistant_message["confidence"] == 0.82
+    assert assistant_message["assumptions"] == ["Use the cards table."]
+    assert assistant_message["tablesUsed"] == ["cards"]
 
 
 def test_query_plan_and_execution_restore_from_database() -> None:
