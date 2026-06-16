@@ -6,6 +6,7 @@ import { ChatMessage as ChatMessageItem } from './ChatMessage';
 import { ChatInput } from './ChatInput';
 import { TypingIndicator } from './TypingIndicator';
 import { SuggestedPrompts } from './SuggestedPrompts';
+import { ProposedActions } from './ProposedActions';
 import { sendChatMessage } from '../../services/adapters/chatAdapter';
 import {
   getBenchmarkDatabases,
@@ -19,19 +20,28 @@ import {
   type HistoryConversationSummary,
 } from '../../services/api/historyApi';
 import { useExecutionContext } from '../../store/ExecutionContext';
-import { useQueryPlanContext } from '../../store/QueryPlanContext';
+import { useDatasetContext } from '../../store/DatasetContext';
 import { generateId } from '../../utils';
+import type { ExecutionResult } from '../../types/execution.types';
 import './ChatPanel.css';
 
 const INITIAL_MESSAGES: ChatMessage[] = [];
 const HISTORY_SUMMARY_LIMIT = 20;
 
+interface ChatPanelProps {
+  onPromptFromExplorer?: (content: string) => void;
+  externalPrompt?: string | null;
+  onExternalPromptConsumed?: () => void;
+}
+
 /**
- * Left-panel AI chat orchestrator.
- * Manages current-session messages, backend response lifecycle, history restore,
- * and scrolling.
+ * Left-panel AI chat orchestrator with tool-assisted actions.
  */
-export function ChatPanel() {
+export function ChatPanel({
+  onPromptFromExplorer,
+  externalPrompt,
+  onExternalPromptConsumed,
+}: ChatPanelProps) {
   const [messages, setMessages] = useState<ChatMessage[]>(INITIAL_MESSAGES);
   const [status, setStatus] = useState<ChatStatus>('idle');
   const [sessionId, setSessionId] = useState(() => `session-${Date.now()}`);
@@ -41,11 +51,16 @@ export function ChatPanel() {
   const [historyHasMore, setHistoryHasMore] = useState(false);
   const [benchmarks, setBenchmarks] = useState<BenchmarkInfo[]>([]);
   const [databases, setDatabases] = useState<BenchmarkDatabaseInfo[]>([]);
-  const [selectedBenchmark, setSelectedBenchmark] = useState('spider');
-  const [selectedDbId, setSelectedDbId] = useState('');
+  const { selection, setBenchmark, setDbId } = useDatasetContext();
   const bottomRef = useRef<HTMLDivElement>(null);
-  const { restoreExecution, triggerExecution } = useExecutionContext();
-  const { loadPlan } = useQueryPlanContext();
+  const { restoreExecution } = useExecutionContext();
+
+  const datasetContext =
+    selection.dbType === 'postgres'
+      ? { dbType: 'postgres' as const }
+      : selection.dbId
+        ? { dbType: 'sqlite_benchmark' as const, benchmark: selection.benchmark, dbId: selection.dbId }
+        : undefined;
 
   const refreshHistory = useCallback(async () => {
     setHistoryStatus('loading');
@@ -69,7 +84,6 @@ export function ChatPanel() {
 
   useEffect(() => {
     let isMounted = true;
-
     getBenchmarks()
       .then((items) => {
         if (!isMounted) return;
@@ -78,46 +92,51 @@ export function ChatPanel() {
           items.find((item) => item.status === 'ready' && item.id === 'spider') ??
           items.find((item) => item.status === 'ready') ??
           items[0];
-        if (preferred) {
-          setSelectedBenchmark((current) =>
-            items.some((item) => item.id === current) ? current : preferred.id,
-          );
+        if (preferred && !selection.benchmark) {
+          setBenchmark(preferred.id);
         }
       })
       .catch(() => {
-        if (isMounted) {
-          setBenchmarks([]);
-        }
+        if (isMounted) setBenchmarks([]);
       });
-
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [selection.benchmark, setBenchmark]);
 
   useEffect(() => {
+    if (selection.dbType !== 'sqlite_benchmark') return;
     let isMounted = true;
-
-    getBenchmarkDatabases(selectedBenchmark)
+    getBenchmarkDatabases(selection.benchmark)
       .then((items) => {
         if (!isMounted) return;
         setDatabases(items);
-        setSelectedDbId((prev) =>
-          items.some((item) => item.dbId === prev)
-            ? prev
-            : items.find((item) => item.hasSQLite)?.dbId || items[0]?.dbId || '',
-        );
+        if (!selection.dbId) {
+          setDbId(items.find((item) => item.hasSQLite)?.dbId || items[0]?.dbId || '');
+        }
       })
       .catch(() => {
-        if (isMounted) {
-          setDatabases([]);
-        }
+        if (isMounted) setDatabases([]);
       });
-
     return () => {
       isMounted = false;
     };
-  }, [selectedBenchmark]);
+  }, [selection.benchmark, selection.dbId, selection.dbType, setDbId]);
+
+  const applyExecutionResult = useCallback((sql: string, data: Record<string, unknown>) => {
+    const columns = (data.columns as ExecutionResult['columns']) ?? [];
+    const rows = (data.rows as ExecutionResult['rows']) ?? [];
+    const metrics = (data.metrics as ExecutionResult['metrics']) ?? {
+      planningTimeMs: 0,
+      executionTimeMs: 0,
+      rowCount: rows.length,
+      estimatedRows: rows.length,
+    };
+    restoreExecution(
+      { sql, columns, rows, metrics, rowCount: metrics.rowCount },
+      'success',
+    );
+  }, [restoreExecution]);
 
   const sendMessage = useCallback(
     async (text: string) => {
@@ -134,50 +153,26 @@ export function ChatPanel() {
       setStatus('thinking');
 
       try {
-        const {
-          content: aiContent,
-          planId,
-          sql,
-          requiresPlan = Boolean(planId),
-          requiresExecution = Boolean(planId),
-        } = await sendChatMessage({
+        const response = await sendChatMessage({
           message: trimmed,
           sessionId,
-          datasetContext: selectedDbId
-            ? { benchmark: selectedBenchmark, dbId: selectedDbId }
-            : undefined,
+          datasetContext,
         });
 
         const aiMsg: ChatMessage = {
           id: generateId(),
           role: 'assistant',
-          content: aiContent,
+          content: response.content,
           timestamp: new Date(),
+          proposedActions: response.proposedActions ?? [],
         };
         setMessages((prev) => [...prev, aiMsg]);
-
-        if (requiresPlan && planId) {
-          const loaded = await loadPlan(planId);
-
-          if (!loaded) {
-            const planErrorMsg: ChatMessage = {
-              id: generateId(),
-              role: 'assistant',
-              content:
-                'The query plan was created but could not be loaded. Use Retry in the Query Plan panel.',
-              timestamp: new Date(),
-            };
-            setMessages((prev) => [...prev, planErrorMsg]);
-          } else if (requiresExecution) {
-            triggerExecution(sql ?? trimmed, planId);
-          }
-        }
         void refreshHistory();
       } catch {
         const errorMsg: ChatMessage = {
           id: generateId(),
           role: 'assistant',
-          content: 'Something went wrong generating the query plan. Please try again.',
+          content: 'Something went wrong while processing your request. Please try again.',
           timestamp: new Date(),
         };
         setMessages((prev) => [...prev, errorMsg]);
@@ -187,8 +182,27 @@ export function ChatPanel() {
 
       setStatus('idle');
     },
-    [loadPlan, refreshHistory, selectedBenchmark, selectedDbId, sessionId, status, triggerExecution],
+    [datasetContext, refreshHistory, sessionId, status],
   );
+
+  useEffect(() => {
+    if (!externalPrompt?.trim()) return;
+    void sendMessage(externalPrompt);
+    onExternalPromptConsumed?.();
+  }, [externalPrompt, onExternalPromptConsumed, sendMessage]);
+
+  const handleActionResult = useCallback((messageId: string, actionId: string, summary: string) => {
+    setMessages((prev) =>
+      prev.map((message) =>
+        message.id === messageId
+          ? {
+              ...message,
+              actionResults: { ...(message.actionResults ?? {}), [actionId]: summary },
+            }
+          : message,
+      ),
+    );
+  }, []);
 
   const startNewConversation = useCallback(() => {
     setSessionId(`session-${Date.now()}`);
@@ -211,13 +225,10 @@ export function ChatPanel() {
           })),
         );
         if (detail.datasetContext?.benchmark) {
-          setSelectedBenchmark(detail.datasetContext.benchmark);
+          setBenchmark(detail.datasetContext.benchmark);
         }
         if (detail.datasetContext?.dbId) {
-          setSelectedDbId(detail.datasetContext.dbId);
-        }
-        if (detail.activePlanId) {
-          await loadPlan(detail.activePlanId);
+          setDbId(detail.datasetContext.dbId);
         }
         restoreExecution(detail.latestExecutionResultPreview, detail.latestExecutionStatus);
         setHistoryStatus('idle');
@@ -225,13 +236,13 @@ export function ChatPanel() {
         setHistoryStatus('error');
       }
     },
-    [loadPlan, restoreExecution],
+    [restoreExecution, setBenchmark, setDbId],
   );
 
   const isEmpty = messages.length === 0 && status === 'idle';
-  const selectedDatabase = databases.find((item) => item.dbId === selectedDbId);
+  const selectedDatabase = databases.find((item) => item.dbId === selection.dbId);
   const databasePrompts: SuggestedPrompt[] = (selectedDatabase?.sampleQuestions ?? []).map((item, index) => ({
-    id: `${selectedDbId}-${index}`,
+    id: `${selection.dbId}-${index}`,
     label: `Question ${index + 1}`,
     description: item.question,
     icon: 'question',
@@ -240,37 +251,53 @@ export function ChatPanel() {
   return (
     <div className="chat-panel">
       <ChatHeader status={status} />
-      <DatasetSelector
-        benchmarks={benchmarks}
-        benchmark={selectedBenchmark}
-        onBenchmarkChange={setSelectedBenchmark}
-        databases={databases}
-        selectedDbId={selectedDbId}
-        onDbChange={setSelectedDbId}
-      />
+      {selection.dbType === 'sqlite_benchmark' && (
+        <DatasetSelector
+          benchmarks={benchmarks}
+          benchmark={selection.benchmark}
+          onBenchmarkChange={setBenchmark}
+          databases={databases}
+          selectedDbId={selection.dbId}
+          onDbChange={setDbId}
+        />
+      )}
 
-      <div
-        className="chat-panel__messages"
-        role="log"
-        aria-label="Conversation"
-        aria-live="polite"
-      >
+      <div className="chat-panel__messages" role="log" aria-label="Conversation" aria-live="polite">
         <AnimatePresence mode="wait">
           {isEmpty ? (
             <SuggestedPrompts
-              key={`suggestions-${selectedDbId}`}
+              key={`suggestions-${selection.dbId}`}
               prompts={databasePrompts}
-              databaseLabel={selectedDbId}
-              onSelect={sendMessage}
+              databaseLabel={selection.dbId || 'database'}
+              onSelect={(prompt) => {
+                onPromptFromExplorer?.(prompt);
+                void sendMessage(prompt);
+              }}
             />
           ) : (
             <div key="messages" className="chat-panel__message-list">
               {messages.map((msg, i) => (
-                <ChatMessageItem
-                  key={msg.id}
-                  message={msg}
-                  isLatest={i === messages.length - 1 && status === 'idle'}
-                />
+                <div key={msg.id}>
+                  <ChatMessageItem
+                    message={msg}
+                    isLatest={i === messages.length - 1 && status === 'idle'}
+                  />
+                  {msg.proposedActions && msg.proposedActions.length > 0 && (
+                    <ProposedActions
+                      actions={msg.proposedActions}
+                      datasetContext={datasetContext}
+                      onResult={(actionId, summary) => handleActionResult(msg.id, actionId, summary)}
+                      onExecutionResult={applyExecutionResult}
+                    />
+                  )}
+                  {msg.actionResults && (
+                    <div className="chat-panel__action-results">
+                      {Object.entries(msg.actionResults).map(([actionId, summary]) => (
+                        <p key={actionId}>{summary}</p>
+                      ))}
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
           )}
@@ -385,55 +412,51 @@ function DatasetSelector({
 
   return (
     <div className="dataset-selector-wrap">
-    <div className="dataset-selector">
-      <label className="dataset-selector__field">
-        <span className="dataset-selector__label">Benchmark</span>
-        <select
-          className="dataset-selector__select"
-          value={benchmark}
-          onChange={(event) => onBenchmarkChange(event.target.value)}
-        >
-          {(benchmarks.length > 0 ? benchmarks : [{ id: benchmark, label: benchmark }]).map(
-            (item) => (
-              <option key={item.id} value={item.id}>
-                {item.label}
-                {'status' in item && item.status !== 'ready' ? ` (${item.status})` : ''}
+      <div className="dataset-selector">
+        <label className="dataset-selector__field">
+          <span className="dataset-selector__label">Benchmark</span>
+          <select
+            className="dataset-selector__select"
+            value={benchmark}
+            onChange={(event) => onBenchmarkChange(event.target.value)}
+          >
+            {(benchmarks.length > 0 ? benchmarks : [{ id: benchmark, label: benchmark }]).map(
+              (item) => (
+                <option key={item.id} value={item.id}>
+                  {item.label}
+                  {'status' in item && item.status !== 'ready' ? ` (${item.status})` : ''}
+                </option>
+              ),
+            )}
+          </select>
+        </label>
+        <label className="dataset-selector__field">
+          <span className="dataset-selector__label">Database</span>
+          <select
+            className="dataset-selector__select"
+            value={selectedDbId}
+            onChange={(event) => onDbChange(event.target.value)}
+          >
+            {databases.map((database) => (
+              <option key={database.dbId} value={database.dbId}>
+                {database.dbId}
+                {database.hasSQLite ? '' : ' (no local DB)'}
               </option>
-            ),
-          )}
-        </select>
-      </label>
-      <label className="dataset-selector__field">
-        <span className="dataset-selector__label">Database</span>
-        <select
-          className="dataset-selector__select"
-          value={selectedDbId}
-          onChange={(event) => onDbChange(event.target.value)}
-        >
-          {databases.map((database) => (
-            <option key={database.dbId} value={database.dbId}>
-              {database.dbId}
-              {database.hasSQLite ? '' : ' (no local DB)'}
-            </option>
-          ))}
-        </select>
-      </label>
-      <span className="dataset-selector__meta">
-        {selected
-          ? `${selected.tableCount} tables · ${localDbCount}/${databases.length} local`
-          : 'loading'}
-      </span>
-    </div>
-    {missingSqlite && (
-      <p className="dataset-selector__warning" role="status">
-        No local SQLite for <strong>{selectedDbId}</strong>. Copy BIRD{' '}
-        <code>dev_databases/</code> into{' '}
-        <code>data/benchmarks/bird/sqlite/</code> (see README). Expected file:{' '}
-        <code>
-          data/benchmarks/bird/sqlite/{selectedDbId}/{selectedDbId}.sqlite
-        </code>
-      </p>
-    )}
+            ))}
+          </select>
+        </label>
+        <span className="dataset-selector__meta">
+          {selected
+            ? `${selected.tableCount} tables · ${localDbCount}/${databases.length} local`
+            : 'loading'}
+        </span>
+      </div>
+      {missingSqlite && (
+        <p className="dataset-selector__warning" role="status">
+          No local SQLite for <strong>{selectedDbId}</strong>. Copy BIRD{' '}
+          <code>dev_databases/</code> into <code>data/benchmarks/bird/sqlite/</code> (see README).
+        </p>
+      )}
     </div>
   );
 }

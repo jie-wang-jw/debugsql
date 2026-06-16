@@ -3,7 +3,7 @@ from fastapi import APIRouter, Request
 
 from app.conversation.handlers import handle_chat_message
 from app.conversation.schemas import ConversationResponse
-from app.persistence import persist_chat_failure, persist_chat_interaction, persist_query_plan
+from app.persistence import persist_chat_failure, persist_chat_interaction
 from app.request_auth import request_user_id
 
 
@@ -44,8 +44,6 @@ def query(request: ChatQueryRequest, http_request: Request) -> dict:
         response=response_data,
         user_id=user_id,
     )
-    if response.planId:
-        persist_query_plan(response.planId, request.sessionId, user_id=user_id)
     return {
         "success": True,
         "data": response_data,

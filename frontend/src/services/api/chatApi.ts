@@ -22,6 +22,29 @@ export interface ChatQueryRequest {
   datasetContext?: DatasetContext;
 }
 
+export interface SessionMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: string;
+  planId?: string;
+}
+
+export interface DatasetContext {
+  dbType?: 'sqlite_benchmark' | 'postgres';
+  benchmark?: string;
+  dbId?: string;
+}
+
+export interface ProposedToolAction {
+  id: string;
+  tool: string;
+  label: string;
+  description?: string;
+  arguments: Record<string, unknown>;
+  requiresApproval: boolean;
+}
+
 export interface ChatQueryResponse {
   /** The assistant's markdown response text. */
   content: string;
@@ -37,19 +60,8 @@ export interface ChatQueryResponse {
   sql?: string;
   /** Human-readable explanation of the plan choices. */
   explanation?: string;
-}
-
-export interface SessionMessage {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: string;
-  planId?: string;
-}
-
-export interface DatasetContext {
-  benchmark: string;
-  dbId: string;
+  proposedActions?: ProposedToolAction[];
+  requiresApproval?: boolean;
 }
 
 /**

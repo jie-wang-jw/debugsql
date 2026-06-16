@@ -1,6 +1,8 @@
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+from app.tools.schemas import ProposedToolAction
 
 
 IntentType = Literal[
@@ -28,3 +30,5 @@ class ConversationResponse(BaseModel):
     planId: str | None = None
     sql: str | None = None
     explanation: str | None = None
+    proposedActions: list[ProposedToolAction] = Field(default_factory=list)
+    requiresApproval: bool = False

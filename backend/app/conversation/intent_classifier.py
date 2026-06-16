@@ -3,6 +3,7 @@ from __future__ import annotations
 from app.benchmark_registry import SQLITE_ROOTS, find_benchmark_gold_sql, get_schema_context
 from app.config import get_settings
 from app.conversation.schemas import ConversationIntent
+from app.conversation.tool_assistant import is_schema_question
 from app.simple_nl2sql import can_generate_simple_schema_nl2sql
 
 
@@ -90,6 +91,15 @@ def classify_message(message: str, dataset_context: dict | None = None) -> Conve
                 reason=(
                     f"Message was handled by the simple schema-aware {benchmark.upper()} demo fallback."
                 ),
+            )
+
+        if is_schema_question(message):
+            return ConversationIntent(
+                intent_type="benchmark_query",
+                confidence=0.85,
+                requires_plan=False,
+                requires_execution=False,
+                reason=f"Message asks for schema overview in {benchmark.upper()}.",
             )
 
         if _gemini_configured():

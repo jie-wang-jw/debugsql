@@ -21,6 +21,8 @@ def test_fastapi_app_imports() -> None:
 
 def test_stub_provider_keeps_schema_fallback(monkeypatch) -> None:
     monkeypatch.setenv("NL2IR_PROVIDER", "stub")
+    monkeypatch.setenv("QUERY_PLAN_PROVIDER", "stub")
+    monkeypatch.setenv("GEMINI_API_KEY", "")
     _reset_settings()
 
     stored = generate_plan_for_message(
@@ -29,7 +31,8 @@ def test_stub_provider_keeps_schema_fallback(monkeypatch) -> None:
         {"benchmark": "bird", "dbId": "card_games"},
     )
 
-    assert stored["ir"]["provider"] == "simple_schema_fallback"
+    # Stub NL2IR provider should still allow the schema-aware fallback SQL path.
+    assert stored["plan"]["metadata"]["template"] == "schema_fallback_sql"
     assert stored["plan"]["executable"]["content"]
 
 
@@ -37,6 +40,8 @@ def test_kddcup_provider_without_key_returns_inspectable_error_ir(monkeypatch) -
     monkeypatch.setenv("NL2IR_PROVIDER", "kddcup")
     monkeypatch.delenv("KDDCUP_AGENT_API_KEY", raising=False)
     monkeypatch.setenv("KDDCUP_LLM_API_KEY", "")
+    monkeypatch.setenv("QUERY_PLAN_PROVIDER", "stub")
+    monkeypatch.setenv("GEMINI_API_KEY", "")
     _reset_settings()
 
     stored = generate_plan_for_message(

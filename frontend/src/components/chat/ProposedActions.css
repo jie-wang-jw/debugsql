@@ -1,0 +1,53 @@
+.proposed-actions {
+  margin-top: 0.65rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.proposed-actions__title {
+  margin: 0;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.proposed-action-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 0.55rem 0.65rem;
+}
+
+.proposed-action-card strong {
+  display: block;
+  font-size: 0.76rem;
+}
+
+.proposed-action-card p {
+  margin: 0.2rem 0 0;
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+}
+
+.proposed-action-card button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  padding: 0.35rem 0.55rem;
+  font-size: 0.7rem;
+  white-space: nowrap;
+}
+
+.proposed-action-card button:disabled {
+  opacity: 0.65;
+}

@@ -13,6 +13,18 @@
   overflow: hidden;
 }
 
+/* Tool-assisted action summaries */
+.chat-panel__action-results {
+  margin: 0.35rem 0 0.75rem;
+  padding: 0 16px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.chat-panel__action-results p {
+  margin: 0.2rem 0;
+}
+
 /* ================================================
    Header
    ================================================ */

@@ -431,10 +431,9 @@ POST /auth/email/request-code
 POST /auth/email/verify-code
 GET /benchmarks
 GET /benchmarks/spider/databases
+GET /capabilities
+POST /tools/execute
 POST /query
-GET /query-plan/{plan_id}
-PATCH /query-plan/{plan_id}/nodes/{node_id}
-POST /query-plan/{plan_id}/nodes/merge
 POST /execute
 GET /execute/{run_id}/result
 GET /history/summary
@@ -443,6 +442,9 @@ POST /planning/generate
 POST /evaluation/run
 GET /evaluation/runs/{run_id}
 ```
+
+Note: `/query-plan/*` endpoints remain in the backend for legacy debugging, but the primary UI is now the
+tool-assisted chat + Capabilities Explorer.
 
 Email verification login uses cookie-backed sessions stored in the system
 database. Configure these variables before disabling dev auto-login:
@@ -576,9 +578,7 @@ Current persistence coverage:
 
 * dev auto-login user (`/auth/me`)
 * conversations and messages
-* generated query plans
-* Inspector plan edits
-* SQL and step-by-step execution runs
+* SQL execution runs (read-only)
 * operation logs
 
 Development history endpoint:
@@ -629,6 +629,5 @@ distribution for BIRD/Spider subsets.
 
 1. Tune the KDDCup data-agent provider against larger Spider/BIRD subsets.
 2. Feed controlled edit scenarios into DRR/IRR/EI evaluation.
-3. Add richer Inspector JSON editing for complex IR payloads.
-4. Add streaming execution progress and cancellation.
+3. Add streaming execution progress and cancellation.
 

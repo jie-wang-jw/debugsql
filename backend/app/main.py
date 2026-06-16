@@ -13,6 +13,7 @@ from app.evaluation_routes import router as evaluation_router
 from app.history_routes import router as history_router
 from app.planning.routes import router as planning_router
 from app.query_plan_routes import router as query_plan_router
+from app.tools.capabilities_routes import router as capabilities_router
 
 
 settings = get_settings()
@@ -32,6 +33,7 @@ app.include_router(planning_router)
 app.include_router(admin_router)
 app.include_router(auth_router)
 app.include_router(benchmark_router)
+app.include_router(capabilities_router)
 app.include_router(chat_router)
 app.include_router(query_plan_router)
 app.include_router(execution_router)

@@ -8,6 +8,8 @@ export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
+  proposedActions?: import('../../services/api/chatApi').ProposedToolAction[];
+  actionResults?: Record<string, string>;
 }
 
 /** A parsed segment of a message (plain text vs. code block). */

@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from app.conversation.intent_classifier import classify_message
 from app.conversation.schemas import ConversationResponse
-from app.demo_pipeline import generate_plan_for_message
+from app.conversation.tool_assistant import build_proposed_actions
+from app.tools.registry import normalize_context
 
 
 def handle_chat_message(
@@ -11,6 +12,7 @@ def handle_chat_message(
     dataset_context: dict | None = None,
 ) -> ConversationResponse:
     intent = classify_message(message, dataset_context)
+    context = normalize_context(dataset_context)
 
     if intent.intent_type == "help":
         return ConversationResponse(
@@ -24,8 +26,8 @@ def handle_chat_message(
     if intent.intent_type == "edit_plan":
         return ConversationResponse(
             content=(
-                "Plan-edit messages are not routed through chat yet. For now, select a node in the "
-                "Query Plan and edit it in the Inspector, then click Apply Changes."
+                "Plan editing has been replaced by tool-assisted actions. Ask a question in natural "
+                "language, review the proposed SQL, and approve execution from the chat."
             ),
             intentType=intent.intent_type,
             requiresPlan=False,
@@ -42,42 +44,52 @@ def handle_chat_message(
             explanation=intent.reason,
         )
 
-    stored = generate_plan_for_message(message, session_id, dataset_context)
-    plan = stored["plan"]
-    sql = (plan.get("executable") or {}).get("content", "")
+    content, proposed_actions, sql = build_proposed_actions(message, context)
+    requires_approval = any(action.requiresApproval for action in proposed_actions)
     return ConversationResponse(
-        content=stored.get("assistant_content") or "I generated a query plan for this request.",
+        content=content,
         intentType=intent.intent_type,
-        requiresPlan=True,
+        requiresPlan=False,
         requiresExecution=bool(sql),
-        planId=plan["plan_id"],
         sql=sql,
         explanation=intent.reason,
+        proposedActions=proposed_actions,
+        requiresApproval=requires_approval,
     )
 
 
 def _help_content(dataset_context: dict | None) -> str:
-    benchmark = (dataset_context or {}).get("benchmark", "selected benchmark")
-    db_id = (dataset_context or {}).get("dbId", "selected database")
+    context = normalize_context(dataset_context)
+    if context.dbType == "postgres":
+        scope = "PostgreSQL"
+    else:
+        benchmark = context.benchmark or "selected benchmark"
+        db_id = context.dbId or "selected database"
+        scope = f"{benchmark} / {db_id}"
     return (
-        "DebugSQL currently supports two MVP workflows:\n\n"
-        f"1. Select a benchmark/database, currently **{benchmark} / {db_id}**.\n"
-        "2. Click a Spider or BIRD example question to test real SQLite execution.\n"
-        "For arbitrary natural-language benchmark questions, the next step is connecting the "
-        "real NL2SQL provider. Until then, unsupported questions do not create query plans."
+        "DebugSQL is now a tool-assisted database chat.\n\n"
+        f"Current context: **{scope}**.\n\n"
+        "Workflow:\n"
+        "1. Select a benchmark/database or switch to PostgreSQL in the Capabilities Explorer.\n"
+        "2. Ask a question in natural language.\n"
+        "3. Review proposed actions (schema inspection, SQL validation, execution).\n"
+        "4. Approve execution when you are ready to run read-only SQL."
     )
 
 
 def _unsupported_content(dataset_context: dict | None) -> str:
-    benchmark = (dataset_context or {}).get("benchmark", "selected benchmark")
-    db_id = (dataset_context or {}).get("dbId", "the selected database")
+    context = normalize_context(dataset_context)
+    if context.dbType == "postgres":
+        scope = "PostgreSQL"
+    else:
+        benchmark = context.benchmark or "selected benchmark"
+        db_id = context.dbId or "the selected database"
+        scope = f"{benchmark} / {db_id}"
     return (
-        f"I could not safely generate SQL for **{benchmark} / {db_id}** from this wording.\n\n"
-        "What works in the current MVP:\n"
-        "- Click one of the example questions shown for the selected database.\n"
-        "- Try simple schema questions such as `how many rows?`, `show cards`, "
-        "`list names`, or `top 10 cards`.\n\n"
-        "What is not connected yet:\n"
-        "- Arbitrary NL2SQL with complex joins, nested SQL, or domain reasoning.\n\n"
-        "I did not create a query plan because showing guessed SQL would be misleading."
+        f"I could not safely generate SQL for **{scope}** from this wording.\n\n"
+        "What works today:\n"
+        "- Use the Capabilities Explorer to see available tables and example prompts.\n"
+        "- Click an example question for the selected benchmark database.\n"
+        "- Try simpler schema questions such as `how many rows?`, `show cards`, or `top 10`.\n\n"
+        "I did not propose execution because guessed SQL would be misleading."
     )
