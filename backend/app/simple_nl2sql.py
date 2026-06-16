@@ -91,10 +91,16 @@ def build_simple_schema_nl2sql(
     if not selected_columns:
         selected_columns = ["*"]
 
+    filters = _build_filters(text, columns)
+    if filters:
+        selected_columns = ["*"]
+
     sql_parts = [
         "SELECT " + ", ".join("*" if column == "*" else _quote_identifier(column) for column in selected_columns),
         f"FROM {_quote_identifier(table_name)}",
     ]
+    if filters:
+        sql_parts.append("WHERE " + " AND ".join(filters))
     order_column = _choose_order_column(text, columns)
     if order_column:
         sql_parts.append(f"ORDER BY {_quote_identifier(order_column)} DESC")
@@ -109,6 +115,7 @@ def build_simple_schema_nl2sql(
         group_by=[],
         order_by={"column": order_column, "direction": "DESC"} if order_column else None,
         limit=limit,
+        filters=filters,
     )
     return SimpleNL2SQLResult(
         intent_ir=intent_ir,
@@ -130,13 +137,14 @@ def _intent(
     group_by: list[str],
     order_by: dict[str, str] | None = None,
     limit: int | None = None,
+    filters: list[str] | None = None,
 ) -> dict[str, Any]:
     return {
         "intent_type": "schema_fallback",
         "table": table,
         "target_columns": target_columns,
         "group_by": group_by,
-        "filters": [],
+        "filters": filters or [],
         "aggregation": aggregation,
         "order_by": order_by,
         "limit": limit,
@@ -151,6 +159,10 @@ def _normalize(text: str) -> str:
 
 
 def _choose_table(text: str, tables: list[dict[str, Any]]) -> dict[str, Any] | None:
+    explicit = _explicit_table(text, tables)
+    if explicit:
+        return explicit
+
     table_scores: list[tuple[int, dict[str, Any]]] = []
     for index, table in enumerate(tables):
         name = str(table.get("name", ""))
@@ -170,6 +182,93 @@ def _choose_table(text: str, tables: list[dict[str, Any]]) -> dict[str, Any] | N
     if _is_generic_schema_query(text):
         return tables[0]
     return None
+
+
+def _explicit_table(text: str, tables: list[dict[str, Any]]) -> dict[str, Any] | None:
+    patterns = (
+        r"\bin (?:the )?([a-zA-Z_][\w]*)\s+table\b",
+        r"\bfrom (?:the )?([a-zA-Z_][\w]*)\s+table\b",
+        r"\btable ([a-zA-Z_][\w]*)\b",
+    )
+    for pattern in patterns:
+        match = re.search(pattern, text)
+        if not match:
+            continue
+        candidate = match.group(1).lower()
+        for table in tables:
+            name = str(table.get("name", "")).lower()
+            if candidate == name or candidate == _singular(name):
+                return table
+    return None
+
+
+def _build_filters(text: str, columns: list[str]) -> list[str]:
+    filters: list[str] = []
+    seen: set[str] = set()
+
+    for literal in _extract_quoted_literals(text):
+        clause = _literal_filter_clause(literal, columns)
+        if clause and clause not in seen:
+            filters.append(clause)
+            seen.add(clause)
+
+    named = _extract_named_entity(text, columns)
+    if named:
+        column, value = named
+        clause = f"{_quote_identifier(column)} = {_quote_literal(value)}"
+        if clause not in seen:
+            filters.append(clause)
+            seen.add(clause)
+
+    return filters
+
+
+def _extract_quoted_literals(message: str) -> list[str]:
+    literals: list[str] = []
+    for match in re.finditer(r'"([^"]+)"|\'([^\']+)\'', message):
+        value = (match.group(1) or match.group(2) or "").strip()
+        if value:
+            literals.append(value)
+    return literals
+
+
+def _extract_named_entity(text: str, columns: list[str]) -> tuple[str, str] | None:
+    for column in columns:
+        col_lower = column.lower()
+        patterns = (
+            rf"\b{re.escape(col_lower)}\s+(?:is|are|named|called)\s+([a-zA-Z][\w .'-]+)",
+            rf"\bby\s+{re.escape(col_lower)}\s+([a-zA-Z][\w .'-]+)",
+            rf"\bfor\s+(?:the\s+)?{re.escape(col_lower)}\s+([a-zA-Z][\w .'-]+)",
+            rf"\bthe\s+{re.escape(col_lower)}\s+([a-zA-Z][\w .'-]+)",
+        )
+        for pattern in patterns:
+            match = re.search(pattern, text)
+            if match:
+                value = match.group(1).strip()
+                value = re.split(r"\s+(?:in|from|on|with|where|and|or)\b", value, maxsplit=1)[0].strip()
+                if value:
+                    return column, value
+    return None
+
+
+def _literal_filter_clause(literal: str, columns: list[str]) -> str | None:
+    preferred = [column for column in columns if column.lower() in {"artist", "name", "title", "author"}]
+    search_columns = preferred or columns[:3]
+    if not search_columns:
+        return None
+    if len(search_columns) == 1:
+        column = search_columns[0]
+        return f"{_quote_identifier(column)} = {_quote_literal(literal)}"
+    parts = [
+        f"LOWER({_quote_identifier(column)}) LIKE LOWER({_quote_literal(f'%{literal}%')})"
+        for column in search_columns
+    ]
+    return "(" + " OR ".join(parts) + ")"
+
+
+def _quote_literal(value: str) -> str:
+    escaped = value.replace("'", "''")
+    return f"'{escaped}'"
 
 
 def _mentioned_columns(text: str, columns: list[str]) -> list[str]:

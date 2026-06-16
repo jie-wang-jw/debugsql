@@ -3,8 +3,8 @@ from __future__ import annotations
 import uuid
 from typing import Any
 
-from app.benchmark_registry import find_benchmark_gold_sql, get_schema_context
-from app.simple_nl2sql import build_simple_schema_nl2sql
+from app.benchmark_registry import get_schema_context
+from app.conversation.sql_resolver import resolve_sql_for_message
 from app.tools.registry import normalize_context
 from app.tools.schemas import DatasetContext, ProposedToolAction
 
@@ -36,17 +36,9 @@ def build_proposed_actions(
     if context.dbType == "sqlite_benchmark" and context.benchmark and context.dbId:
         schema = get_schema_context(context.benchmark, context.dbId)
 
-    sql: str | None = None
-    explanation = ""
-
-    if context.benchmark and context.dbId:
-        sql = find_benchmark_gold_sql(context.benchmark, context.dbId, message)
-
-    if not sql and schema:
-        fallback = build_simple_schema_nl2sql(message, schema)
-        if fallback:
-            sql = fallback.sql
-            explanation = fallback.explanation
+    resolved = resolve_sql_for_message(message, context, schema)
+    sql = resolved.sql
+    explanation = resolved.explanation
 
     actions: list[ProposedToolAction] = []
 
