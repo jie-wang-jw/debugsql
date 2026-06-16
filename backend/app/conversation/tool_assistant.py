@@ -29,7 +29,7 @@ _SCHEMA_QUESTION_TERMS = (
 def build_proposed_actions(
     message: str,
     dataset_context: dict | DatasetContext | None,
-) -> tuple[str, list[ProposedToolAction], str | None]:
+) -> tuple[str, list[ProposedToolAction], str | None, dict[str, object]]:
     """Build assistant content and proposed tool actions for a benchmark query."""
     context = normalize_context(dataset_context)
     schema = None
@@ -75,24 +75,37 @@ def build_proposed_actions(
                 requiresApproval=True,
             )
         )
-        content = _sql_proposal_content(context, sql, explanation)
+        content = _sql_proposal_content(context, sql, explanation, resolved)
     elif schema and _is_schema_question(message):
         content = _schema_overview_content(context, schema)
     else:
-        content = _no_sql_content(context, message)
+        content = _no_sql_content(context, message, resolved)
 
-    return content, actions, sql
+    metadata: dict[str, object] = {
+        "provider": resolved.provider,
+        "confidence": resolved.confidence,
+        "assumptions": list(resolved.assumptions),
+        "tablesUsed": list(resolved.tables_used),
+        "clarifyingQuestion": resolved.clarifying_question,
+    }
+    return content, actions, sql, metadata
 
 
-def _sql_proposal_content(context: DatasetContext, sql: str, explanation: str) -> str:
+def _sql_proposal_content(context: DatasetContext, sql: str, explanation: str, resolved) -> str:
     scope = _scope_label(context)
     parts = [
-        f"I prepared a read-only SQL query for **{scope}**.",
+        resolved.answer or f"I prepared a read-only SQL query for **{scope}**.",
         "",
         "Review the proposed actions below. Validation can run immediately; execution requires your approval.",
     ]
     if explanation:
         parts.extend(["", explanation])
+    if resolved.assumptions:
+        parts.extend(["", "Assumptions:", *[f"- {item}" for item in resolved.assumptions]])
+    if resolved.tables_used:
+        parts.extend(["", f"Tables used: {', '.join(resolved.tables_used)}"])
+    if resolved.confidence is not None:
+        parts.extend(["", f"Confidence: {resolved.confidence:.2f}"])
     parts.extend(["", "```sql", sql.strip().rstrip(";") + ";", "```"])
     return "\n".join(parts)
 
@@ -134,8 +147,26 @@ def _schema_overview_content(context: DatasetContext, schema: dict[str, Any]) ->
     return "\n".join(lines)
 
 
-def _no_sql_content(context: DatasetContext, message: str) -> str:
+def _no_sql_content(context: DatasetContext, message: str, resolved) -> str:
     scope = _scope_label(context)
+    if resolved.answer or resolved.clarifying_question:
+        lines = [
+            resolved.answer or f"I could not confidently map your question to SQL for **{scope}**.",
+            "",
+        ]
+        if resolved.clarifying_question:
+            lines.extend(["Clarifying question:", resolved.clarifying_question, ""])
+        if resolved.explanation:
+            lines.extend([resolved.explanation, ""])
+        lines.extend(
+            [
+                "You can still:",
+                "- Inspect the available schema with the proposed action below.",
+                "- Click an example from the Capabilities Explorer.",
+                "- Rephrase with a table name or a simpler question.",
+            ]
+        )
+        return "\n".join(lines)
     return (
         f"I could not confidently map your question to SQL for **{scope}**.\n\n"
         "You can still:\n"

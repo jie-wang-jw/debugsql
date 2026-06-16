@@ -180,7 +180,7 @@ def test_history_summary_detail_and_export_are_user_scoped() -> None:
 
 def test_query_plan_and_execution_restore_from_database() -> None:
     stored = generate_plan_for_message(
-        "how many games?",
+        "show cards",
         "pytest-restore-session",
         {"benchmark": "bird", "dbId": "card_games"},
     )

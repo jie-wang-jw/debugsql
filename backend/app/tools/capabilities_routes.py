@@ -6,6 +6,7 @@ from app.tools.capabilities_service import build_capabilities
 from app.tools.executor import execute_tool
 from app.tools.schemas import DatasetContext, ToolExecuteRequest, ToolResult
 from app.tools.registry import normalize_context
+from app.persistence import persist_operation_log
 
 
 router = APIRouter(tags=["capabilities"])
@@ -35,7 +36,7 @@ def get_capabilities(
 
 @router.post("/tools/execute")
 def post_tool_execute(body: ToolExecuteRequest, request: Request) -> dict:
-    request_user_id(request)
+    user_id = request_user_id(request)
     try:
         result: ToolResult = execute_tool(
             body.tool,
@@ -46,4 +47,19 @@ def post_tool_execute(body: ToolExecuteRequest, request: Request) -> dict:
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    persist_operation_log(
+        operation_type="tool_execute",
+        session_id=body.sessionId,
+        user_id=user_id,
+        target_type="tool",
+        target_id=body.toolCallId or body.tool,
+        payload={
+            "tool": body.tool,
+            "approved": body.approved,
+            "success": result.success,
+            "context": body.context.model_dump(),
+            "arguments": body.arguments,
+            "error": result.error,
+        },
+    )
     return {"success": True, "data": result.model_dump()}

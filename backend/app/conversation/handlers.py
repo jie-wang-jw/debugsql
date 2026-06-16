@@ -44,7 +44,7 @@ def handle_chat_message(
             explanation=intent.reason,
         )
 
-    content, proposed_actions, sql = build_proposed_actions(message, context)
+    content, proposed_actions, sql, metadata = build_proposed_actions(message, context)
     requires_approval = any(action.requiresApproval for action in proposed_actions)
     return ConversationResponse(
         content=content,
@@ -55,6 +55,9 @@ def handle_chat_message(
         explanation=intent.reason,
         proposedActions=proposed_actions,
         requiresApproval=requires_approval,
+        confidence=metadata.get("confidence") if isinstance(metadata.get("confidence"), float) else None,
+        assumptions=list(metadata.get("assumptions") or []),
+        tablesUsed=list(metadata.get("tablesUsed") or []),
     )
 
 

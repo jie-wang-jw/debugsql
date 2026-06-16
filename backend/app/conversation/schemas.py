@@ -32,3 +32,6 @@ class ConversationResponse(BaseModel):
     explanation: str | None = None
     proposedActions: list[ProposedToolAction] = Field(default_factory=list)
     requiresApproval: bool = False
+    confidence: float | None = None
+    assumptions: list[str] = Field(default_factory=list)
+    tablesUsed: list[str] = Field(default_factory=list)

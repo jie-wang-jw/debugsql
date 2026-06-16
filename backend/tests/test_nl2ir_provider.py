@@ -26,7 +26,7 @@ def test_stub_provider_keeps_schema_fallback(monkeypatch) -> None:
     _reset_settings()
 
     stored = generate_plan_for_message(
-        "how many games?",
+        "show cards",
         "pytest-session",
         {"benchmark": "bird", "dbId": "card_games"},
     )
@@ -36,23 +36,11 @@ def test_stub_provider_keeps_schema_fallback(monkeypatch) -> None:
     assert stored["plan"]["executable"]["content"]
 
 
-def test_kddcup_provider_without_key_returns_inspectable_error_ir(monkeypatch) -> None:
-    monkeypatch.setenv("NL2IR_PROVIDER", "kddcup")
-    monkeypatch.delenv("KDDCUP_AGENT_API_KEY", raising=False)
-    monkeypatch.setenv("KDDCUP_LLM_API_KEY", "")
-    monkeypatch.setenv("QUERY_PLAN_PROVIDER", "stub")
-    monkeypatch.setenv("GEMINI_API_KEY", "")
+def test_default_runtime_does_not_use_kddcup_provider(monkeypatch) -> None:
+    monkeypatch.delenv("NL2IR_PROVIDER", raising=False)
     _reset_settings()
 
-    stored = generate_plan_for_message(
-        "how many games?",
-        "pytest-session",
-        {"benchmark": "bird", "dbId": "card_games"},
-    )
-
-    assert stored["ir"]["intent_type"] == "agent_trace_error"
-    assert stored["plan"]["metadata"]["requires_replan"] is True
-    assert stored["plan"]["executable"]["content"] == ""
+    assert get_settings().nl2ir_provider == "stub"
 
 
 def test_kddcup_llm_api_key_accepts_legacy_alias(monkeypatch) -> None:

@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from app.benchmark_registry import SQLITE_ROOTS, find_benchmark_gold_sql, get_schema_context
+from app.benchmark_registry import SQLITE_ROOTS
 from app.config import get_settings
 from app.conversation.schemas import ConversationIntent
 from app.conversation.tool_assistant import is_schema_question
-from app.simple_nl2sql import can_generate_simple_schema_nl2sql
 
 
 HELP_TERMS = (
@@ -60,39 +59,6 @@ def classify_message(message: str, dataset_context: dict | None = None) -> Conve
         )
 
     if benchmark in SQLITE_ROOTS and db_id:
-        if get_settings().nl2ir_provider.lower() == "kddcup":
-            return ConversationIntent(
-                intent_type="benchmark_query",
-                confidence=0.8,
-                requires_plan=True,
-                requires_execution=True,
-                reason=(
-                    f"Message will be handled by the KDDCup trace-based NL2IR provider for "
-                    f"{benchmark.upper()}."
-                ),
-            )
-
-        gold_sql = find_benchmark_gold_sql(benchmark, db_id, message)
-        if gold_sql:
-            return ConversationIntent(
-                intent_type="benchmark_query",
-                confidence=0.95,
-                requires_plan=True,
-                requires_execution=True,
-                reason=f"Message matches a {benchmark.upper()} sample question.",
-            )
-
-        if can_generate_simple_schema_nl2sql(message, get_schema_context(benchmark, db_id)):
-            return ConversationIntent(
-                intent_type="benchmark_query",
-                confidence=0.62,
-                requires_plan=True,
-                requires_execution=True,
-                reason=(
-                    f"Message was handled by the simple schema-aware {benchmark.upper()} demo fallback."
-                ),
-            )
-
         if is_schema_question(message):
             return ConversationIntent(
                 intent_type="benchmark_query",
@@ -106,9 +72,9 @@ def classify_message(message: str, dataset_context: dict | None = None) -> Conve
             return ConversationIntent(
                 intent_type="benchmark_query",
                 confidence=0.7,
-                requires_plan=True,
+                requires_plan=False,
                 requires_execution=True,
-                reason="Message will be handled by the Gemini query-plan provider.",
+                reason="Message will be handled by the Gemini SQL assistant.",
             )
 
         return ConversationIntent(
@@ -125,15 +91,15 @@ def classify_message(message: str, dataset_context: dict | None = None) -> Conve
         return ConversationIntent(
             intent_type="benchmark_query",
             confidence=0.7,
-            requires_plan=True,
+            requires_plan=False,
             requires_execution=True,
-            reason="Message will be handled by the Gemini query-plan provider.",
+            reason="Message will be handled by the Gemini SQL assistant.",
         )
 
     return ConversationIntent(
         intent_type="benchmark_query",
         confidence=0.55,
-        requires_plan=True,
+        requires_plan=False,
         requires_execution=True,
         reason="Fallback demo query path.",
     )

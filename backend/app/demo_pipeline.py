@@ -92,6 +92,11 @@ def _should_use_gemini() -> bool:
     )
 
 
+def _should_use_nl2ir_provider() -> bool:
+    provider_name = get_settings().nl2ir_provider.strip().lower()
+    return provider_name not in {"", "stub", "disabled", "none"}
+
+
 def generate_gemini_plan_for_message(
     message: str,
     session_id: str | None = None,
@@ -167,7 +172,7 @@ def generate_plan_for_message(
                 dataset_context=dataset_context,
             )
         )
-        if benchmark in SQLITE_ROOTS and db_id
+        if benchmark in SQLITE_ROOTS and db_id and _should_use_nl2ir_provider()
         else None
     )
 

@@ -154,6 +154,11 @@ def persist_chat_interaction(
                         "requiresPlan": response.get("requiresPlan"),
                         "requiresExecution": response.get("requiresExecution"),
                         "explanation": response.get("explanation"),
+                        "proposedActions": response.get("proposedActions"),
+                        "requiresApproval": response.get("requiresApproval"),
+                        "confidence": response.get("confidence"),
+                        "assumptions": response.get("assumptions"),
+                        "tablesUsed": response.get("tablesUsed"),
                     }
                 ),
             )

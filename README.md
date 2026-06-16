@@ -587,7 +587,21 @@ Development history endpoint:
 curl http://127.0.0.1:8000/history/summary
 ```
 
-KDDCup data-agent NL2IR provider:
+Gemini-first data assistant:
+
+```bash
+NL2IR_PROVIDER=stub
+QUERY_PLAN_PROVIDER=gemini
+GEMINI_API_KEY=...
+GEMINI_MODEL=gemini-2.0-flash
+```
+
+The current runtime is chat-driven and Gemini-first. The user selects a
+BIRD/Spider SQLite database, asks a question, reviews the proposed read-only
+SQL, validates it, and approves execution. KDDCup remains in the repository as
+an optional legacy NL2IR provider, but it is not called by the default runtime.
+
+Optional legacy KDDCup data-agent provider:
 
 ```bash
 NL2IR_PROVIDER=kddcup
@@ -597,21 +611,16 @@ KDDCUP_LLM_API_KEY=...
 KDDCUP_AGENT_MAX_STEPS=8
 ```
 
-This mode uses the vendored `backend/vendor/kddcup2026-data-agents-starter-kit`
-agent trace to generate DebugSQL IR and is the default proposal path.
-
 `KDDCUP_LLM_API_KEY` is an **LLM (OpenAI-compatible) API key**, not a key
 issued by the KDDCup website. The vendored baseline is a ReAct agent: it uses an
-LLM to reason step by step (inspect schema → run SQL → observe → decide the next
-action) before producing SQL, so it needs a key to call `KDDCUP_AGENT_MODEL`.
-`KDDCUP_AGENT_API_BASE` can target any OpenAI-compatible endpoint (OpenAI, a
-self-hosted vLLM/Ollama gateway, or another provider); set the key and model to
-match that endpoint. The legacy name `KDDCUP_AGENT_API_KEY` still works as a
+LLM to reason step by step before producing SQL, so it needs a key to call
+`KDDCUP_AGENT_MODEL`. `KDDCUP_AGENT_API_BASE` can target any OpenAI-compatible
+endpoint. The legacy name `KDDCUP_AGENT_API_KEY` still works as a
 backward-compatible alias.
 
-If no key is configured, the backend returns an inspectable
-`agent_trace_error` IR and marks the plan as `needs_replan` instead of inventing
-fake SQL. Use `NL2IR_PROVIDER=stub` only for offline demo development.
+If KDDCup is explicitly enabled without a key, the backend returns an
+inspectable `agent_trace_error` IR and marks the plan as `needs_replan` instead
+of inventing fake SQL.
 
 Evaluation endpoint:
 
@@ -627,7 +636,7 @@ distribution for BIRD/Spider subsets.
 
 ## Next Steps
 
-1. Tune the KDDCup data-agent provider against larger Spider/BIRD subsets.
+1. Improve Gemini answer quality and result summarization for BIRD/Spider.
 2. Feed controlled edit scenarios into DRR/IRR/EI evaluation.
 3. Add streaming execution progress and cancellation.
 

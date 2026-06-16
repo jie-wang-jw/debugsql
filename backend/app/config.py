@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     debugsql_auto_login: bool = True
     debugsql_dev_user_email: str = "dev@debugsql.local"
     debugsql_dev_user_name: str = "DebugSQL Dev User"
-    nl2ir_provider: str = "kddcup"
+    nl2ir_provider: str = "stub"
     kddcup_agent_model: str = "gpt-4.1-mini"
     kddcup_agent_api_base: str = "https://api.openai.com/v1"
     # LLM (OpenAI-compatible) API key for the KDDCup data-agent. Prefer

@@ -6,9 +6,6 @@ import uuid
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
 from typing import Any
 
-from google import genai
-from google.genai import types
-
 from app.config import Settings, get_settings
 from app.gemini.graph_mapper import gemini_plan_to_graph
 from app.gemini.prompt_builder import PromptBuilder
@@ -99,6 +96,14 @@ class GeminiService:
         return plan, graph
 
     def _call_gemini(self, system_instruction: str, user_prompt: str) -> str:
+        try:
+            from google import genai
+            from google.genai import types
+        except ModuleNotFoundError as exc:
+            raise GeminiConfigError(
+                "google-genai is not installed. Install backend dependencies before using Gemini."
+            ) from exc
+
         client = genai.Client(api_key=self._settings.gemini_api_key)
         config = types.GenerateContentConfig(
             system_instruction=system_instruction,

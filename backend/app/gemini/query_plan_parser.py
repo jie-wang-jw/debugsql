@@ -4,13 +4,8 @@ import json
 import re
 from typing import Any
 
+from app.tools.policy import is_safe_read_query
 from app.gemini.schemas import GeminiQueryPlan, QueryPlanParseError
-
-_FORBIDDEN_SQL = re.compile(
-    r"\b(DROP|DELETE|TRUNCATE|ALTER|CREATE|INSERT|UPDATE|GRANT|REVOKE)\b",
-    re.IGNORECASE,
-)
-_MULTI_STATEMENT = re.compile(r";\s*\S")
 
 
 class QueryPlanParser:
@@ -55,11 +50,5 @@ class QueryPlanParser:
         if not normalized:
             raise QueryPlanParseError("SQL must not be empty when provided.")
 
-        if _MULTI_STATEMENT.search(normalized):
-            raise QueryPlanParseError("Only a single SQL statement is allowed.")
-
-        if _FORBIDDEN_SQL.search(normalized):
-            raise QueryPlanParseError("Only read-only SELECT queries are allowed.")
-
-        if not normalized.lstrip().upper().startswith("SELECT"):
-            raise QueryPlanParseError("Generated SQL must be a SELECT statement.")
+        if not is_safe_read_query(normalized):
+            raise QueryPlanParseError("Only a single read-only SELECT/WITH query is allowed.")

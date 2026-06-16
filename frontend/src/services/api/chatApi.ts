@@ -62,6 +62,9 @@ export interface ChatQueryResponse {
   explanation?: string;
   proposedActions?: ProposedToolAction[];
   requiresApproval?: boolean;
+  confidence?: number | null;
+  assumptions?: string[];
+  tablesUsed?: string[];
 }
 
 /**

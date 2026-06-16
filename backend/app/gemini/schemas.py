@@ -10,9 +10,15 @@ class GeminiQueryPlanStep(BaseModel):
 
 
 class GeminiQueryPlan(BaseModel):
-    goal: str = Field(min_length=1, max_length=500)
+    can_answer: bool = True
+    answer: str = Field(min_length=1, max_length=1000)
     sql: str | None = Field(default=None, max_length=8000)
-    steps: list[GeminiQueryPlanStep] = Field(min_length=1, max_length=12)
+    explanation: str = Field(default="", max_length=2000)
+    assumptions: list[str] = Field(default_factory=list, max_length=10)
+    tables_used: list[str] = Field(default_factory=list, max_length=20)
+    confidence: float = Field(default=0.7, ge=0.0, le=1.0)
+    clarifying_question: str | None = Field(default=None, max_length=500)
+    steps: list[GeminiQueryPlanStep] = Field(default_factory=list, max_length=12)
 
     @field_validator("sql")
     @classmethod
@@ -22,8 +28,14 @@ class GeminiQueryPlan(BaseModel):
         stripped = value.strip()
         return stripped or None
 
+    @property
+    def goal(self) -> str:
+        return self.answer
+
     @model_validator(mode="after")
     def validate_unique_step_ids(self) -> GeminiQueryPlan:
+        if self.can_answer and not self.sql and not self.clarifying_question:
+            raise ValueError("Answerable responses must include SQL or a clarifying question.")
         step_ids = [step.id for step in self.steps]
         if len(step_ids) != len(set(step_ids)):
             raise ValueError("Step ids must be unique.")

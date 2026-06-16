@@ -286,6 +286,7 @@ export function ChatPanel({
                     <ProposedActions
                       actions={msg.proposedActions}
                       datasetContext={datasetContext}
+                      sessionId={sessionId}
                       onResult={(actionId, summary) => handleActionResult(msg.id, actionId, summary)}
                       onExecutionResult={applyExecutionResult}
                     />

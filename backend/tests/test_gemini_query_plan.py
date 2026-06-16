@@ -16,8 +16,14 @@ from app.gemini.gemini_service import GeminiService
 
 VALID_PLAN_JSON = json.dumps(
     {
-        "goal": "Find active customers",
+        "can_answer": True,
+        "answer": "This query finds active customers.",
         "sql": "SELECT id, name FROM customers WHERE active = 1",
+        "explanation": "Use the customers table and keep active rows.",
+        "assumptions": ["active = 1 means active customers"],
+        "tables_used": ["customers"],
+        "confidence": 0.9,
+        "clarifying_question": None,
         "steps": [
             {"id": 1, "title": "Locate customers", "description": "Use the customers table"},
             {"id": 2, "title": "Filter active", "description": "Keep active rows only"},
@@ -29,20 +35,25 @@ VALID_PLAN_JSON = json.dumps(
 class TestQueryPlanParser:
     def test_parses_valid_json(self) -> None:
         plan = QueryPlanParser().parse(VALID_PLAN_JSON)
-        assert plan.goal == "Find active customers"
+        assert plan.answer == "This query finds active customers."
         assert plan.sql is not None
         assert len(plan.steps) == 2
 
     def test_strips_markdown_fence(self) -> None:
         fenced = f"```json\n{VALID_PLAN_JSON}\n```"
         plan = QueryPlanParser().parse(fenced)
-        assert plan.goal == "Find active customers"
+        assert plan.answer == "This query finds active customers."
 
     def test_rejects_forbidden_sql(self) -> None:
         payload = json.dumps(
             {
-                "goal": "Drop tables",
+                "can_answer": True,
+                "answer": "Drop tables",
                 "sql": "DROP TABLE customers",
+                "explanation": "Bad.",
+                "assumptions": [],
+                "tables_used": [],
+                "confidence": 0.1,
                 "steps": [{"id": 1, "title": "Drop", "description": "Bad"}],
             }
         )
@@ -52,7 +63,13 @@ class TestQueryPlanParser:
     def test_rejects_duplicate_step_ids(self) -> None:
         payload = json.dumps(
             {
-                "goal": "Bad plan",
+                "can_answer": True,
+                "answer": "Bad plan",
+                "sql": "SELECT 1",
+                "explanation": "Bad.",
+                "assumptions": [],
+                "tables_used": [],
+                "confidence": 0.1,
                 "steps": [
                     {"id": 1, "title": "A", "description": "One"},
                     {"id": 1, "title": "B", "description": "Duplicate"},
@@ -66,8 +83,12 @@ class TestQueryPlanParser:
 class TestGraphMapper:
     def test_maps_steps_to_linear_graph(self) -> None:
         plan = GeminiQueryPlan(
-            goal="Find active customers",
+            answer="Find active customers",
             sql="SELECT id FROM customers",
+            explanation="Use customers.",
+            assumptions=[],
+            tables_used=["customers"],
+            confidence=0.9,
             steps=[
                 GeminiQueryPlanStep(id=1, title="Locate customers", description="Step one"),
                 GeminiQueryPlanStep(id=2, title="Filter active", description="Step two"),
@@ -95,20 +116,14 @@ class TestGeminiService:
         with pytest.raises(GeminiConfigError):
             service.generate_query_plan("show customers")
 
-    @patch("app.gemini.gemini_service.genai.Client")
-    def test_generate_query_plan_parses_model_response(self, mock_client_cls, monkeypatch) -> None:
+    def test_generate_query_plan_parses_model_response(self, monkeypatch) -> None:
         monkeypatch.setenv("GEMINI_API_KEY", "test-key")
         monkeypatch.setenv("QUERY_PLAN_PROVIDER", "gemini")
         get_settings.cache_clear()
 
-        mock_response = MagicMock()
-        mock_response.text = VALID_PLAN_JSON
-        mock_client = MagicMock()
-        mock_client.models.generate_content.return_value = mock_response
-        mock_client_cls.return_value = mock_client
-
-        plan = GeminiService().generate_query_plan("show active customers")
-        assert plan.goal == "Find active customers"
+        with patch.object(GeminiService, "_call_gemini", return_value=VALID_PLAN_JSON):
+            plan = GeminiService().generate_query_plan("show active customers")
+        assert plan.answer == "This query finds active customers."
         assert plan.sql is not None
 
 
@@ -120,8 +135,12 @@ class TestGeminiPipelineIntegration:
         PLAN_STORE.clear()
 
         plan = GeminiQueryPlan(
-            goal="Count rows",
+            answer="Count rows",
             sql="SELECT COUNT(*) AS total FROM cards",
+            explanation="Count all cards.",
+            assumptions=[],
+            tables_used=["cards"],
+            confidence=0.9,
             steps=[GeminiQueryPlanStep(id=1, title="Count", description="Count all rows")],
         )
 
@@ -162,8 +181,12 @@ class TestGeminiPipelineIntegration:
         PLAN_STORE.clear()
 
         plan = GeminiQueryPlan(
-            goal="Count rows",
+            answer="Count rows",
             sql="SELECT COUNT(*) AS total FROM cards",
+            explanation="Count all cards.",
+            assumptions=[],
+            tables_used=["cards"],
+            confidence=0.9,
             steps=[GeminiQueryPlanStep(id=1, title="Count", description="Count all rows")],
         )
         with patch.object(GeminiService, "generate_query_plan", return_value=plan):
@@ -197,7 +220,7 @@ class TestIntentClassifier:
             {"benchmark": "spider", "dbId": "card_games"},
         )
         assert intent.intent_type == "benchmark_query"
-        assert intent.requires_plan is True
+        assert intent.requires_plan is False
 
     def test_unsupported_when_gemini_not_configured(self, monkeypatch) -> None:
         monkeypatch.setenv("GEMINI_API_KEY", "")
