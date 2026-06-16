@@ -6,7 +6,7 @@ from app.tools.capabilities_service import build_capabilities
 from app.tools.executor import execute_tool
 from app.tools.schemas import DatasetContext, ToolExecuteRequest, ToolResult
 from app.tools.registry import normalize_context
-from app.persistence import persist_operation_log
+from app.persistence import persist_execution_run, persist_operation_log
 
 
 router = APIRouter(tags=["capabilities"])
@@ -62,4 +62,15 @@ def post_tool_execute(body: ToolExecuteRequest, request: Request) -> dict:
             "error": result.error,
         },
     )
+    if body.tool == "run_sql" and result.success:
+        persist_execution_run(
+            run_id=result.toolCallId,
+            plan_id=None,
+            session_id=body.sessionId,
+            run_type="sql",
+            status="success",
+            sql=str(body.arguments.get("sql") or result.data.get("sql") or ""),
+            result=result.data,
+            user_id=user_id,
+        )
     return {"success": True, "data": result.model_dump()}
