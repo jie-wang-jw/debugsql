@@ -7,7 +7,7 @@ from typing import Any
 
 from app.benchmark_registry import find_benchmark_gold_sql, get_schema_context
 from app.config import get_settings
-from app.gemini import GeminiService
+from app.gemini import GeminiService, OpenAICompatibleService
 from app.gemini.schemas import GeminiConfigError, QueryPlanParseError
 from app.simple_nl2sql import build_simple_schema_nl2sql
 from app.tools.schemas import DatasetContext
@@ -36,8 +36,8 @@ def resolve_sql_for_message(
     if schema is None and context.dbType == "sqlite_benchmark" and context.benchmark and context.dbId:
         schema = get_schema_context(context.benchmark, context.dbId)
 
-    if _should_use_gemini():
-        resolved = _resolve_with_gemini(message, schema)
+    if _should_use_llm():
+        resolved = _resolve_with_llm(message, schema)
         if resolved:
             return resolved
 
@@ -80,28 +80,32 @@ def needs_real_nl2sql(message: str) -> bool:
     return False
 
 
-def _should_use_gemini() -> bool:
+def _should_use_llm() -> bool:
     settings = get_settings()
-    return (
-        settings.query_plan_provider.lower() == "gemini"
-        and bool(settings.gemini_api_key.strip())
-    )
+    provider = settings.query_plan_provider.lower()
+    if provider == "gemini":
+        return bool(settings.gemini_api_key.strip())
+    if provider == "openai_compatible":
+        return bool(settings.llm_api_key.strip() and settings.llm_api_base_url.strip())
+    return False
 
 
-def _resolve_with_gemini(message: str, schema: dict[str, Any] | None) -> ResolvedSQL | None:
-    service = GeminiService()
+def _resolve_with_llm(message: str, schema: dict[str, Any] | None) -> ResolvedSQL | None:
+    provider = get_settings().query_plan_provider.lower()
+    service = OpenAICompatibleService() if provider == "openai_compatible" else GeminiService()
     if not service.is_configured:
         return None
     try:
         plan = service.generate_query_plan(message, schema)
     except (GeminiConfigError, QueryPlanParseError, TimeoutError, RuntimeError) as exc:
-        logger.warning("Gemini SQL resolution failed: %s", exc)
+        logger.warning("%s SQL resolution failed: %s", provider, exc)
         return None
+    provider_name = "openai_compatible" if provider == "openai_compatible" else "gemini"
     if not plan.can_answer:
         return ResolvedSQL(
             sql=None,
             explanation=plan.explanation,
-            provider="gemini",
+            provider=provider_name,
             answer=plan.answer,
             assumptions=tuple(plan.assumptions),
             tables_used=tuple(plan.tables_used),
@@ -110,11 +114,11 @@ def _resolve_with_gemini(message: str, schema: dict[str, Any] | None) -> Resolve
         )
     if not plan.sql:
         return None
-    explanation = plan.explanation.strip() or "Generated with Gemini from your question and schema."
+    explanation = plan.explanation.strip() or "Generated from your question and schema."
     return ResolvedSQL(
         sql=plan.sql,
         explanation=explanation,
-        provider="gemini",
+        provider=provider_name,
         answer=plan.answer,
         assumptions=tuple(plan.assumptions),
         tables_used=tuple(plan.tables_used),

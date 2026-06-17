@@ -5,7 +5,7 @@ from typing import Any
 
 
 class PromptBuilder:
-    """Builds Gemini prompts for answer-first SQL generation."""
+    """Builds LLM prompts for answer-first SQL generation."""
 
     SYSTEM_INSTRUCTION = (
         "You are a SQL planning assistant for DebugSQL. "
@@ -61,7 +61,7 @@ class PromptBuilder:
         return "\n".join(lines)
 
     def response_json_schema(self) -> dict[str, Any]:
-        """JSON schema passed to Gemini structured output."""
+        """JSON schema requested from the configured LLM provider."""
         return {
             "type": "object",
             "properties": {

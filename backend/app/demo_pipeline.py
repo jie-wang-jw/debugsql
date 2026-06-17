@@ -14,7 +14,7 @@ from app.benchmark_registry import (
     get_schema_context,
 )
 from app.config import get_settings
-from app.gemini import GeminiService, QueryPlanParseError, gemini_plan_to_graph
+from app.gemini import GeminiService, OpenAICompatibleService, QueryPlanParseError, gemini_plan_to_graph
 from app.gemini.schemas import GeminiConfigError
 from app.planning.provider import get_ir_to_plan_provider
 from app.planning.schemas import PlanNode, PlanningRequest, QueryPlan
@@ -82,15 +82,17 @@ def build_demo_ir(message: str) -> dict[str, Any]:
     }
 
 
-def _should_use_gemini() -> bool:
+def _should_use_llm() -> bool:
     settings = get_settings()
-    return (
-        settings.query_plan_provider.lower() == "gemini"
-        and bool(settings.gemini_api_key.strip())
-    )
+    provider = settings.query_plan_provider.lower()
+    if provider == "gemini":
+        return bool(settings.gemini_api_key.strip())
+    if provider == "openai_compatible":
+        return bool(settings.llm_api_key.strip() and settings.llm_api_base_url.strip())
+    return False
 
 
-def generate_gemini_plan_for_message(
+def generate_llm_plan_for_message(
     message: str,
     session_id: str | None = None,
     dataset_context: dict[str, Any] | None = None,
@@ -103,20 +105,21 @@ def generate_gemini_plan_for_message(
         else None
     )
 
-    service = GeminiService()
-    gemini_plan = service.generate_query_plan(message, schema_context)
-    graph = gemini_plan_to_graph(gemini_plan, message)
-    plan_id = _stable_id("plan_gemini", {"message": message, "session": session_id})
-    sql = gemini_plan.sql or ""
+    provider = get_settings().query_plan_provider.lower()
+    service = OpenAICompatibleService() if provider == "openai_compatible" else GeminiService()
+    llm_plan = service.generate_query_plan(message, schema_context)
+    graph = gemini_plan_to_graph(llm_plan, message)
+    plan_id = _stable_id("plan_llm", {"message": message, "session": session_id, "provider": provider})
+    sql = llm_plan.sql or ""
 
     stored = {
         "message": message,
         "session_id": session_id,
         "dataset_context": dataset_context,
         "ir": {
-            "intent_type": "gemini",
+            "intent_type": provider,
             "raw_query": message,
-            "goal": gemini_plan.goal,
+            "goal": llm_plan.goal,
         },
         "plan": {
             "plan_id": plan_id,
@@ -124,17 +127,26 @@ def generate_gemini_plan_for_message(
             "data_source_type": "relational",
             "executable": {"type": "sql", "dialect": "sqlite", "content": sql},
             "metadata": {
-                "provider": "gemini",
-                "template": "gemini",
-                "goal": gemini_plan.goal,
+                "provider": provider,
+                "template": provider,
+                "goal": llm_plan.goal,
             },
         },
         "graph": graph,
-        "assistant_content": _gemini_assistant_content(gemini_plan),
+        "assistant_content": _gemini_assistant_content(llm_plan),
         "created_at": time.time(),
     }
     PLAN_STORE[plan_id] = stored
     return stored
+
+
+def generate_gemini_plan_for_message(
+    message: str,
+    session_id: str | None = None,
+    dataset_context: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Backward-compatible wrapper for tests and older callers."""
+    return generate_llm_plan_for_message(message, session_id, dataset_context)
 
 
 def generate_plan_for_message(
@@ -150,11 +162,11 @@ def generate_plan_for_message(
         PLAN_STORE[stored["plan"]["plan_id"]] = stored
         return stored
 
-    if _should_use_gemini():
+    if _should_use_llm():
         try:
-            return generate_gemini_plan_for_message(message, session_id, dataset_context)
+            return generate_llm_plan_for_message(message, session_id, dataset_context)
         except (GeminiConfigError, QueryPlanParseError, TimeoutError, RuntimeError) as exc:
-            logger.warning("Gemini plan generation failed, falling back to legacy pipeline: %s", exc)
+            logger.warning("LLM plan generation failed, falling back to legacy pipeline: %s", exc)
 
     schema_context = get_schema_context(benchmark, db_id)
     gold_sql = (
@@ -1220,7 +1232,7 @@ def _apply_node_edit_to_executable(plan_id: str, node_id: str) -> dict[str, Any]
             "requiresProvider": True,
         }
 
-    if template == "gemini":
+    if template in {"gemini", "openai_compatible"}:
         return _apply_gemini_node_edit(stored, node)
 
     return {
@@ -1243,7 +1255,7 @@ def _apply_gemini_node_edit(stored: dict[str, Any], node: dict[str, Any] | None)
             node["data"] = data
             return {
                 "status": "regenerated",
-                "message": "Gemini SQL was updated from the edited SQL node.",
+                "message": "Generated SQL was updated from the edited SQL node.",
                 "executableAvailable": True,
             }
         return {

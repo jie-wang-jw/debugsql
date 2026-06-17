@@ -27,12 +27,14 @@ EDIT_TERMS = (
 )
 
 
-def _gemini_configured() -> bool:
+def _llm_configured() -> bool:
     settings = get_settings()
-    return (
-        settings.query_plan_provider.lower() == "gemini"
-        and bool(settings.gemini_api_key.strip())
-    )
+    provider = settings.query_plan_provider.lower()
+    if provider == "gemini":
+        return bool(settings.gemini_api_key.strip())
+    if provider == "openai_compatible":
+        return bool(settings.llm_api_key.strip() and settings.llm_api_base_url.strip())
+    return False
 
 
 def classify_message(message: str, dataset_context: dict | None = None) -> ConversationIntent:
@@ -68,13 +70,13 @@ def classify_message(message: str, dataset_context: dict | None = None) -> Conve
                 reason=f"Message asks for schema overview in {benchmark.upper()}.",
             )
 
-        if _gemini_configured():
+        if _llm_configured():
             return ConversationIntent(
                 intent_type="benchmark_query",
                 confidence=0.7,
                 requires_plan=False,
                 requires_execution=True,
-                reason="Message will be handled by the Gemini SQL assistant.",
+                reason="Message will be handled by the configured SQL assistant.",
             )
 
         return ConversationIntent(
@@ -87,13 +89,13 @@ def classify_message(message: str, dataset_context: dict | None = None) -> Conve
             ),
         )
 
-    if _gemini_configured():
+    if _llm_configured():
         return ConversationIntent(
             intent_type="benchmark_query",
             confidence=0.7,
             requires_plan=False,
             requires_execution=True,
-            reason="Message will be handled by the Gemini SQL assistant.",
+            reason="Message will be handled by the configured SQL assistant.",
         )
 
     return ConversationIntent(

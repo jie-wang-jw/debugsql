@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_cors_origins, get_settings
 from app.database import check_database
-from app.gemini import log_gemini_startup
+from app.gemini import log_gemini_startup, log_openai_compatible_startup
 from app.admin_routes import router as admin_router
 from app.auth_routes import router as auth_router
 from app.chat_routes import router as chat_router
@@ -18,6 +18,7 @@ from app.tools.capabilities_routes import router as capabilities_router
 
 settings = get_settings()
 log_gemini_startup(settings)
+log_openai_compatible_startup(settings)
 
 app = FastAPI(title=settings.app_name)
 
@@ -49,6 +50,7 @@ def health() -> dict:
         "nl2ir_provider": settings.nl2ir_provider,
         "query_plan_provider": settings.query_plan_provider,
         "gemini_configured": bool(settings.gemini_api_key.strip()),
+        "openai_compatible_configured": bool(settings.llm_api_key.strip() and settings.llm_api_base_url.strip()),
     }
 
 

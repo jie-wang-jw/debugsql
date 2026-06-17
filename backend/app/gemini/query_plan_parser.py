@@ -9,7 +9,7 @@ from app.gemini.schemas import GeminiQueryPlan, QueryPlanParseError
 
 
 class QueryPlanParser:
-    """Validates and normalizes Gemini JSON into a typed query plan."""
+    """Validates and normalizes LLM JSON into a typed query plan."""
 
     def parse(self, raw_text: str) -> GeminiQueryPlan:
         payload = self._load_json(raw_text)
@@ -26,16 +26,16 @@ class QueryPlanParser:
     def _load_json(self, raw_text: str) -> dict[str, Any]:
         text = (raw_text or "").strip()
         if not text:
-            raise QueryPlanParseError("Gemini returned an empty response.")
+            raise QueryPlanParseError("LLM provider returned an empty response.")
 
         text = self._strip_code_fence(text)
         try:
             payload = json.loads(text)
         except json.JSONDecodeError as exc:
-            raise QueryPlanParseError(f"Gemini response was not valid JSON: {exc}") from exc
+            raise QueryPlanParseError(f"LLM provider response was not valid JSON: {exc}") from exc
 
         if not isinstance(payload, dict):
-            raise QueryPlanParseError("Gemini response must be a JSON object.")
+            raise QueryPlanParseError("LLM provider response must be a JSON object.")
 
         return payload
 

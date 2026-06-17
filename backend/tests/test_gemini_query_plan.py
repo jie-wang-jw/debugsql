@@ -12,6 +12,7 @@ from app.gemini.graph_mapper import gemini_plan_to_graph
 from app.gemini.query_plan_parser import QueryPlanParser
 from app.gemini.schemas import GeminiConfigError, GeminiQueryPlan, GeminiQueryPlanStep, QueryPlanParseError
 from app.gemini.gemini_service import GeminiService
+from app.gemini.openai_compatible_service import OpenAICompatibleService
 
 
 VALID_PLAN_JSON = json.dumps(
@@ -127,6 +128,29 @@ class TestGeminiService:
         assert plan.sql is not None
 
 
+class TestOpenAICompatibleService:
+    def test_missing_openai_compatible_config_raises_config_error(self, monkeypatch) -> None:
+        monkeypatch.setenv("QUERY_PLAN_PROVIDER", "openai_compatible")
+        monkeypatch.setenv("LLM_API_BASE_URL", "")
+        monkeypatch.setenv("LLM_API_KEY", "")
+        get_settings.cache_clear()
+        service = OpenAICompatibleService()
+        with pytest.raises(GeminiConfigError):
+            service.generate_query_plan("show customers")
+
+    def test_generate_query_plan_parses_openai_compatible_response(self, monkeypatch) -> None:
+        monkeypatch.setenv("QUERY_PLAN_PROVIDER", "openai_compatible")
+        monkeypatch.setenv("LLM_API_BASE_URL", "https://example.test/v1")
+        monkeypatch.setenv("LLM_API_KEY", "test-key")
+        monkeypatch.setenv("LLM_MODEL", "qwen-plus")
+        get_settings.cache_clear()
+
+        with patch.object(OpenAICompatibleService, "_call_openai_compatible", return_value=VALID_PLAN_JSON):
+            plan = OpenAICompatibleService().generate_query_plan("show active customers")
+        assert plan.answer == "This query finds active customers."
+        assert plan.sql is not None
+
+
 class TestGeminiPipelineIntegration:
     def test_generate_gemini_plan_for_message_stores_plan(self, monkeypatch) -> None:
         monkeypatch.setenv("GEMINI_API_KEY", "test-key")
@@ -222,9 +246,25 @@ class TestIntentClassifier:
         assert intent.intent_type == "benchmark_query"
         assert intent.requires_plan is False
 
+    def test_routes_unmatched_benchmark_question_when_openai_compatible_configured(self, monkeypatch) -> None:
+        monkeypatch.setenv("QUERY_PLAN_PROVIDER", "openai_compatible")
+        monkeypatch.setenv("LLM_API_BASE_URL", "https://example.test/v1")
+        monkeypatch.setenv("LLM_API_KEY", "test-key")
+        monkeypatch.setenv("NL2IR_PROVIDER", "stub")
+        get_settings.cache_clear()
+
+        intent = classify_message(
+            "list every legendary creature card name",
+            {"benchmark": "spider", "dbId": "card_games"},
+        )
+        assert intent.intent_type == "benchmark_query"
+        assert intent.requires_plan is False
+
     def test_unsupported_when_gemini_not_configured(self, monkeypatch) -> None:
         monkeypatch.setenv("GEMINI_API_KEY", "")
         monkeypatch.setenv("QUERY_PLAN_PROVIDER", "gemini")
+        monkeypatch.setenv("LLM_API_BASE_URL", "")
+        monkeypatch.setenv("LLM_API_KEY", "")
         monkeypatch.setenv("NL2IR_PROVIDER", "stub")
         get_settings.cache_clear()
 

@@ -42,7 +42,11 @@ class Settings(BaseSettings):
     gemini_api_key: str = ""
     gemini_model: str = "gemini-2.0-flash"
     gemini_timeout_seconds: int = 30
-    query_plan_provider: str = "gemini"
+    llm_api_base_url: str = ""
+    llm_api_key: str = ""
+    llm_model: str = "qwen-plus"
+    llm_timeout_seconds: int = 30
+    query_plan_provider: str = "openai_compatible"
     benchmark_data_dir: str = "data/benchmarks"
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
 
