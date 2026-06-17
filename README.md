@@ -337,14 +337,19 @@ VITE_API_BASE_URL=/api
 CORS_ORIGINS=http://SERVER_IP,http://SERVER_IP:80,http://localhost:5173,http://127.0.0.1:5173
 APP_BASE_URL=http://SERVER_IP/api
 FRONTEND_BASE_URL=http://SERVER_IP
-DEBUGSQL_AUTO_LOGIN=1
+DEBUGSQL_AUTO_LOGIN=0
 BENCHMARK_HOST_DATA_DIR=/data/debugsql/data/benchmarks
 BENCHMARK_DATA_DIR=/app/data/benchmarks
-EMAIL_DEV_LOG_CODES=1
+EMAIL_DEV_LOG_CODES=0
+QUERY_PLAN_PROVIDER=gemini
+GEMINI_API_KEY=...
+GEMINI_MODEL=gemini-2.0-flash
 ```
 
-`DEBUGSQL_AUTO_LOGIN=1` is suitable for the current private demo server. Change
-it to `0` after SMTP email delivery is configured for real user testing.
+Use `DEBUGSQL_AUTO_LOGIN=1` only for private local debugging. The server should
+normally use email verification login with `DEBUGSQL_AUTO_LOGIN=0`. Set
+`EMAIL_DEV_LOG_CODES=1` only while debugging email delivery, because it prints
+login codes in backend logs.
 
 Create the durable server data directories before starting Compose:
 
@@ -587,7 +592,7 @@ Development history endpoint:
 curl http://127.0.0.1:8000/history/summary
 ```
 
-Gemini-first data assistant:
+LLM provider for the chat-driven data assistant:
 
 ```bash
 NL2IR_PROVIDER=stub
@@ -596,10 +601,13 @@ GEMINI_API_KEY=...
 GEMINI_MODEL=gemini-2.0-flash
 ```
 
-The current runtime is chat-driven and Gemini-first. The user selects a
-BIRD/Spider SQLite database, asks a question, reviews the proposed read-only
-SQL, validates it, and approves execution. KDDCup remains in the repository as
-an optional legacy NL2IR provider, but it is not called by the default runtime.
+The current runtime is chat-driven. The user selects a BIRD/Spider SQLite
+database, asks a question, reviews the proposed read-only SQL, validates it,
+and approves execution. Gemini is the first implemented LLM SQL provider, but
+the configuration is intentionally provider-shaped so another provider can be
+added later without changing the frontend/backend API. KDDCup remains in the
+repository as an optional legacy NL2IR provider, but it is not called by the
+default runtime.
 
 Optional legacy KDDCup data-agent provider:
 
