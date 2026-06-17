@@ -84,7 +84,7 @@ def build_demo_ir(message: str) -> dict[str, Any]:
 
 def _should_use_llm() -> bool:
     settings = get_settings()
-    provider = settings.query_plan_provider.lower()
+    provider = settings.query_plan_provider.strip().lower()
     if provider == "gemini":
         return bool(settings.gemini_api_key.strip())
     if provider == "openai_compatible":
@@ -105,8 +105,13 @@ def generate_llm_plan_for_message(
         else None
     )
 
-    provider = get_settings().query_plan_provider.lower()
-    service = OpenAICompatibleService() if provider == "openai_compatible" else GeminiService()
+    provider = get_settings().query_plan_provider.strip().lower()
+    if provider == "openai_compatible":
+        service = OpenAICompatibleService()
+    elif provider == "gemini":
+        service = GeminiService()
+    else:
+        raise GeminiConfigError(f"Unsupported QUERY_PLAN_PROVIDER={provider}")
     llm_plan = service.generate_query_plan(message, schema_context)
     graph = gemini_plan_to_graph(llm_plan, message)
     plan_id = _stable_id("plan_llm", {"message": message, "session": session_id, "provider": provider})

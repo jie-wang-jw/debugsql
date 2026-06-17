@@ -82,7 +82,7 @@ def needs_real_nl2sql(message: str) -> bool:
 
 def _should_use_llm() -> bool:
     settings = get_settings()
-    provider = settings.query_plan_provider.lower()
+    provider = settings.query_plan_provider.strip().lower()
     if provider == "gemini":
         return bool(settings.gemini_api_key.strip())
     if provider == "openai_compatible":
@@ -91,8 +91,14 @@ def _should_use_llm() -> bool:
 
 
 def _resolve_with_llm(message: str, schema: dict[str, Any] | None) -> ResolvedSQL | None:
-    provider = get_settings().query_plan_provider.lower()
-    service = OpenAICompatibleService() if provider == "openai_compatible" else GeminiService()
+    provider = get_settings().query_plan_provider.strip().lower()
+    if provider == "openai_compatible":
+        service = OpenAICompatibleService()
+    elif provider == "gemini":
+        service = GeminiService()
+    else:
+        logger.warning("Unsupported QUERY_PLAN_PROVIDER=%s; skipping LLM SQL resolution.", provider)
+        return None
     if not service.is_configured:
         return None
     try:
@@ -100,7 +106,7 @@ def _resolve_with_llm(message: str, schema: dict[str, Any] | None) -> ResolvedSQ
     except (GeminiConfigError, QueryPlanParseError, TimeoutError, RuntimeError) as exc:
         logger.warning("%s SQL resolution failed: %s", provider, exc)
         return None
-    provider_name = "openai_compatible" if provider == "openai_compatible" else "gemini"
+    provider_name = provider
     if not plan.can_answer:
         return ResolvedSQL(
             sql=None,
