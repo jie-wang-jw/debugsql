@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import re
 from typing import Any
 
 from app.planning.schemas import ExecutablePlan, PlanEdge, PlanNode, PlanningRequest, QueryPlan
@@ -64,12 +63,6 @@ class StubIRToPlanProvider:
     def _build_operation_nodes(
         self, intent_ir: dict[str, Any], schema_context: dict[str, Any]
     ) -> list[PlanNode]:
-        selected_sql = intent_ir.get("selected_sql")
-        if intent_ir.get("provider") == "kddcup_data_agent" and selected_sql:
-            return self._build_sql_operation_nodes(str(selected_sql), schema_context, intent_ir)
-        if intent_ir.get("provider") == "kddcup_data_agent" and intent_ir.get("operations"):
-            return self._build_agent_trace_nodes(intent_ir)
-
         table = self._infer_table(intent_ir, schema_context)
         nodes = [
             PlanNode(
@@ -154,133 +147,6 @@ class StubIRToPlanProvider:
                 )
             )
 
-        return nodes
-
-    def _build_sql_operation_nodes(
-        self,
-        sql: str,
-        schema_context: dict[str, Any],
-        intent_ir: dict[str, Any],
-    ) -> list[PlanNode]:
-        table = self._infer_table({"table": intent_ir.get("table")}, schema_context) or _extract_sql_table(sql)
-        nodes: list[PlanNode] = [
-            PlanNode(
-                node_id="op_scan",
-                node_type="operation",
-                operation_type="scan",
-                label=f"SCAN {table or 'source'}",
-                payload={"table": table, "source": "sql_trace"},
-            )
-        ]
-
-        where_clause = _extract_sql_clause(sql, "where", ("group by", "order by", "limit"))
-        if where_clause:
-            nodes.append(
-                PlanNode(
-                    node_id="op_filter",
-                    node_type="operation",
-                    operation_type="filter",
-                    label="FILTER",
-                    payload={"filters": [where_clause], "source": "sql_trace"},
-                )
-            )
-
-        joins = _extract_sql_joins(sql)
-        if joins:
-            nodes.append(
-                PlanNode(
-                    node_id="op_join",
-                    node_type="operation",
-                    operation_type="join",
-                    label="JOIN",
-                    payload={"joins": joins, "source": "sql_trace"},
-                )
-            )
-
-        group_by = _extract_sql_clause(sql, "group by", ("order by", "limit"))
-        if group_by:
-            nodes.append(
-                PlanNode(
-                    node_id="op_group_by",
-                    node_type="operation",
-                    operation_type="group_by",
-                    label="GROUP BY",
-                    payload={"columns": _split_sql_list(group_by), "source": "sql_trace"},
-                )
-            )
-
-        aggregation = _extract_sql_aggregation(sql)
-        if aggregation:
-            nodes.append(
-                PlanNode(
-                    node_id="op_aggregate",
-                    node_type="operation",
-                    operation_type="aggregate",
-                    label="AGGREGATE",
-                    payload={**aggregation, "source": "sql_trace"},
-                )
-            )
-
-        order_by = _extract_sql_clause(sql, "order by", ("limit",))
-        if order_by:
-            nodes.append(
-                PlanNode(
-                    node_id="op_sort",
-                    node_type="operation",
-                    operation_type="sort",
-                    label="SORT",
-                    payload={"order_by": order_by, "source": "sql_trace"},
-                )
-            )
-
-        limit = _extract_sql_limit(sql)
-        if limit is not None:
-            nodes.append(
-                PlanNode(
-                    node_id="op_limit",
-                    node_type="operation",
-                    operation_type="limit",
-                    label="LIMIT",
-                    payload={"limit": limit, "source": "sql_trace"},
-                )
-            )
-
-        nodes.append(
-            PlanNode(
-                node_id="op_execute_sql",
-                node_type="operation",
-                operation_type="execute_sql",
-                label="EXECUTE SQL",
-                payload={"sql": sql, "source": "kddcup_trace"},
-            )
-        )
-        return nodes
-
-    def _build_agent_trace_nodes(self, intent_ir: dict[str, Any]) -> list[PlanNode]:
-        nodes: list[PlanNode] = []
-        for index, operation in enumerate(self._as_list(intent_ir.get("operations")), start=1):
-            if not isinstance(operation, dict):
-                continue
-            action = str(operation.get("op") or "agent_step")
-            nodes.append(
-                PlanNode(
-                    node_id=f"op_agent_{index}",
-                    node_type="operation",
-                    operation_type=_agent_operation_type(action),
-                    label=_agent_operation_label(action),
-                    payload=operation,
-                )
-            )
-        if not nodes:
-            nodes.append(
-                PlanNode(
-                    node_id="op_agent_trace",
-                    node_type="operation",
-                    operation_type="tool",
-                    label="AGENT TRACE",
-                    payload={"message": "No agent steps were returned."},
-                )
-            )
         return nodes
 
     def _build_sql(
@@ -389,64 +255,3 @@ class StubIRToPlanProvider:
         return f"plan_stub_{digest}"
 
 
-def _agent_operation_type(action: str) -> str:
-    if action == "execute_context_sql":
-        return "execute_sql"
-    if action == "inspect_sqlite_schema":
-        return "scan"
-    if action == "answer":
-        return "answer"
-    return "tool"
-
-
-def _agent_operation_label(action: str) -> str:
-    labels = {
-        "answer": "ANSWER",
-        "execute_context_sql": "EXECUTE SQL",
-        "execute_python": "EXECUTE PYTHON",
-        "inspect_sqlite_schema": "INSPECT SQLITE",
-        "list_context": "LIST CONTEXT",
-        "read_csv": "READ CSV",
-        "read_doc": "READ DOC",
-        "read_json": "READ JSON",
-    }
-    return labels.get(action, action.replace("_", " ").upper())
-
-
-def _extract_sql_table(sql: str) -> str | None:
-    match = re.search(r"\bfrom\s+[`\"]?([a-zA-Z_][\w]*)[`\"]?", sql, flags=re.IGNORECASE)
-    return match.group(1) if match else None
-
-
-def _extract_sql_clause(sql: str, keyword: str, stop_keywords: tuple[str, ...]) -> str:
-    stop_pattern = "|".join(re.escape(item) for item in stop_keywords)
-    pattern = rf"\b{re.escape(keyword)}\b\s+(.+?)(?:\b(?:{stop_pattern})\b|$)" if stop_keywords else rf"\b{re.escape(keyword)}\b\s+(.+)$"
-    match = re.search(pattern, sql, flags=re.IGNORECASE | re.DOTALL)
-    if not match:
-        return ""
-    return match.group(1).strip().rstrip(";").strip()
-
-
-def _extract_sql_joins(sql: str) -> list[str]:
-    joins = re.findall(
-        r"\bjoin\s+[`\"]?([a-zA-Z_][\w]*)[`\"]?\s+(?:as\s+)?(?:[a-zA-Z_][\w]*\s+)?on\s+(.+?)(?=\bjoin\b|\bwhere\b|\bgroup\s+by\b|\border\s+by\b|\blimit\b|$)",
-        sql,
-        flags=re.IGNORECASE | re.DOTALL,
-    )
-    return [f"{table} ON {' '.join(condition.split())}" for table, condition in joins]
-
-
-def _extract_sql_aggregation(sql: str) -> dict[str, Any] | None:
-    match = re.search(r"\b(count|sum|avg|min|max)\s*\((.*?)\)", sql, flags=re.IGNORECASE | re.DOTALL)
-    if not match:
-        return None
-    return {"function": match.group(1).lower(), "columns": [match.group(2).strip()]}
-
-
-def _extract_sql_limit(sql: str) -> int | None:
-    match = re.search(r"\blimit\s+(\d+)", sql, flags=re.IGNORECASE)
-    return int(match.group(1)) if match else None
-
-
-def _split_sql_list(value: str) -> list[str]:
-    return [item.strip().strip("`\"") for item in value.split(",") if item.strip()]

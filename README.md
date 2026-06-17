@@ -605,30 +605,7 @@ The current runtime is chat-driven. The user selects a BIRD/Spider SQLite
 database, asks a question, reviews the proposed read-only SQL, validates it,
 and approves execution. Gemini is the first implemented LLM SQL provider, but
 the configuration is intentionally provider-shaped so another provider can be
-added later without changing the frontend/backend API. KDDCup remains in the
-repository as an optional legacy NL2IR provider, but it is not called by the
-default runtime.
-
-Optional legacy KDDCup data-agent provider:
-
-```bash
-NL2IR_PROVIDER=kddcup
-KDDCUP_AGENT_MODEL=gpt-4.1-mini
-KDDCUP_AGENT_API_BASE=https://api.openai.com/v1
-KDDCUP_LLM_API_KEY=...
-KDDCUP_AGENT_MAX_STEPS=8
-```
-
-`KDDCUP_LLM_API_KEY` is an **LLM (OpenAI-compatible) API key**, not a key
-issued by the KDDCup website. The vendored baseline is a ReAct agent: it uses an
-LLM to reason step by step before producing SQL, so it needs a key to call
-`KDDCUP_AGENT_MODEL`. `KDDCUP_AGENT_API_BASE` can target any OpenAI-compatible
-endpoint. The legacy name `KDDCUP_AGENT_API_KEY` still works as a
-backward-compatible alias.
-
-If KDDCup is explicitly enabled without a key, the backend returns an
-inspectable `agent_trace_error` IR and marks the plan as `needs_replan` instead
-of inventing fake SQL.
+added later without changing the frontend/backend API.
 
 Evaluation endpoint:
 

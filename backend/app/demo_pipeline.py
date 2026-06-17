@@ -16,10 +16,8 @@ from app.benchmark_registry import (
 from app.config import get_settings
 from app.gemini import GeminiService, QueryPlanParseError, gemini_plan_to_graph
 from app.gemini.schemas import GeminiConfigError
-from app.nl2ir.provider import get_nl2ir_provider
-from app.nl2ir.schemas import NL2IRRequest, NL2IRResult
 from app.planning.provider import get_ir_to_plan_provider
-from app.planning.schemas import ExecutablePlan, PlanNode, PlanningRequest, QueryPlan
+from app.planning.schemas import PlanNode, PlanningRequest, QueryPlan
 from app.simple_nl2sql import build_simple_schema_nl2sql
 
 
@@ -92,11 +90,6 @@ def _should_use_gemini() -> bool:
     )
 
 
-def _should_use_nl2ir_provider() -> bool:
-    provider_name = get_settings().nl2ir_provider.strip().lower()
-    return provider_name not in {"", "stub", "disabled", "none"}
-
-
 def generate_gemini_plan_for_message(
     message: str,
     session_id: str | None = None,
@@ -164,37 +157,21 @@ def generate_plan_for_message(
             logger.warning("Gemini plan generation failed, falling back to legacy pipeline: %s", exc)
 
     schema_context = get_schema_context(benchmark, db_id)
-    nl2ir_result = (
-        get_nl2ir_provider().generate_ir(
-            NL2IRRequest(
-                message=message,
-                schema_context=schema_context,
-                dataset_context=dataset_context,
-            )
-        )
-        if benchmark in SQLITE_ROOTS and db_id and _should_use_nl2ir_provider()
-        else None
-    )
-
     gold_sql = (
-        None
-        if nl2ir_result
-        else find_benchmark_gold_sql(benchmark, db_id, message)
+        find_benchmark_gold_sql(benchmark, db_id, message)
         if benchmark in SQLITE_ROOTS
         else None
     )
     fallback = (
         build_simple_schema_nl2sql(message, schema_context)
-        if benchmark in SQLITE_ROOTS and db_id and not gold_sql and not nl2ir_result
+        if benchmark in SQLITE_ROOTS and db_id and not gold_sql
         else None
     )
-    if benchmark in SQLITE_ROOTS and db_id and not gold_sql and not fallback and not nl2ir_result:
+    if benchmark in SQLITE_ROOTS and db_id and not gold_sql and not fallback:
         raise ValueError("No benchmark gold SQL found for this question.")
 
     intent_ir = (
-        nl2ir_result.intent_ir
-        if nl2ir_result
-        else fallback.intent_ir
+        fallback.intent_ir
         if fallback
         else build_demo_ir(message)
     )
@@ -220,8 +197,6 @@ def generate_plan_for_message(
     }
     request = PlanningRequest(intent_ir=intent_ir, schema_context=schema_context)
     plan = get_ir_to_plan_provider().generate_plan(request)
-    if nl2ir_result:
-        _apply_nl2ir_result_to_plan(plan, nl2ir_result)
     if gold_sql and plan.executable:
         plan.executable.content = gold_sql
         plan.metadata["template"] = "benchmark_gold_sql"
@@ -237,8 +212,6 @@ def generate_plan_for_message(
             (dataset_context or {}).get("benchmark"),
         )
         if gold_sql and plan.executable
-        else _kddcup_trace_content(nl2ir_result, plan.executable.content if plan.executable else "", graph)
-        if nl2ir_result
         else _schema_fallback_content(fallback, plan.executable.content, graph)
         if fallback and plan.executable
         else _assistant_content((plan.executable.content if plan.executable else ""), graph)
@@ -970,51 +943,6 @@ def _gemini_assistant_content(plan) -> str:
         f"The plan has **{step_count}** step(s). "
         "Open the Query Plan panel to inspect each step."
         f"{sql_block}"
-    )
-
-
-def _apply_nl2ir_result_to_plan(plan: QueryPlan, result: NL2IRResult) -> None:
-    metadata = plan.metadata
-    metadata["provider"] = result.provider_name
-    metadata["template"] = "kddcup_trace_sql" if result.selected_sql else "kddcup_trace_no_sql"
-    metadata["trace"] = result.trace
-    metadata["agent_succeeded"] = result.succeeded
-    if result.error_message:
-        metadata["agent_error"] = result.error_message
-
-    if not plan.executable:
-        plan.executable = ExecutablePlan(type="sql", dialect="sqlite", content="")
-
-    if result.selected_sql:
-        plan.executable.content = result.selected_sql
-        metadata.pop("requires_replan", None)
-        metadata.pop("replan_reason", None)
-        return
-
-    plan.executable.content = ""
-    metadata["requires_replan"] = True
-    metadata["replan_reason"] = (
-        result.error_message
-        or "The KDDCup agent did not execute SQL for this query, so DebugSQL cannot re-execute it."
-    )
-
-
-def _kddcup_trace_content(result: NL2IRResult, sql: str, graph: dict[str, Any]) -> str:
-    step_count = len((result.trace or {}).get("steps") or [])
-    if result.selected_sql:
-        return (
-            "I generated IR from the KDDCup data-agent trace and extracted executable SQL.\n\n"
-            f"```sql\n{sql}\n```\n\n"
-            f"The trace contains **{step_count}** agent step(s), and the plan can now be inspected, "
-            f"edited, and executed. Total cost: **{graph['totalCost']:.1f}**."
-        )
-
-    reason = result.error_message or "No executable SQL was found in the agent trace."
-    return (
-        "I generated an inspectable IR from the KDDCup data-agent trace, but there is no executable SQL yet.\n\n"
-        f"Reason: {reason}\n\n"
-        "The trace can still be inspected in the Query Plan, but re-execution requires a SQL-producing "
-        "agent step."
     )
 
 
