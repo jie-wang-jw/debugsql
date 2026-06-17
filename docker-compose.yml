@@ -56,6 +56,6 @@ services:
       VITE_DEV_API_TARGET: ${VITE_DEV_API_TARGET:-http://backend:8000}
       VITE_SHOW_DEV_AUTH_NOTE: ${VITE_SHOW_DEV_AUTH_NOTE:-false}
     ports:
-      - "${FRONTEND_PORT:-5173}:5173"
+      - "${FRONTEND_PORT:-5173}:80"
     depends_on:
       - backend
