@@ -1,3 +1,5 @@
+import logging
+
 from pydantic import BaseModel
 from fastapi import APIRouter, Request
 
@@ -8,6 +10,7 @@ from app.request_auth import request_user_id
 
 
 router = APIRouter(tags=["chat"])
+logger = logging.getLogger(__name__)
 
 
 class ChatQueryRequest(BaseModel):
@@ -24,26 +27,32 @@ def query(request: ChatQueryRequest, http_request: Request) -> dict:
     except Exception as exc:
         response = _chat_error_response(exc)
         response_data = response.model_dump()
-        persist_chat_failure(
+        try:
+            persist_chat_failure(
+                session_id=request.sessionId,
+                user_message=request.message,
+                assistant_content=response.content,
+                dataset_context=request.datasetContext,
+                error_type=type(exc).__name__,
+                error_message=str(exc),
+                user_id=user_id,
+            )
+        except Exception:
+            logger.exception("Failed to persist chat failure for session_id=%s", request.sessionId)
+        return {"success": True, "data": response_data}
+
+    response_data = response.model_dump()
+    try:
+        persist_chat_interaction(
             session_id=request.sessionId,
             user_message=request.message,
             assistant_content=response.content,
             dataset_context=request.datasetContext,
-            error_type=type(exc).__name__,
-            error_message=str(exc),
+            response=response_data,
             user_id=user_id,
         )
-        return {"success": True, "data": response_data}
-
-    response_data = response.model_dump()
-    persist_chat_interaction(
-        session_id=request.sessionId,
-        user_message=request.message,
-        assistant_content=response.content,
-        dataset_context=request.datasetContext,
-        response=response_data,
-        user_id=user_id,
-    )
+    except Exception:
+        logger.exception("Failed to persist chat interaction for session_id=%s", request.sessionId)
     return {
         "success": True,
         "data": response_data,

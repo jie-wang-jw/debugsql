@@ -171,11 +171,13 @@ export function ChatPanel({
         };
         setMessages((prev) => [...prev, aiMsg]);
         void refreshHistory();
-      } catch {
+      } catch (error) {
+        console.error('Chat request failed', error);
+        const detail = error instanceof Error ? error.message : 'Unknown client error';
         const errorMsg: ChatMessage = {
           id: generateId(),
           role: 'assistant',
-          content: 'Something went wrong while processing your request. Please try again.',
+          content: `Something went wrong while processing your request.\n\n${detail}`,
           timestamp: new Date(),
         };
         setMessages((prev) => [...prev, errorMsg]);
