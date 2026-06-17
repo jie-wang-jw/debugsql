@@ -102,7 +102,7 @@ def _resolve_with_llm(message: str, schema: dict[str, Any] | None) -> ResolvedSQ
     if not service.is_configured:
         return None
     try:
-        logger.info(
+        logger.warning(
             "llm_sql_resolution_start provider=%s model=%s",
             provider,
             get_settings().llm_model if provider == "openai_compatible" else get_settings().gemini_model,
