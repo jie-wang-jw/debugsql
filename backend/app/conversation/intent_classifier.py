@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from app.benchmark_registry import SQLITE_ROOTS, find_benchmark_gold_sql, get_schema_context
+from app.benchmark_registry import SQLITE_ROOTS
 from app.config import get_settings
 from app.conversation.schemas import ConversationIntent
 from app.conversation.tool_assistant import is_schema_question
-from app.simple_nl2sql import can_generate_simple_schema_nl2sql
 
 
 HELP_TERMS = (
@@ -28,12 +27,14 @@ EDIT_TERMS = (
 )
 
 
-def _gemini_configured() -> bool:
+def _llm_configured() -> bool:
     settings = get_settings()
-    return (
-        settings.query_plan_provider.lower() == "gemini"
-        and bool(settings.gemini_api_key.strip())
-    )
+    provider = settings.query_plan_provider.lower()
+    if provider == "gemini":
+        return bool(settings.gemini_api_key.strip())
+    if provider == "openai_compatible":
+        return bool(settings.llm_api_key.strip() and settings.llm_api_base_url.strip())
+    return False
 
 
 def classify_message(message: str, dataset_context: dict | None = None) -> ConversationIntent:
@@ -60,39 +61,6 @@ def classify_message(message: str, dataset_context: dict | None = None) -> Conve
         )
 
     if benchmark in SQLITE_ROOTS and db_id:
-        if get_settings().nl2ir_provider.lower() == "kddcup":
-            return ConversationIntent(
-                intent_type="benchmark_query",
-                confidence=0.8,
-                requires_plan=True,
-                requires_execution=True,
-                reason=(
-                    f"Message will be handled by the KDDCup trace-based NL2IR provider for "
-                    f"{benchmark.upper()}."
-                ),
-            )
-
-        gold_sql = find_benchmark_gold_sql(benchmark, db_id, message)
-        if gold_sql:
-            return ConversationIntent(
-                intent_type="benchmark_query",
-                confidence=0.95,
-                requires_plan=True,
-                requires_execution=True,
-                reason=f"Message matches a {benchmark.upper()} sample question.",
-            )
-
-        if can_generate_simple_schema_nl2sql(message, get_schema_context(benchmark, db_id)):
-            return ConversationIntent(
-                intent_type="benchmark_query",
-                confidence=0.62,
-                requires_plan=True,
-                requires_execution=True,
-                reason=(
-                    f"Message was handled by the simple schema-aware {benchmark.upper()} demo fallback."
-                ),
-            )
-
         if is_schema_question(message):
             return ConversationIntent(
                 intent_type="benchmark_query",
@@ -102,13 +70,13 @@ def classify_message(message: str, dataset_context: dict | None = None) -> Conve
                 reason=f"Message asks for schema overview in {benchmark.upper()}.",
             )
 
-        if _gemini_configured():
+        if _llm_configured():
             return ConversationIntent(
                 intent_type="benchmark_query",
                 confidence=0.7,
-                requires_plan=True,
+                requires_plan=False,
                 requires_execution=True,
-                reason="Message will be handled by the Gemini query-plan provider.",
+                reason="Message will be handled by the configured SQL assistant.",
             )
 
         return ConversationIntent(
@@ -121,19 +89,19 @@ def classify_message(message: str, dataset_context: dict | None = None) -> Conve
             ),
         )
 
-    if _gemini_configured():
+    if _llm_configured():
         return ConversationIntent(
             intent_type="benchmark_query",
             confidence=0.7,
-            requires_plan=True,
+            requires_plan=False,
             requires_execution=True,
-            reason="Message will be handled by the Gemini query-plan provider.",
+            reason="Message will be handled by the configured SQL assistant.",
         )
 
     return ConversationIntent(
         intent_type="benchmark_query",
         confidence=0.55,
-        requires_plan=True,
+        requires_plan=False,
         requires_execution=True,
         reason="Fallback demo query path.",
     )

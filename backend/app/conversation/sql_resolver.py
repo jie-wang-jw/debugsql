@@ -5,12 +5,10 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
-from app.benchmark_registry import SQLITE_ROOTS, find_benchmark_gold_sql, get_schema_context
+from app.benchmark_registry import find_benchmark_gold_sql, get_schema_context
 from app.config import get_settings
-from app.gemini import GeminiService
+from app.gemini import GeminiService, OpenAICompatibleService
 from app.gemini.schemas import GeminiConfigError, QueryPlanParseError
-from app.nl2ir.provider import get_nl2ir_provider
-from app.nl2ir.schemas import NL2IRRequest
 from app.simple_nl2sql import build_simple_schema_nl2sql
 from app.tools.schemas import DatasetContext
 
@@ -22,6 +20,11 @@ class ResolvedSQL:
     sql: str | None
     explanation: str
     provider: str
+    answer: str | None = None
+    assumptions: tuple[str, ...] = ()
+    tables_used: tuple[str, ...] = ()
+    confidence: float | None = None
+    clarifying_question: str | None = None
 
 
 def resolve_sql_for_message(
@@ -33,13 +36,8 @@ def resolve_sql_for_message(
     if schema is None and context.dbType == "sqlite_benchmark" and context.benchmark and context.dbId:
         schema = get_schema_context(context.benchmark, context.dbId)
 
-    if _should_use_gemini():
-        resolved = _resolve_with_gemini(message, schema)
-        if resolved:
-            return resolved
-
-    if context.benchmark in SQLITE_ROOTS and context.dbId:
-        resolved = _resolve_with_nl2ir(message, context, schema)
+    if _should_use_llm():
+        resolved = _resolve_with_llm(message, schema)
         if resolved:
             return resolved
 
@@ -50,6 +48,7 @@ def resolve_sql_for_message(
                 sql=gold_sql,
                 explanation=f"Matched a known {context.benchmark} benchmark question.",
                 provider="gold_sql",
+                answer="I found a matching benchmark question and prepared its reference SQL.",
             )
 
     if schema:
@@ -61,6 +60,7 @@ def resolve_sql_for_message(
                     sql=fallback.sql,
                     explanation=fallback.explanation,
                     provider="simple_fallback",
+                    answer="I prepared a simple schema-aware SQL query for this question.",
                 )
 
     return ResolvedSQL(sql=None, explanation="", provider="none")
@@ -80,50 +80,58 @@ def needs_real_nl2sql(message: str) -> bool:
     return False
 
 
-def _should_use_gemini() -> bool:
+def _should_use_llm() -> bool:
     settings = get_settings()
-    return (
-        settings.query_plan_provider.lower() == "gemini"
-        and bool(settings.gemini_api_key.strip())
-    )
+    provider = settings.query_plan_provider.strip().lower()
+    if provider == "gemini":
+        return bool(settings.gemini_api_key.strip())
+    if provider == "openai_compatible":
+        return bool(settings.llm_api_key.strip() and settings.llm_api_base_url.strip())
+    return False
 
 
-def _resolve_with_gemini(message: str, schema: dict[str, Any] | None) -> ResolvedSQL | None:
-    service = GeminiService()
+def _resolve_with_llm(message: str, schema: dict[str, Any] | None) -> ResolvedSQL | None:
+    provider = get_settings().query_plan_provider.strip().lower()
+    if provider == "openai_compatible":
+        service = OpenAICompatibleService()
+    elif provider == "gemini":
+        service = GeminiService()
+    else:
+        logger.warning("Unsupported QUERY_PLAN_PROVIDER=%s; skipping LLM SQL resolution.", provider)
+        return None
     if not service.is_configured:
         return None
     try:
+        logger.warning(
+            "llm_sql_resolution_start provider=%s model=%s",
+            provider,
+            get_settings().llm_model if provider == "openai_compatible" else get_settings().gemini_model,
+        )
         plan = service.generate_query_plan(message, schema)
     except (GeminiConfigError, QueryPlanParseError, TimeoutError, RuntimeError) as exc:
-        logger.warning("Gemini SQL resolution failed: %s", exc)
+        logger.warning("%s SQL resolution failed: %s", provider, exc)
         return None
+    provider_name = provider
+    if not plan.can_answer:
+        return ResolvedSQL(
+            sql=None,
+            explanation=plan.explanation,
+            provider=provider_name,
+            answer=plan.answer,
+            assumptions=tuple(plan.assumptions),
+            tables_used=tuple(plan.tables_used),
+            confidence=plan.confidence,
+            clarifying_question=plan.clarifying_question,
+        )
     if not plan.sql:
         return None
-    explanation = plan.goal.strip() if plan.goal else "Generated with Gemini from your question and schema."
-    return ResolvedSQL(sql=plan.sql, explanation=explanation, provider="gemini")
-
-
-def _resolve_with_nl2ir(
-    message: str,
-    context: DatasetContext,
-    schema: dict[str, Any] | None,
-) -> ResolvedSQL | None:
-    try:
-        result = get_nl2ir_provider().generate_ir(
-            NL2IRRequest(
-                message=message,
-                schema_context=schema,
-                dataset_context=context.model_dump(),
-            )
-        )
-    except Exception as exc:  # noqa: BLE001 - provider failures should fall through to other resolvers.
-        logger.warning("NL2IR SQL resolution failed: %s", exc)
-        return None
-    if not result or not result.selected_sql:
-        return None
-    explanation = "Generated by the KDDCup data-agent from your question and database schema."
-    if result.provider_name == "kddcup":
-        explanation = (
-            "Generated by the KDDCup agent after inspecting the database schema and relationships."
-        )
-    return ResolvedSQL(sql=result.selected_sql, explanation=explanation, provider=result.provider_name)
+    explanation = plan.explanation.strip() or "Generated from your question and schema."
+    return ResolvedSQL(
+        sql=plan.sql,
+        explanation=explanation,
+        provider=provider_name,
+        answer=plan.answer,
+        assumptions=tuple(plan.assumptions),
+        tables_used=tuple(plan.tables_used),
+        confidence=plan.confidence,
+    )

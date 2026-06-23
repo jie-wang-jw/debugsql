@@ -250,8 +250,7 @@ def _summarize_cases(cases: list[dict[str, Any]]) -> dict[str, Any]:
 
 def _classify_failure(stored: dict[str, Any], result: dict[str, Any] | None) -> str:
     metadata = (stored.get("plan") or {}).get("metadata") or {}
-    ir = stored.get("ir") or {}
-    if metadata.get("requires_replan") or ir.get("intent_type") == "agent_trace_error":
+    if metadata.get("requires_replan"):
         return "planning"
     if result and _has_execution_error(result):
         return "execution"

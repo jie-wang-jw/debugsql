@@ -1,5 +1,6 @@
 import { apiGet } from './client';
 import type { DatasetContext } from './chatApi';
+import type { ProposedToolAction } from './chatApi';
 import type { RequestOptions } from './client';
 import type { ExecutionResultPreview } from '../../types/execution.types';
 
@@ -53,6 +54,12 @@ export interface HistoryMessage {
   planId?: string | null;
   sql?: string | null;
   datasetContext?: DatasetContext | null;
+  proposedActions?: ProposedToolAction[];
+  requiresApproval?: boolean | null;
+  confidence?: number | null;
+  assumptions?: string[];
+  tablesUsed?: string[];
+  explanation?: string | null;
 }
 
 export interface HistoryConversationDetail {

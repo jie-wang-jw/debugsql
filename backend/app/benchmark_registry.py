@@ -12,10 +12,16 @@ from app.config import get_settings
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 _configured_benchmark_root = Path(get_settings().benchmark_data_dir)
-BENCHMARK_ROOT = (
+_fallback_benchmark_root = PROJECT_ROOT / "data" / "benchmarks"
+_resolved_benchmark_root = (
     _configured_benchmark_root
     if _configured_benchmark_root.is_absolute()
     else PROJECT_ROOT / _configured_benchmark_root
+)
+BENCHMARK_ROOT = (
+    _resolved_benchmark_root
+    if _resolved_benchmark_root.exists()
+    else _fallback_benchmark_root
 )
 SPIDER_ROOT = BENCHMARK_ROOT / "spider"
 BIRD_ROOT = BENCHMARK_ROOT / "bird"

@@ -6,7 +6,7 @@ from app.gemini.schemas import GeminiQueryPlan
 
 
 def gemini_plan_to_graph(plan: GeminiQueryPlan, query_label: str) -> dict[str, Any]:
-    """Map a validated Gemini plan to the frontend QueryPlanGraph shape."""
+    """Map a validated LLM plan to the frontend QueryPlanGraph shape."""
     nodes: list[dict[str, Any]] = []
     edges: list[dict[str, Any]] = []
 

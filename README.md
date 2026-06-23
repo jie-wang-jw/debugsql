@@ -337,14 +337,20 @@ VITE_API_BASE_URL=/api
 CORS_ORIGINS=http://SERVER_IP,http://SERVER_IP:80,http://localhost:5173,http://127.0.0.1:5173
 APP_BASE_URL=http://SERVER_IP/api
 FRONTEND_BASE_URL=http://SERVER_IP
-DEBUGSQL_AUTO_LOGIN=1
+DEBUGSQL_AUTO_LOGIN=0
 BENCHMARK_HOST_DATA_DIR=/data/debugsql/data/benchmarks
 BENCHMARK_DATA_DIR=/app/data/benchmarks
-EMAIL_DEV_LOG_CODES=1
+EMAIL_DEV_LOG_CODES=0
+QUERY_PLAN_PROVIDER=openai_compatible
+LLM_API_BASE_URL=https://your-workspace.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1
+LLM_API_KEY=...
+LLM_MODEL=qwen-plus
 ```
 
-`DEBUGSQL_AUTO_LOGIN=1` is suitable for the current private demo server. Change
-it to `0` after SMTP email delivery is configured for real user testing.
+Use `DEBUGSQL_AUTO_LOGIN=1` only for private local debugging. The server should
+normally use email verification login with `DEBUGSQL_AUTO_LOGIN=0`. Set
+`EMAIL_DEV_LOG_CODES=1` only while debugging email delivery, because it prints
+login codes in backend logs.
 
 Create the durable server data directories before starting Compose:
 
@@ -587,31 +593,22 @@ Development history endpoint:
 curl http://127.0.0.1:8000/history/summary
 ```
 
-KDDCup data-agent NL2IR provider:
+LLM provider for the chat-driven data assistant:
 
 ```bash
-NL2IR_PROVIDER=kddcup
-KDDCUP_AGENT_MODEL=gpt-4.1-mini
-KDDCUP_AGENT_API_BASE=https://api.openai.com/v1
-KDDCUP_LLM_API_KEY=...
-KDDCUP_AGENT_MAX_STEPS=8
+NL2IR_PROVIDER=stub
+QUERY_PLAN_PROVIDER=openai_compatible
+LLM_API_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+LLM_API_KEY=...
+LLM_MODEL=qwen-plus
 ```
 
-This mode uses the vendored `backend/vendor/kddcup2026-data-agents-starter-kit`
-agent trace to generate DebugSQL IR and is the default proposal path.
-
-`KDDCUP_LLM_API_KEY` is an **LLM (OpenAI-compatible) API key**, not a key
-issued by the KDDCup website. The vendored baseline is a ReAct agent: it uses an
-LLM to reason step by step (inspect schema → run SQL → observe → decide the next
-action) before producing SQL, so it needs a key to call `KDDCUP_AGENT_MODEL`.
-`KDDCUP_AGENT_API_BASE` can target any OpenAI-compatible endpoint (OpenAI, a
-self-hosted vLLM/Ollama gateway, or another provider); set the key and model to
-match that endpoint. The legacy name `KDDCUP_AGENT_API_KEY` still works as a
-backward-compatible alias.
-
-If no key is configured, the backend returns an inspectable
-`agent_trace_error` IR and marks the plan as `needs_replan` instead of inventing
-fake SQL. Use `NL2IR_PROVIDER=stub` only for offline demo development.
+The current runtime is chat-driven. The user selects a BIRD/Spider SQLite
+database, asks a question, reviews the proposed read-only SQL, validates it,
+and approves execution. The default LLM path uses an OpenAI-compatible chat API,
+so Alibaba Cloud Model Studio, DeepSeek, or a compatible gateway can be swapped
+by changing environment variables. Gemini remains available as an optional
+provider.
 
 Evaluation endpoint:
 
@@ -627,7 +624,7 @@ distribution for BIRD/Spider subsets.
 
 ## Next Steps
 
-1. Tune the KDDCup data-agent provider against larger Spider/BIRD subsets.
+1. Improve LLM answer quality and result summarization for BIRD/Spider.
 2. Feed controlled edit scenarios into DRR/IRR/EI evaluation.
 3. Add streaming execution progress and cancellation.
 

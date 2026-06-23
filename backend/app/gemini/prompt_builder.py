@@ -5,12 +5,12 @@ from typing import Any
 
 
 class PromptBuilder:
-    """Builds Gemini prompts for structured query-plan generation."""
+    """Builds LLM prompts for answer-first SQL generation."""
 
     SYSTEM_INSTRUCTION = (
         "You are a SQL planning assistant for DebugSQL. "
         "Given a natural-language question and optional database schema, "
-        "produce a concise execution plan and SQLite-compatible SELECT SQL. "
+        "produce a concise user answer and SQLite-compatible SELECT SQL. "
         "Return only JSON matching the required schema. "
         "Do not wrap the response in markdown fences."
     )
@@ -27,10 +27,16 @@ class PromptBuilder:
             f"SQL dialect: {dialect}\n"
             f"{schema_block}\n"
             "Respond with JSON containing:\n"
-            '- "goal": short summary of what the query accomplishes\n'
-            '- "sql": a single read-only SELECT statement (no DDL/DML)\n'
-            '- "steps": ordered planning steps with integer "id", "title", and "description"\n'
-            "Use 2-8 steps that explain how to answer the question."
+            '- "can_answer": boolean; false when the question is ambiguous or unsupported\n'
+            '- "answer": one short user-facing answer or proposal\n'
+            '- "sql": a single read-only SELECT/WITH statement, or null when can_answer is false\n'
+            '- "explanation": concise explanation of tables, filters, joins, grouping, or limits\n'
+            '- "assumptions": array of assumptions made about the user request\n'
+            '- "tables_used": array of table names used by the SQL\n'
+            '- "confidence": number from 0 to 1\n'
+            '- "clarifying_question": question to ask the user when can_answer is false\n'
+            '- "steps": optional brief planning steps with integer "id", "title", and "description"\n'
+            "If the schema does not support the request, set can_answer=false and do not invent SQL."
         )
         return self.SYSTEM_INSTRUCTION, user_prompt
 
@@ -55,12 +61,18 @@ class PromptBuilder:
         return "\n".join(lines)
 
     def response_json_schema(self) -> dict[str, Any]:
-        """JSON schema passed to Gemini structured output."""
+        """JSON schema requested from the configured LLM provider."""
         return {
             "type": "object",
             "properties": {
-                "goal": {"type": "string"},
-                "sql": {"type": "string"},
+                "can_answer": {"type": "boolean"},
+                "answer": {"type": "string"},
+                "sql": {"type": ["string", "null"]},
+                "explanation": {"type": "string"},
+                "assumptions": {"type": "array", "items": {"type": "string"}},
+                "tables_used": {"type": "array", "items": {"type": "string"}},
+                "confidence": {"type": "number"},
+                "clarifying_question": {"type": ["string", "null"]},
                 "steps": {
                     "type": "array",
                     "items": {
@@ -74,7 +86,7 @@ class PromptBuilder:
                     },
                 },
             },
-            "required": ["goal", "steps"],
+            "required": ["can_answer", "answer", "sql", "explanation", "assumptions", "tables_used", "confidence"],
         }
 
     def schema_as_json(self) -> str:

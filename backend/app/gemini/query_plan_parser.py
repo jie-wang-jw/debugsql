@@ -4,17 +4,12 @@ import json
 import re
 from typing import Any
 
+from app.tools.policy import is_safe_read_query
 from app.gemini.schemas import GeminiQueryPlan, QueryPlanParseError
-
-_FORBIDDEN_SQL = re.compile(
-    r"\b(DROP|DELETE|TRUNCATE|ALTER|CREATE|INSERT|UPDATE|GRANT|REVOKE)\b",
-    re.IGNORECASE,
-)
-_MULTI_STATEMENT = re.compile(r";\s*\S")
 
 
 class QueryPlanParser:
-    """Validates and normalizes Gemini JSON into a typed query plan."""
+    """Validates and normalizes LLM JSON into a typed query plan."""
 
     def parse(self, raw_text: str) -> GeminiQueryPlan:
         payload = self._load_json(raw_text)
@@ -31,16 +26,16 @@ class QueryPlanParser:
     def _load_json(self, raw_text: str) -> dict[str, Any]:
         text = (raw_text or "").strip()
         if not text:
-            raise QueryPlanParseError("Gemini returned an empty response.")
+            raise QueryPlanParseError("LLM provider returned an empty response.")
 
         text = self._strip_code_fence(text)
         try:
             payload = json.loads(text)
         except json.JSONDecodeError as exc:
-            raise QueryPlanParseError(f"Gemini response was not valid JSON: {exc}") from exc
+            raise QueryPlanParseError(f"LLM provider response was not valid JSON: {exc}") from exc
 
         if not isinstance(payload, dict):
-            raise QueryPlanParseError("Gemini response must be a JSON object.")
+            raise QueryPlanParseError("LLM provider response must be a JSON object.")
 
         return payload
 
@@ -55,11 +50,5 @@ class QueryPlanParser:
         if not normalized:
             raise QueryPlanParseError("SQL must not be empty when provided.")
 
-        if _MULTI_STATEMENT.search(normalized):
-            raise QueryPlanParseError("Only a single SQL statement is allowed.")
-
-        if _FORBIDDEN_SQL.search(normalized):
-            raise QueryPlanParseError("Only read-only SELECT queries are allowed.")
-
-        if not normalized.lstrip().upper().startswith("SELECT"):
-            raise QueryPlanParseError("Generated SQL must be a SELECT statement.")
+        if not is_safe_read_query(normalized):
+            raise QueryPlanParseError("Only a single read-only SELECT/WITH query is allowed.")

@@ -1,7 +1,6 @@
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _BACKEND_ROOT = Path(__file__).resolve().parents[1]
@@ -35,18 +34,7 @@ class Settings(BaseSettings):
     debugsql_auto_login: bool = True
     debugsql_dev_user_email: str = "dev@debugsql.local"
     debugsql_dev_user_name: str = "DebugSQL Dev User"
-    nl2ir_provider: str = "kddcup"
-    kddcup_agent_model: str = "gpt-4.1-mini"
-    kddcup_agent_api_base: str = "https://api.openai.com/v1"
-    # LLM (OpenAI-compatible) API key for the KDDCup data-agent. Prefer
-    # KDDCUP_LLM_API_KEY; KDDCUP_AGENT_API_KEY is kept as a backward-compatible alias.
-    kddcup_llm_api_key: str = Field(
-        default="",
-        validation_alias=AliasChoices("KDDCUP_LLM_API_KEY", "KDDCUP_AGENT_API_KEY"),
-    )
-    kddcup_agent_max_steps: int = 8
-    kddcup_agent_timeout_seconds: int = 120
-    kddcup_work_dir: str = "/tmp/debugsql-kddcup"
+    nl2ir_provider: str = "stub"
     ir_to_plan_provider: str = "internal"
     ir_to_plan_api_url: str = ""
     ir_to_plan_api_key: str = ""
@@ -54,7 +42,11 @@ class Settings(BaseSettings):
     gemini_api_key: str = ""
     gemini_model: str = "gemini-2.0-flash"
     gemini_timeout_seconds: int = 30
-    query_plan_provider: str = "gemini"
+    llm_api_base_url: str = ""
+    llm_api_key: str = ""
+    llm_model: str = "qwen-plus"
+    llm_timeout_seconds: int = 30
+    query_plan_provider: str = "openai_compatible"
     benchmark_data_dir: str = "data/benchmarks"
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
 

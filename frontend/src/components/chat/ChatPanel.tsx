@@ -22,7 +22,7 @@ import {
 import { useExecutionContext } from '../../store/ExecutionContext';
 import { useDatasetContext } from '../../store/DatasetContext';
 import { generateId } from '../../utils';
-import type { ExecutionResult } from '../../types/execution.types';
+import type { ExecutionResult, ExecutionResultPreview } from '../../types/execution.types';
 import './ChatPanel.css';
 
 const INITIAL_MESSAGES: ChatMessage[] = [];
@@ -165,14 +165,19 @@ export function ChatPanel({
           content: response.content,
           timestamp: new Date(),
           proposedActions: response.proposedActions ?? [],
+          confidence: response.confidence,
+          assumptions: response.assumptions ?? [],
+          tablesUsed: response.tablesUsed ?? [],
         };
         setMessages((prev) => [...prev, aiMsg]);
         void refreshHistory();
-      } catch {
+      } catch (error) {
+        console.error('Chat request failed', error);
+        const detail = error instanceof Error ? error.message : 'Unknown client error';
         const errorMsg: ChatMessage = {
           id: generateId(),
           role: 'assistant',
-          content: 'Something went wrong while processing your request. Please try again.',
+          content: `Something went wrong while processing your request.\n\n${detail}`,
           timestamp: new Date(),
         };
         setMessages((prev) => [...prev, errorMsg]);
@@ -204,6 +209,20 @@ export function ChatPanel({
     );
   }, []);
 
+  const appendAssistantResult = useCallback((content: string) => {
+    const trimmed = content.trim();
+    if (!trimmed) return;
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: generateId(),
+        role: 'assistant',
+        content: trimmed,
+        timestamp: new Date(),
+      },
+    ]);
+  }, []);
+
   const startNewConversation = useCallback(() => {
     setSessionId(`session-${Date.now()}`);
     setMessages([]);
@@ -216,12 +235,20 @@ export function ChatPanel({
       try {
         const detail = await getHistoryConversation(conversationId);
         setSessionId(detail.sessionId);
+        const latestSummary = detail.latestExecutionResultPreview
+          ? summarizeRestoredExecution(detail.latestExecutionResultPreview)
+          : null;
         setMessages(
           detail.messages.map((message) => ({
             id: message.id,
             role: message.role,
             content: message.content,
             timestamp: new Date(message.timestamp),
+            proposedActions: message.proposedActions ?? [],
+            confidence: message.confidence,
+            assumptions: message.assumptions ?? [],
+            tablesUsed: message.tablesUsed ?? [],
+            actionResults: buildRestoredActionResults(message.proposedActions, latestSummary),
           })),
         );
         if (detail.datasetContext?.benchmark) {
@@ -286,7 +313,9 @@ export function ChatPanel({
                     <ProposedActions
                       actions={msg.proposedActions}
                       datasetContext={datasetContext}
+                      sessionId={sessionId}
                       onResult={(actionId, summary) => handleActionResult(msg.id, actionId, summary)}
+                      onAssistantFollowup={appendAssistantResult}
                       onExecutionResult={applyExecutionResult}
                     />
                   )}
@@ -324,6 +353,22 @@ export function ChatPanel({
       <ChatInput onSend={sendMessage} isDisabled={status === 'thinking'} />
     </div>
   );
+}
+
+function summarizeRestoredExecution(preview: ExecutionResultPreview | null | undefined): string | null {
+  if (!preview) return null;
+  const rows = Array.isArray(preview.rows) ? preview.rows : [];
+  const rowCount = preview.metrics?.rowCount ?? preview.rowCount ?? rows.length;
+  return `Previous execution result restored. The query returned ${rowCount} rows.`;
+}
+
+function buildRestoredActionResults(
+  actions: import('../../services/api/chatApi').ProposedToolAction[] | undefined,
+  latestSummary: string | null,
+): Record<string, string> | undefined {
+  if (!latestSummary || !actions?.length) return undefined;
+  const runAction = actions.find((action) => action.tool === 'run_sql');
+  return runAction ? { [runAction.id]: latestSummary } : undefined;
 }
 
 interface HistoryPanelProps {

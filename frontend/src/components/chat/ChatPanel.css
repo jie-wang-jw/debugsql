@@ -406,6 +406,50 @@
   margin: 0;
 }
 
+.chat-msg__metadata {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding-top: 2px;
+}
+
+.chat-msg__metadata-pill,
+.chat-msg__metadata-block {
+  border: 1px solid var(--border-default);
+  border-radius: var(--r-sm);
+  background: var(--bg-input);
+  color: var(--text-secondary);
+  font-size: 10px;
+}
+
+.chat-msg__metadata-pill {
+  padding: 3px 6px;
+  font-family: var(--font-mono);
+}
+
+.chat-msg__metadata-block {
+  width: 100%;
+  padding: 6px 7px;
+}
+
+.chat-msg__metadata-block span {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.chat-msg__metadata-block ul {
+  margin: 0;
+  padding-left: 14px;
+}
+
+.chat-msg__metadata-block li {
+  margin: 2px 0;
+}
+
 /* ================================================
    Code block inside messages
    ================================================ */

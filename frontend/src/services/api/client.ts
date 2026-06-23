@@ -75,16 +75,23 @@ async function request<T>(
     ? AbortSignal.any([signal, timeoutSignal])
     : timeoutSignal;
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    method,
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      // Auth uses the httpOnly debugsql_session cookie via credentials: 'include'.
-    },
-    body:   body !== undefined ? JSON.stringify(body) : undefined,
-    signal: effectiveSignal,
-  });
+  const url = `${API_BASE_URL}${path}`;
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      method,
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        // Auth uses the httpOnly debugsql_session cookie via credentials: 'include'.
+      },
+      body:   body !== undefined ? JSON.stringify(body) : undefined,
+      signal: effectiveSignal,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'request failed';
+    throw new Error(`${method} ${url}: ${message}`);
+  }
 
   if (!response.ok) {
     let apiError: ApiError | undefined;
@@ -97,7 +104,9 @@ async function request<T>(
       // Response body was not valid JSON — ignore and use status text.
     }
     throw new ApiClientError(
-      apiError?.message ?? detail ?? `HTTP ${response.status} ${response.statusText}`,
+      `${method} ${url}: ${
+        apiError?.message ?? detail ?? `HTTP ${response.status} ${response.statusText}`
+      }`,
       response.status,
       apiError,
     );

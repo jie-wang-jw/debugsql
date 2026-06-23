@@ -45,6 +45,7 @@ export interface ToolExecuteRequest {
   arguments: Record<string, unknown>;
   context: DatasetContext & { dbType?: DbType };
   approved?: boolean;
+  sessionId?: string;
 }
 
 export interface ToolResult {

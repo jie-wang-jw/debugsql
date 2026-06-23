@@ -8,14 +8,18 @@ import './ProposedActions.css';
 interface ProposedActionsProps {
   actions: ProposedToolAction[];
   datasetContext?: DatasetContext;
+  sessionId?: string;
   onResult: (actionId: string, summary: string) => void;
+  onAssistantFollowup?: (content: string) => void;
   onExecutionResult?: (sql: string, data: Record<string, unknown>) => void;
 }
 
 export function ProposedActions({
   actions,
   datasetContext,
+  sessionId,
   onResult,
+  onAssistantFollowup,
   onExecutionResult,
 }: ProposedActionsProps) {
   const [runningId, setRunningId] = useState<string | null>(null);
@@ -38,6 +42,7 @@ export function ProposedActions({
             dbType: datasetContext.dbType ?? 'sqlite_benchmark',
           },
           approved,
+          sessionId,
         });
         if (!result.success) {
           onResult(action.id, result.error ?? 'Tool execution failed.');
@@ -47,7 +52,9 @@ export function ProposedActions({
         if (action.tool === 'run_sql') {
           const sql = String(action.arguments.sql ?? '');
           onExecutionResult?.(sql, result.data);
-          onResult(action.id, `Executed SQL and returned ${String((result.data.metrics as { rowCount?: number })?.rowCount ?? 'some')} rows.`);
+          const summary = summarizeExecutionResult(result.data);
+          onResult(action.id, summary);
+          onAssistantFollowup?.(summary);
         } else if (action.tool === 'run_sql_preview') {
           onResult(action.id, String(result.data.message ?? 'SQL validation completed.'));
         } else if (action.tool === 'introspect_schema') {
@@ -99,4 +106,20 @@ export function ProposedActions({
       ))}
     </div>
   );
+}
+
+function summarizeExecutionResult(data: Record<string, unknown>): string {
+  const metrics = data.metrics as { rowCount?: number } | undefined;
+  const rows = Array.isArray(data.rows) ? data.rows as Array<Record<string, unknown>> : [];
+  const rowCount = metrics?.rowCount ?? rows.length;
+  if (rows.length === 0) {
+    return `Executed SQL successfully. The query returned ${rowCount} rows.`;
+  }
+
+  const first = rows[0] ?? {};
+  const keys = Object.keys(first).slice(0, 4);
+  const preview = keys
+    .map((key) => `${key}: ${String(first[key] ?? 'null')}`)
+    .join(', ');
+  return `Executed SQL successfully. The query returned ${rowCount} rows. First row: ${preview}.`;
 }

@@ -14,12 +14,10 @@ from app.benchmark_registry import (
     get_schema_context,
 )
 from app.config import get_settings
-from app.gemini import GeminiService, QueryPlanParseError, gemini_plan_to_graph
+from app.gemini import GeminiService, OpenAICompatibleService, QueryPlanParseError, gemini_plan_to_graph
 from app.gemini.schemas import GeminiConfigError
-from app.nl2ir.provider import get_nl2ir_provider
-from app.nl2ir.schemas import NL2IRRequest, NL2IRResult
 from app.planning.provider import get_ir_to_plan_provider
-from app.planning.schemas import ExecutablePlan, PlanNode, PlanningRequest, QueryPlan
+from app.planning.schemas import PlanNode, PlanningRequest, QueryPlan
 from app.simple_nl2sql import build_simple_schema_nl2sql
 
 
@@ -84,15 +82,17 @@ def build_demo_ir(message: str) -> dict[str, Any]:
     }
 
 
-def _should_use_gemini() -> bool:
+def _should_use_llm() -> bool:
     settings = get_settings()
-    return (
-        settings.query_plan_provider.lower() == "gemini"
-        and bool(settings.gemini_api_key.strip())
-    )
+    provider = settings.query_plan_provider.strip().lower()
+    if provider == "gemini":
+        return bool(settings.gemini_api_key.strip())
+    if provider == "openai_compatible":
+        return bool(settings.llm_api_key.strip() and settings.llm_api_base_url.strip())
+    return False
 
 
-def generate_gemini_plan_for_message(
+def generate_llm_plan_for_message(
     message: str,
     session_id: str | None = None,
     dataset_context: dict[str, Any] | None = None,
@@ -105,20 +105,26 @@ def generate_gemini_plan_for_message(
         else None
     )
 
-    service = GeminiService()
-    gemini_plan = service.generate_query_plan(message, schema_context)
-    graph = gemini_plan_to_graph(gemini_plan, message)
-    plan_id = _stable_id("plan_gemini", {"message": message, "session": session_id})
-    sql = gemini_plan.sql or ""
+    provider = get_settings().query_plan_provider.strip().lower()
+    if provider == "openai_compatible":
+        service = OpenAICompatibleService()
+    elif provider == "gemini":
+        service = GeminiService()
+    else:
+        raise GeminiConfigError(f"Unsupported QUERY_PLAN_PROVIDER={provider}")
+    llm_plan = service.generate_query_plan(message, schema_context)
+    graph = gemini_plan_to_graph(llm_plan, message)
+    plan_id = _stable_id("plan_llm", {"message": message, "session": session_id, "provider": provider})
+    sql = llm_plan.sql or ""
 
     stored = {
         "message": message,
         "session_id": session_id,
         "dataset_context": dataset_context,
         "ir": {
-            "intent_type": "gemini",
+            "intent_type": provider,
             "raw_query": message,
-            "goal": gemini_plan.goal,
+            "goal": llm_plan.goal,
         },
         "plan": {
             "plan_id": plan_id,
@@ -126,17 +132,26 @@ def generate_gemini_plan_for_message(
             "data_source_type": "relational",
             "executable": {"type": "sql", "dialect": "sqlite", "content": sql},
             "metadata": {
-                "provider": "gemini",
-                "template": "gemini",
-                "goal": gemini_plan.goal,
+                "provider": provider,
+                "template": provider,
+                "goal": llm_plan.goal,
             },
         },
         "graph": graph,
-        "assistant_content": _gemini_assistant_content(gemini_plan),
+        "assistant_content": _gemini_assistant_content(llm_plan),
         "created_at": time.time(),
     }
     PLAN_STORE[plan_id] = stored
     return stored
+
+
+def generate_gemini_plan_for_message(
+    message: str,
+    session_id: str | None = None,
+    dataset_context: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Backward-compatible wrapper for tests and older callers."""
+    return generate_llm_plan_for_message(message, session_id, dataset_context)
 
 
 def generate_plan_for_message(
@@ -152,44 +167,28 @@ def generate_plan_for_message(
         PLAN_STORE[stored["plan"]["plan_id"]] = stored
         return stored
 
-    if _should_use_gemini():
+    if _should_use_llm():
         try:
-            return generate_gemini_plan_for_message(message, session_id, dataset_context)
+            return generate_llm_plan_for_message(message, session_id, dataset_context)
         except (GeminiConfigError, QueryPlanParseError, TimeoutError, RuntimeError) as exc:
-            logger.warning("Gemini plan generation failed, falling back to legacy pipeline: %s", exc)
+            logger.warning("LLM plan generation failed, falling back to legacy pipeline: %s", exc)
 
     schema_context = get_schema_context(benchmark, db_id)
-    nl2ir_result = (
-        get_nl2ir_provider().generate_ir(
-            NL2IRRequest(
-                message=message,
-                schema_context=schema_context,
-                dataset_context=dataset_context,
-            )
-        )
-        if benchmark in SQLITE_ROOTS and db_id
-        else None
-    )
-
     gold_sql = (
-        None
-        if nl2ir_result
-        else find_benchmark_gold_sql(benchmark, db_id, message)
+        find_benchmark_gold_sql(benchmark, db_id, message)
         if benchmark in SQLITE_ROOTS
         else None
     )
     fallback = (
         build_simple_schema_nl2sql(message, schema_context)
-        if benchmark in SQLITE_ROOTS and db_id and not gold_sql and not nl2ir_result
+        if benchmark in SQLITE_ROOTS and db_id and not gold_sql
         else None
     )
-    if benchmark in SQLITE_ROOTS and db_id and not gold_sql and not fallback and not nl2ir_result:
+    if benchmark in SQLITE_ROOTS and db_id and not gold_sql and not fallback:
         raise ValueError("No benchmark gold SQL found for this question.")
 
     intent_ir = (
-        nl2ir_result.intent_ir
-        if nl2ir_result
-        else fallback.intent_ir
+        fallback.intent_ir
         if fallback
         else build_demo_ir(message)
     )
@@ -215,8 +214,6 @@ def generate_plan_for_message(
     }
     request = PlanningRequest(intent_ir=intent_ir, schema_context=schema_context)
     plan = get_ir_to_plan_provider().generate_plan(request)
-    if nl2ir_result:
-        _apply_nl2ir_result_to_plan(plan, nl2ir_result)
     if gold_sql and plan.executable:
         plan.executable.content = gold_sql
         plan.metadata["template"] = "benchmark_gold_sql"
@@ -232,8 +229,6 @@ def generate_plan_for_message(
             (dataset_context or {}).get("benchmark"),
         )
         if gold_sql and plan.executable
-        else _kddcup_trace_content(nl2ir_result, plan.executable.content if plan.executable else "", graph)
-        if nl2ir_result
         else _schema_fallback_content(fallback, plan.executable.content, graph)
         if fallback and plan.executable
         else _assistant_content((plan.executable.content if plan.executable else ""), graph)
@@ -968,51 +963,6 @@ def _gemini_assistant_content(plan) -> str:
     )
 
 
-def _apply_nl2ir_result_to_plan(plan: QueryPlan, result: NL2IRResult) -> None:
-    metadata = plan.metadata
-    metadata["provider"] = result.provider_name
-    metadata["template"] = "kddcup_trace_sql" if result.selected_sql else "kddcup_trace_no_sql"
-    metadata["trace"] = result.trace
-    metadata["agent_succeeded"] = result.succeeded
-    if result.error_message:
-        metadata["agent_error"] = result.error_message
-
-    if not plan.executable:
-        plan.executable = ExecutablePlan(type="sql", dialect="sqlite", content="")
-
-    if result.selected_sql:
-        plan.executable.content = result.selected_sql
-        metadata.pop("requires_replan", None)
-        metadata.pop("replan_reason", None)
-        return
-
-    plan.executable.content = ""
-    metadata["requires_replan"] = True
-    metadata["replan_reason"] = (
-        result.error_message
-        or "The KDDCup agent did not execute SQL for this query, so DebugSQL cannot re-execute it."
-    )
-
-
-def _kddcup_trace_content(result: NL2IRResult, sql: str, graph: dict[str, Any]) -> str:
-    step_count = len((result.trace or {}).get("steps") or [])
-    if result.selected_sql:
-        return (
-            "I generated IR from the KDDCup data-agent trace and extracted executable SQL.\n\n"
-            f"```sql\n{sql}\n```\n\n"
-            f"The trace contains **{step_count}** agent step(s), and the plan can now be inspected, "
-            f"edited, and executed. Total cost: **{graph['totalCost']:.1f}**."
-        )
-
-    reason = result.error_message or "No executable SQL was found in the agent trace."
-    return (
-        "I generated an inspectable IR from the KDDCup data-agent trace, but there is no executable SQL yet.\n\n"
-        f"Reason: {reason}\n\n"
-        "The trace can still be inspected in the Query Plan, but re-execution requires a SQL-producing "
-        "agent step."
-    )
-
-
 def _benchmark_query_content(
     sql: str,
     graph: dict[str, Any],
@@ -1287,7 +1237,7 @@ def _apply_node_edit_to_executable(plan_id: str, node_id: str) -> dict[str, Any]
             "requiresProvider": True,
         }
 
-    if template == "gemini":
+    if template in {"gemini", "openai_compatible"}:
         return _apply_gemini_node_edit(stored, node)
 
     return {
@@ -1310,7 +1260,7 @@ def _apply_gemini_node_edit(stored: dict[str, Any], node: dict[str, Any] | None)
             node["data"] = data
             return {
                 "status": "regenerated",
-                "message": "Gemini SQL was updated from the edited SQL node.",
+                "message": "Generated SQL was updated from the edited SQL node.",
                 "executableAvailable": True,
             }
         return {

@@ -75,6 +75,7 @@ class ToolExecuteRequest(BaseModel):
     arguments: dict[str, Any] = Field(default_factory=dict)
     context: DatasetContext
     approved: bool = False
+    sessionId: str | None = None
 
 
 class ProposedToolAction(BaseModel):
