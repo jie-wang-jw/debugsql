@@ -15,7 +15,7 @@
 }
 
 .skeleton__line {
-  height: 12px;
+  height: 14px;
   border-radius: var(--r-sm);
   background: linear-gradient(
     90deg,
@@ -34,8 +34,8 @@
 .skeleton__line--full   { width: 100%; }
 
 /* Height variants */
-.skeleton__line--sm     { height: 8px; }
-.skeleton__line--lg     { height: 18px; }
+.skeleton__line--sm     { height: 10px; }
+.skeleton__line--lg     { height: 20px; }
 
 /* Stagger shimmer phase per sibling */
 .skeleton__line:nth-child(2) { animation-delay: 0.12s; }

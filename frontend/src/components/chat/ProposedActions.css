@@ -7,7 +7,7 @@
 
 .proposed-actions__title {
   margin: 0;
-  font-size: 0.68rem;
+  font-size: var(--text-2xs);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--text-muted);
@@ -26,12 +26,12 @@
 
 .proposed-action-card strong {
   display: block;
-  font-size: 0.76rem;
+  font-size: var(--text-xs);
 }
 
 .proposed-action-card p {
   margin: 0.2rem 0 0;
-  font-size: 0.7rem;
+  font-size: var(--text-2xs);
   color: var(--text-secondary);
 }
 
@@ -44,7 +44,7 @@
   background: var(--bg-elevated);
   color: var(--text-primary);
   padding: 0.35rem 0.55rem;
-  font-size: 0.7rem;
+  font-size: var(--text-2xs);
   white-space: nowrap;
 }
 
