@@ -44,7 +44,7 @@
 }
 
 .inspector__title {
-  font-size: 11.5px;
+  font-size: var(--text-sm);
   font-weight: 600;
   color: var(--text-primary);
   letter-spacing: -0.005em;
@@ -71,7 +71,7 @@
   display: flex;
   align-items: center;
   gap: 7px;
-  font-size: 11px;
+  font-size: var(--text-sm);
   color: var(--text-muted);
   padding: 8px 10px;
   background: var(--bg-card);
@@ -99,7 +99,7 @@
 /* ---- Field row ---- */
 .field-row {
   display: grid;
-  grid-template-columns: 130px 1fr;
+  grid-template-columns: 140px 1fr;
   align-items: start;
   gap: 10px;
   padding: 9px 11px;
@@ -126,7 +126,7 @@
 }
 
 .field-row__label {
-  font-size: 10.5px;
+  font-size: var(--text-xs);
   color: var(--text-muted);
   letter-spacing: 0.02em;
   white-space: nowrap;
@@ -146,7 +146,7 @@
 }
 
 .field-row__value {
-  font-size: 11px;
+  font-size: var(--text-sm);
   color: var(--text-secondary);
   font-family: var(--font-sans);
   white-space: normal;
@@ -157,7 +157,7 @@
 .field-row__value--mono {
   font-family: var(--font-mono);
   color: var(--text-code);
-  font-size: 10.5px;
+  font-size: var(--text-xs);
 }
 
 .field-row__input {
@@ -166,7 +166,7 @@
   border-radius: var(--r-sm);
   color: var(--text-primary);
   font-family: var(--font-sans);
-  font-size: 11px;
+  font-size: var(--text-sm);
   padding: 5px 8px;
   min-height: 28px;
   outline: none;
@@ -176,7 +176,7 @@
 
 .field-row__input--mono {
   font-family: var(--font-mono);
-  font-size: 10.5px;
+  font-size: var(--text-xs);
   color: var(--text-code);
 }
 
@@ -210,7 +210,7 @@
   gap: 7px;
   padding: 8px 12px;
   border-radius: var(--r-md);
-  font-size: 11px;
+  font-size: var(--text-sm);
   font-weight: 500;
   cursor: pointer;
   border: 1px solid var(--border-default);
@@ -265,7 +265,7 @@
 }
 
 .inspector__apply-hint {
-  font-size: 10px;
+  font-size: var(--text-xs);
   color: var(--text-muted);
   text-align: center;
   line-height: 1.5;
@@ -301,14 +301,14 @@
 }
 
 .inspector__empty-title {
-  font-size: 12px;
+  font-size: var(--text-base);
   font-weight: 600;
   color: var(--text-secondary);
   letter-spacing: -0.01em;
 }
 
 .inspector__empty-hint {
-  font-size: 11px;
+  font-size: var(--text-sm);
   color: var(--text-muted);
   line-height: 1.6;
   max-width: 210px;
@@ -365,7 +365,7 @@
 }
 
 .inspector__node-kind {
-  font-size: 9px;
+  font-size: var(--text-2xs);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -373,7 +373,7 @@
 }
 
 .inspector__node-name {
-  font-size: 11.5px;
+  font-size: var(--text-sm);
   font-weight: 600;
   color: var(--text-primary);
   letter-spacing: -0.01em;
@@ -383,7 +383,7 @@
 }
 
 .inspector__node-id {
-  font-size: 9.5px;
+  font-size: var(--text-2xs);
   font-family: var(--font-mono);
   color: var(--text-muted);
   flex-shrink: 0;
@@ -469,7 +469,7 @@
 }
 
 .inspector__section-title {
-  font-size: 9.5px;
+  font-size: var(--text-2xs);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;

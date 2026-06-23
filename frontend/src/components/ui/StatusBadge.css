@@ -14,9 +14,9 @@
   user-select: none;
 }
 
-.sbadge--xs { font-size: 9px;  padding: 1px 6px; }
-.sbadge--sm { font-size: 10px; padding: 2px 8px; }
-.sbadge--md { font-size: 11px; padding: 3px 10px; }
+.sbadge--xs { font-size: var(--text-2xs); padding: 1px 6px; }
+.sbadge--sm { font-size: var(--text-xs);  padding: 2px 8px; }
+.sbadge--md { font-size: var(--text-sm);  padding: 3px 10px; }
 
 .sbadge__dot {
   width: 4px;

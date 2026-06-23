@@ -16,7 +16,7 @@ function PageLoader() {
         background: 'var(--bg-base)',
         color: 'var(--text-muted)',
         fontFamily: 'var(--font-mono)',
-        fontSize: '12px',
+        fontSize: 'var(--text-sm)',
         letterSpacing: '0.05em',
       }}
     >

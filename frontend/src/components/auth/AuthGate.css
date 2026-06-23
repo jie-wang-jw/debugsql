@@ -34,7 +34,7 @@
   padding: var(--sp-4) var(--sp-5);
   color: var(--text-secondary);
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: var(--text-base);
 }
 
 .auth-loader {
@@ -63,7 +63,7 @@
 .auth-eyebrow {
   margin: 0 0 2px;
   color: var(--text-muted);
-  font-size: 10px;
+  font-size: var(--text-xs);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -71,7 +71,7 @@
 
 .auth-brand h1 {
   margin: 0;
-  font-size: 26px;
+  font-size: var(--text-2xl);
   line-height: 1.1;
   font-weight: 800;
   color: var(--text-primary);
@@ -80,7 +80,7 @@
 .auth-copy {
   margin: var(--sp-5) 0;
   color: var(--text-secondary);
-  font-size: 13px;
+  font-size: var(--text-md);
   line-height: 1.7;
 }
 
@@ -91,7 +91,7 @@
   background: var(--accent-red-dim);
   border: 1px solid rgba(184, 114, 114, 0.16);
   border-radius: var(--r-md);
-  font-size: 12px;
+  font-size: var(--text-base);
 }
 
 .auth-success {
@@ -101,7 +101,7 @@
   background: var(--accent-green-dim);
   border: 1px solid rgba(110, 191, 154, 0.18);
   border-radius: var(--r-md);
-  font-size: 12px;
+  font-size: var(--text-base);
 }
 
 .auth-form {
@@ -113,7 +113,7 @@
   display: grid;
   gap: 6px;
   color: var(--text-muted);
-  font-size: 10px;
+  font-size: var(--text-xs);
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -129,7 +129,7 @@
   background: var(--bg-base);
   color: var(--text-primary);
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: var(--text-base);
   text-transform: none;
   letter-spacing: 0;
 }
@@ -163,7 +163,7 @@
   padding: 7px 13px;
   border-radius: var(--r-sm);
   border: 1px solid var(--border-default);
-  font-size: 12px;
+  font-size: var(--text-base);
   font-weight: 700;
   cursor: pointer;
   transition:
@@ -201,7 +201,7 @@
 .auth-note {
   margin: var(--sp-4) 0 0;
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: var(--text-sm);
 }
 
 .auth-note code {
@@ -243,7 +243,7 @@
   justify-content: center;
   background: var(--accent-blue-dim);
   color: var(--accent-blue-light);
-  font-size: 11px;
+  font-size: var(--text-sm);
   font-weight: 800;
 }
 
@@ -252,7 +252,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 11px;
+  font-size: var(--text-sm);
   color: var(--text-secondary);
 }
 
@@ -262,7 +262,7 @@
   background: var(--accent-green-dim);
   color: var(--accent-green);
   font-family: var(--font-mono);
-  font-size: 9px;
+  font-size: var(--text-2xs);
   text-transform: uppercase;
 }
 
@@ -270,7 +270,7 @@
   min-height: 26px;
   padding: 4px 9px;
   border-radius: var(--r-full);
-  font-size: 10.5px;
+  font-size: var(--text-xs);
 }
 
 .user-strip__admin {
@@ -279,5 +279,5 @@
   border-radius: var(--r-full);
   color: var(--accent-blue-light);
   text-decoration: none;
-  font-size: 10.5px;
+  font-size: var(--text-xs);
 }

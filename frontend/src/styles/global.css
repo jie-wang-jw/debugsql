@@ -94,6 +94,20 @@
   --font-sans: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace;
 
+  /* Single source of truth for the type scale.
+     Base is 15px; all values scale with it, keeping hierarchy intact.
+     Use these tokens instead of hard-coded px/rem sizes. */
+  --text-2xs: 0.7rem;   /* ~10.5px  – micro labels, badges */
+  --text-xs:  0.75rem;  /* ~11.3px  – small meta, timestamps */
+  --text-sm:  0.82rem;  /* ~12.3px  – tabs, buttons, code */
+  --text-base: 0.9rem;  /* ~13.5px  – compact body, tables */
+  --text-md:  1rem;     /* 15px     – default body text */
+  --text-lg:  1.1rem;   /* ~16.5px  – panel/section titles */
+  --text-xl:  1.25rem;  /* ~18.8px  – card titles, header names */
+  --text-2xl: 1.8rem;   /* 27px     – page h1 */
+  --text-3xl: 2.25rem;  /* ~33.8px  – hero/landing h1 */
+  --text-hero: clamp(2.4rem, 5vw, 4.4rem);
+
   /* ---- Transitions — smooth, professional ---- */
   --t-fast:    90ms ease;
   --t-default: 180ms ease;
@@ -127,7 +141,7 @@ html, body {
   width: 100%;
   overflow: hidden;
   font-family: var(--font-sans);
-  font-size: 13px;
+  font-size: 15px;
   line-height: 1.6;
   background-color: var(--bg-base);
   color: var(--text-primary);
