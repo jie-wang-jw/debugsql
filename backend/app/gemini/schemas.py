@@ -38,6 +38,13 @@ class GeminiQueryPlan(BaseModel):
             return []
         return value
 
+    @field_validator("assumptions", "tables_used", mode="before")
+    @classmethod
+    def normalize_string_lists(cls, value: object) -> object:
+        if value is None:
+            return []
+        return value
+
     @property
     def goal(self) -> str:
         return self.answer

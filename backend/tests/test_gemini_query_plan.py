@@ -117,6 +117,63 @@ class TestQueryPlanParser:
         plan = QueryPlanParser().parse(payload)
         assert plan.steps == []
 
+    def test_normalizes_nullable_list_fields_and_string_confidence(self) -> None:
+        payload = json.dumps(
+            {
+                "mode": "new_query",
+                "can_answer": True,
+                "answer": "Prepared a cards query.",
+                "sql": "SELECT id FROM cards LIMIT 5",
+                "explanation": "Use the cards table.",
+                "assumptions": None,
+                "tables_used": None,
+                "confidence": "0.85",
+                "clarifying_question": None,
+                "steps": None,
+            }
+        )
+        plan = QueryPlanParser().parse(payload)
+        assert plan.assumptions == []
+        assert plan.tables_used == []
+        assert plan.confidence == 0.85
+        assert plan.steps == []
+
+    def test_recovers_sql_from_answer_code_block(self) -> None:
+        payload = json.dumps(
+            {
+                "mode": "refine_query",
+                "can_answer": True,
+                "answer": "Here is the refined query:\n```sql\nSELECT id FROM cards LIMIT 5\n```",
+                "sql": None,
+                "explanation": "Limit the previous query to five rows.",
+                "assumptions": [],
+                "tables_used": ["cards"],
+                "confidence": 0.8,
+                "clarifying_question": None,
+                "steps": [],
+            }
+        )
+        plan = QueryPlanParser().parse(payload)
+        assert plan.sql == "SELECT id FROM cards LIMIT 5"
+
+    def test_recovered_sql_still_must_be_read_only(self) -> None:
+        payload = json.dumps(
+            {
+                "mode": "new_query",
+                "can_answer": True,
+                "answer": "SQL: DROP TABLE cards",
+                "sql": None,
+                "explanation": "Bad SQL must still be rejected.",
+                "assumptions": [],
+                "tables_used": ["cards"],
+                "confidence": 0.1,
+                "clarifying_question": None,
+                "steps": [],
+            }
+        )
+        with pytest.raises(QueryPlanParseError):
+            QueryPlanParser().parse(payload)
+
 
 class TestGraphMapper:
     def test_maps_steps_to_linear_graph(self) -> None:
