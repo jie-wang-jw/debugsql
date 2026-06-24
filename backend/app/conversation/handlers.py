@@ -38,25 +38,18 @@ def handle_chat_message(
 
     if intent.intent_type == "unsupported":
         if working_state:
+            # Short follow-ups such as "top 5" or "only black border" may not look like
+            # standalone SQL questions. Let the LLM resolver try them against the saved
+            # working query before falling back to an unsupported response.
+            pass
+        else:
             return ConversationResponse(
-                content=(
-                    "I can continue or refine a previous query only when an LLM provider is configured. "
-                    "Please restate the full query, or enable the configured SQL assistant."
-                ),
+                content=_unsupported_content(dataset_context),
                 intentType=intent.intent_type,
                 requiresPlan=False,
                 requiresExecution=False,
                 explanation=intent.reason,
-                usedContext=False,
-                conversationMode="clarify",
             )
-        return ConversationResponse(
-            content=_unsupported_content(dataset_context),
-            intentType=intent.intent_type,
-            requiresPlan=False,
-            requiresExecution=False,
-            explanation=intent.reason,
-        )
 
     content, proposed_actions, sql, metadata = build_proposed_actions(
         message,

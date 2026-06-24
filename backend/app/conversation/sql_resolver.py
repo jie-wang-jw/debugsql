@@ -39,12 +39,26 @@ def resolve_sql_for_message(
     if schema is None and context.dbType == "sqlite_benchmark" and context.benchmark and context.dbId:
         schema = get_schema_context(context.benchmark, context.dbId)
 
-    if _should_use_llm():
+    llm_available = _should_use_llm()
+    if llm_available:
         resolved = _resolve_with_llm(message, schema, working_state)
         if resolved:
             return resolved
 
     if working_state:
+        if llm_available:
+            return ResolvedSQL(
+                sql=None,
+                explanation="The configured SQL assistant did not return a usable refinement.",
+                provider="none",
+                answer=(
+                    "I tried to continue the previous query, but the SQL assistant did not return "
+                    "a usable update. Please retry, or restate the full query as a standalone question."
+                ),
+                clarifying_question="Can you restate the complete query you want to run?",
+                conversation_mode="clarify",
+                used_context=False,
+            )
         return ResolvedSQL(
             sql=None,
             explanation="Multi-turn refinement requires a configured LLM SQL provider.",

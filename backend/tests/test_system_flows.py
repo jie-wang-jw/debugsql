@@ -237,11 +237,24 @@ def test_multi_turn_working_state_refines_previous_sql(monkeypatch) -> None:
     def fake_generate(self, message, schema_context=None, working_state=None):
         captured.append(working_state)
         if working_state:
+            normalized = message.lower()
+            if "sort" in normalized:
+                sql = "SELECT id FROM cards ORDER BY name ASC"
+                answer = "Sorted the previous query by name."
+            elif "black" in normalized:
+                sql = "SELECT id FROM cards WHERE bordercolor = 'black'"
+                answer = "Filtered the previous query to black-border cards."
+            elif "top 5" in normalized:
+                sql = "SELECT id FROM cards LIMIT 5"
+                answer = "Limited the previous query to the top 5 rows."
+            else:
+                sql = "SELECT id FROM cards LIMIT 10"
+                answer = "Limited the previous query to 10 rows."
             return GeminiQueryPlan(
                 mode="refine_query",
-                answer="Limited the previous query to 10 rows.",
-                sql="SELECT id FROM cards LIMIT 10",
-                explanation="Refined the previous cards query with a limit.",
+                answer=answer,
+                sql=sql,
+                explanation="Refined the previous cards query.",
                 assumptions=[],
                 tables_used=["cards"],
                 confidence=0.9,
@@ -278,11 +291,26 @@ def test_multi_turn_working_state_refines_previous_sql(monkeypatch) -> None:
     assert captured[0] is None
     assert captured[1]["current_sql"] == "SELECT id FROM cards"
 
+    followups = [
+        ("only black border", "WHERE bordercolor = 'black'"),
+        ("sort by name", "ORDER BY name ASC"),
+        ("top 5", "LIMIT 5"),
+    ]
+    for message, expected_sql_fragment in followups:
+        response = client.post(
+            "/query",
+            json={"message": message, "sessionId": session_id, "datasetContext": context},
+        ).json()["data"]
+        assert response["conversationMode"] == "refine_query"
+        assert response["usedContext"] is True
+        assert expected_sql_fragment in response["sql"]
+        assert "SQL assistant is configured" not in response["content"]
+
     with get_session_factory()() as session:
         user_id = client.get("/auth/me").json()["data"]["id"]
         conversation = session.query(Conversation).filter_by(user_id=user_id, session_id=session_id).one()
-        assert conversation.working_state["current_sql"] == "SELECT id FROM cards LIMIT 10"
-        assert conversation.working_state["revision"] == 2
+        assert conversation.working_state["current_sql"] == "SELECT id FROM cards LIMIT 5"
+        assert conversation.working_state["revision"] == 5
 
 
 def test_dataset_change_ignores_old_working_state_before_llm(monkeypatch) -> None:
