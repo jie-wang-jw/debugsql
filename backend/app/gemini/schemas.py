@@ -31,6 +31,13 @@ class GeminiQueryPlan(BaseModel):
         stripped = value.strip()
         return stripped or None
 
+    @field_validator("steps", mode="before")
+    @classmethod
+    def normalize_steps(cls, value: object) -> object:
+        if value is None:
+            return []
+        return value
+
     @property
     def goal(self) -> str:
         return self.answer

@@ -99,6 +99,24 @@ class TestQueryPlanParser:
         assert plan.mode == "schema_answer"
         assert plan.sql is None
 
+    def test_normalizes_null_steps_to_empty_list(self) -> None:
+        payload = json.dumps(
+            {
+                "mode": "refine_query",
+                "can_answer": True,
+                "answer": "Limited the previous query.",
+                "sql": "SELECT id FROM cards LIMIT 5",
+                "explanation": "Refined the previous SQL with a lower limit.",
+                "assumptions": [],
+                "tables_used": ["cards"],
+                "confidence": 0.9,
+                "clarifying_question": None,
+                "steps": None,
+            }
+        )
+        plan = QueryPlanParser().parse(payload)
+        assert plan.steps == []
+
 
 class TestGraphMapper:
     def test_maps_steps_to_linear_graph(self) -> None:
