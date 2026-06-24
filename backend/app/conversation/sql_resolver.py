@@ -44,6 +44,14 @@ def resolve_sql_for_message(
         resolved = _resolve_with_llm(message, schema, working_state)
         if resolved:
             return resolved
+        if working_state:
+            # The refine attempt came back empty even though the LLM is configured.
+            # Retry once as a standalone question so a self-contained request still
+            # resolves instead of dead-ending on a clarify message.
+            logger.warning("llm_refine_returned_empty; retrying as a standalone query.")
+            resolved = _resolve_with_llm(message, schema, None)
+            if resolved:
+                return resolved
 
     if working_state:
         if llm_available:
@@ -161,6 +169,11 @@ def _resolve_with_llm(
             used_context=bool(working_state and plan.mode == "refine_query"),
         )
     if not plan.sql:
+        logger.warning(
+            "%s returned can_answer=True mode=%s but no SQL; dropping result.",
+            provider_name,
+            plan.mode,
+        )
         return None
     explanation = plan.explanation.strip() or "Generated from your question and schema."
     return ResolvedSQL(
