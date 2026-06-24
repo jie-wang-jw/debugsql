@@ -168,6 +168,9 @@ export function ChatPanel({
           confidence: response.confidence,
           assumptions: response.assumptions ?? [],
           tablesUsed: response.tablesUsed ?? [],
+          usedContext: response.usedContext,
+          conversationMode: response.conversationMode,
+          workingStateRevision: response.workingStateRevision,
         };
         setMessages((prev) => [...prev, aiMsg]);
         void refreshHistory();
@@ -248,6 +251,9 @@ export function ChatPanel({
             confidence: message.confidence,
             assumptions: message.assumptions ?? [],
             tablesUsed: message.tablesUsed ?? [],
+            usedContext: message.usedContext,
+            conversationMode: message.conversationMode,
+            workingStateRevision: message.workingStateRevision,
             actionResults: buildRestoredActionResults(message.proposedActions, latestSummary),
           })),
         );

@@ -13,6 +13,8 @@ IntentType = Literal[
     "error",
 ]
 
+ConversationMode = Literal["new_query", "refine_query", "schema_answer", "clarify"]
+
 
 class ConversationIntent(BaseModel):
     intent_type: IntentType
@@ -35,3 +37,6 @@ class ConversationResponse(BaseModel):
     confidence: float | None = None
     assumptions: list[str] = Field(default_factory=list)
     tablesUsed: list[str] = Field(default_factory=list)
+    usedContext: bool = False
+    conversationMode: ConversationMode | None = None
+    workingStateRevision: int | None = None

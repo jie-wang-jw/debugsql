@@ -26,6 +26,8 @@ from app.models.history import Conversation, Message
 from app.persistence import persist_query_plan
 from app.persistence import persist_execution_run
 from app.persistence import persist_chat_interaction
+from app.gemini.openai_compatible_service import OpenAICompatibleService
+from app.gemini.schemas import GeminiQueryPlan
 
 
 @pytest.fixture(autouse=True)
@@ -34,6 +36,10 @@ def isolated_sqlite(monkeypatch, tmp_path):
     monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
     monkeypatch.setenv("DEBUGSQL_AUTO_LOGIN", "1")
     monkeypatch.setenv("EMAIL_DEV_LOG_CODES", "1")
+    monkeypatch.setenv("QUERY_PLAN_PROVIDER", "stub")
+    monkeypatch.setenv("GEMINI_API_KEY", "")
+    monkeypatch.setenv("LLM_API_BASE_URL", "")
+    monkeypatch.setenv("LLM_API_KEY", "")
     monkeypatch.setenv("NL2IR_PROVIDER", "stub")
     monkeypatch.setenv("IR_TO_PLAN_PROVIDER", "internal")
     get_settings.cache_clear()
@@ -218,6 +224,179 @@ def test_history_detail_restores_assistant_actions_and_metadata() -> None:
     assert assistant_message["confidence"] == 0.82
     assert assistant_message["assumptions"] == ["Use the cards table."]
     assert assistant_message["tablesUsed"] == ["cards"]
+
+
+def test_multi_turn_working_state_refines_previous_sql(monkeypatch) -> None:
+    monkeypatch.setenv("QUERY_PLAN_PROVIDER", "openai_compatible")
+    monkeypatch.setenv("LLM_API_BASE_URL", "https://example.test/v1")
+    monkeypatch.setenv("LLM_API_KEY", "test-key")
+    get_settings.cache_clear()
+
+    captured: list[dict | None] = []
+
+    def fake_generate(self, message, schema_context=None, working_state=None):
+        captured.append(working_state)
+        if working_state:
+            return GeminiQueryPlan(
+                mode="refine_query",
+                answer="Limited the previous query to 10 rows.",
+                sql="SELECT id FROM cards LIMIT 10",
+                explanation="Refined the previous cards query with a limit.",
+                assumptions=[],
+                tables_used=["cards"],
+                confidence=0.9,
+            )
+        return GeminiQueryPlan(
+            mode="new_query",
+            answer="Prepared a cards query.",
+            sql="SELECT id FROM cards",
+            explanation="Use the cards table.",
+            assumptions=[],
+            tables_used=["cards"],
+            confidence=0.9,
+        )
+
+    monkeypatch.setattr(OpenAICompatibleService, "generate_query_plan", fake_generate)
+    client = _client()
+    session_id = "pytest-working-state-session"
+    context = {"benchmark": "bird", "dbId": "card_games"}
+
+    first = client.post(
+        "/query",
+        json={"message": "show cards", "sessionId": session_id, "datasetContext": context},
+    ).json()["data"]
+    assert first["conversationMode"] == "new_query"
+    assert first["workingStateRevision"] == 1
+
+    second = client.post(
+        "/query",
+        json={"message": "limit to 10", "sessionId": session_id, "datasetContext": context},
+    ).json()["data"]
+    assert second["conversationMode"] == "refine_query"
+    assert second["usedContext"] is True
+    assert second["sql"] == "SELECT id FROM cards LIMIT 10"
+    assert captured[0] is None
+    assert captured[1]["current_sql"] == "SELECT id FROM cards"
+
+    with get_session_factory()() as session:
+        user_id = client.get("/auth/me").json()["data"]["id"]
+        conversation = session.query(Conversation).filter_by(user_id=user_id, session_id=session_id).one()
+        assert conversation.working_state["current_sql"] == "SELECT id FROM cards LIMIT 10"
+        assert conversation.working_state["revision"] == 2
+
+
+def test_dataset_change_ignores_old_working_state_before_llm(monkeypatch) -> None:
+    monkeypatch.setenv("QUERY_PLAN_PROVIDER", "openai_compatible")
+    monkeypatch.setenv("LLM_API_BASE_URL", "https://example.test/v1")
+    monkeypatch.setenv("LLM_API_KEY", "test-key")
+    get_settings.cache_clear()
+
+    captured: list[dict | None] = []
+
+    def fake_generate(self, message, schema_context=None, working_state=None):
+        captured.append(working_state)
+        return GeminiQueryPlan(
+            mode="new_query",
+            answer="Prepared a query.",
+            sql="SELECT 1",
+            explanation="Use the selected database.",
+            assumptions=[],
+            tables_used=[],
+            confidence=0.8,
+        )
+
+    monkeypatch.setattr(OpenAICompatibleService, "generate_query_plan", fake_generate)
+    client = _client()
+    session_id = "pytest-dataset-reset-session"
+    client.post(
+        "/query",
+        json={"message": "show cards", "sessionId": session_id, "datasetContext": {"benchmark": "bird", "dbId": "card_games"}},
+    )
+    client.post(
+        "/query",
+        json={"message": "limit to 10", "sessionId": session_id, "datasetContext": {"benchmark": "spider", "dbId": "academic"}},
+    )
+
+    assert captured == [None, None]
+
+
+def test_run_sql_updates_working_state_summary(monkeypatch) -> None:
+    monkeypatch.setenv("QUERY_PLAN_PROVIDER", "openai_compatible")
+    monkeypatch.setenv("LLM_API_BASE_URL", "https://example.test/v1")
+    monkeypatch.setenv("LLM_API_KEY", "test-key")
+    get_settings.cache_clear()
+
+    monkeypatch.setattr(
+        OpenAICompatibleService,
+        "generate_query_plan",
+        lambda self, message, schema_context=None, working_state=None: GeminiQueryPlan(
+            mode="new_query",
+            answer="Prepared a cards query.",
+            sql="SELECT id FROM cards LIMIT 1",
+            explanation="Use cards.",
+            assumptions=[],
+            tables_used=["cards"],
+            confidence=0.9,
+        ),
+    )
+    client = _client()
+    session_id = "pytest-execution-summary-session"
+    context = {"dbType": "sqlite_benchmark", "benchmark": "bird", "dbId": "card_games"}
+    client.post(
+        "/query",
+        json={"message": "show one card", "sessionId": session_id, "datasetContext": context},
+    )
+
+    execute_response = client.post(
+        "/tools/execute",
+        json={
+            "tool": "run_sql",
+            "toolCallId": "pytest-run-sql-summary",
+            "arguments": {"sql": "SELECT id FROM cards LIMIT 1"},
+            "context": context,
+            "approved": True,
+            "sessionId": session_id,
+        },
+    )
+    assert execute_response.status_code == 200
+    data = execute_response.json()["data"]["data"]
+    assert "assistantFollowup" in data
+
+    with get_session_factory()() as session:
+        user_id = client.get("/auth/me").json()["data"]["id"]
+        conversation = session.query(Conversation).filter_by(user_id=user_id, session_id=session_id).one()
+        assert conversation.working_state["latest_execution_run_id"] == "pytest-run-sql-summary"
+        assert "query returned" in conversation.working_state["latest_result_summary"]
+
+
+def test_refine_without_llm_provider_returns_clear_message() -> None:
+    client = _client()
+    user_id = client.get("/auth/me").json()["data"]["id"]
+    persist_chat_interaction(
+        session_id="pytest-no-llm-refine-session",
+        user_message="show cards",
+        assistant_content="Prepared SQL.",
+        dataset_context={"benchmark": "bird", "dbId": "card_games"},
+        response={
+            "intentType": "benchmark_query",
+            "sql": "SELECT id FROM cards",
+            "conversationMode": "new_query",
+            "assumptions": [],
+            "tablesUsed": ["cards"],
+        },
+        user_id=user_id,
+    )
+
+    response = client.post(
+        "/query",
+        json={
+            "message": "limit to 10",
+            "sessionId": "pytest-no-llm-refine-session",
+            "datasetContext": {"benchmark": "bird", "dbId": "card_games"},
+        },
+    ).json()["data"]
+    assert response["conversationMode"] == "clarify"
+    assert "LLM provider" in response["content"] or "SQL assistant" in response["content"]
 
 
 def test_query_plan_and_execution_restore_from_database() -> None:

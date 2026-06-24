@@ -18,6 +18,7 @@ class Conversation(Base):
     session_id: Mapped[str] = mapped_column(String(255), index=True, nullable=False)
     title: Mapped[str | None] = mapped_column(String(500), nullable=True)
     dataset_context: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    working_state: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     active_plan_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(

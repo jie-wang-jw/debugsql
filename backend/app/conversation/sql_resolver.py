@@ -25,21 +25,38 @@ class ResolvedSQL:
     tables_used: tuple[str, ...] = ()
     confidence: float | None = None
     clarifying_question: str | None = None
+    conversation_mode: str = "new_query"
+    used_context: bool = False
 
 
 def resolve_sql_for_message(
     message: str,
     context: DatasetContext,
     schema: dict[str, Any] | None = None,
+    working_state: dict[str, Any] | None = None,
 ) -> ResolvedSQL:
     """Resolve NL questions to SQL using the same provider priority as the plan pipeline."""
     if schema is None and context.dbType == "sqlite_benchmark" and context.benchmark and context.dbId:
         schema = get_schema_context(context.benchmark, context.dbId)
 
     if _should_use_llm():
-        resolved = _resolve_with_llm(message, schema)
+        resolved = _resolve_with_llm(message, schema, working_state)
         if resolved:
             return resolved
+
+    if working_state:
+        return ResolvedSQL(
+            sql=None,
+            explanation="Multi-turn refinement requires a configured LLM SQL provider.",
+            provider="none",
+            answer=(
+                "I can continue a previous query only when the SQL assistant is configured. "
+                "Please restate the full query as a standalone question."
+            ),
+            clarifying_question="Can you restate the complete query you want to run?",
+            conversation_mode="clarify",
+            used_context=False,
+        )
 
     if context.benchmark and context.dbId:
         gold_sql = find_benchmark_gold_sql(context.benchmark, context.dbId, message)
@@ -90,7 +107,11 @@ def _should_use_llm() -> bool:
     return False
 
 
-def _resolve_with_llm(message: str, schema: dict[str, Any] | None) -> ResolvedSQL | None:
+def _resolve_with_llm(
+    message: str,
+    schema: dict[str, Any] | None,
+    working_state: dict[str, Any] | None = None,
+) -> ResolvedSQL | None:
     provider = get_settings().query_plan_provider.strip().lower()
     if provider == "openai_compatible":
         service = OpenAICompatibleService()
@@ -107,7 +128,7 @@ def _resolve_with_llm(message: str, schema: dict[str, Any] | None) -> ResolvedSQ
             provider,
             get_settings().llm_model if provider == "openai_compatible" else get_settings().gemini_model,
         )
-        plan = service.generate_query_plan(message, schema)
+        plan = service.generate_query_plan(message, schema, working_state=working_state)
     except (GeminiConfigError, QueryPlanParseError, TimeoutError, RuntimeError) as exc:
         logger.warning("%s SQL resolution failed: %s", provider, exc)
         return None
@@ -122,6 +143,8 @@ def _resolve_with_llm(message: str, schema: dict[str, Any] | None) -> ResolvedSQ
             tables_used=tuple(plan.tables_used),
             confidence=plan.confidence,
             clarifying_question=plan.clarifying_question,
+            conversation_mode=plan.mode,
+            used_context=bool(working_state and plan.mode == "refine_query"),
         )
     if not plan.sql:
         return None
@@ -134,4 +157,6 @@ def _resolve_with_llm(message: str, schema: dict[str, Any] | None) -> ResolvedSQ
         assumptions=tuple(plan.assumptions),
         tables_used=tuple(plan.tables_used),
         confidence=plan.confidence,
+        conversation_mode=plan.mode,
+        used_context=bool(working_state and plan.mode == "refine_query"),
     )

@@ -30,3 +30,6 @@ target-version = "py311"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]
+# Avoid Windows PermissionError from stale pytest cache directories.
+addopts = "-p no:cacheprovider"

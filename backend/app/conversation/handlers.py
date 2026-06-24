@@ -10,6 +10,7 @@ def handle_chat_message(
     message: str,
     session_id: str,
     dataset_context: dict | None = None,
+    working_state: dict | None = None,
 ) -> ConversationResponse:
     intent = classify_message(message, dataset_context)
     context = normalize_context(dataset_context)
@@ -36,6 +37,19 @@ def handle_chat_message(
         )
 
     if intent.intent_type == "unsupported":
+        if working_state:
+            return ConversationResponse(
+                content=(
+                    "I can continue or refine a previous query only when an LLM provider is configured. "
+                    "Please restate the full query, or enable the configured SQL assistant."
+                ),
+                intentType=intent.intent_type,
+                requiresPlan=False,
+                requiresExecution=False,
+                explanation=intent.reason,
+                usedContext=False,
+                conversationMode="clarify",
+            )
         return ConversationResponse(
             content=_unsupported_content(dataset_context),
             intentType=intent.intent_type,
@@ -44,7 +58,11 @@ def handle_chat_message(
             explanation=intent.reason,
         )
 
-    content, proposed_actions, sql, metadata = build_proposed_actions(message, context)
+    content, proposed_actions, sql, metadata = build_proposed_actions(
+        message,
+        context,
+        working_state=working_state,
+    )
     requires_approval = any(action.requiresApproval for action in proposed_actions)
     return ConversationResponse(
         content=content,
@@ -52,12 +70,14 @@ def handle_chat_message(
         requiresPlan=False,
         requiresExecution=bool(sql),
         sql=sql,
-        explanation=intent.reason,
+        explanation=str(metadata.get("llmExplanation") or intent.reason),
         proposedActions=proposed_actions,
         requiresApproval=requires_approval,
         confidence=metadata.get("confidence") if isinstance(metadata.get("confidence"), float) else None,
         assumptions=list(metadata.get("assumptions") or []),
         tablesUsed=list(metadata.get("tablesUsed") or []),
+        usedContext=bool(metadata.get("usedContext")),
+        conversationMode=metadata.get("conversationMode") if isinstance(metadata.get("conversationMode"), str) else None,
     )
 
 

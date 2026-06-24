@@ -65,6 +65,9 @@ export interface ChatQueryResponse {
   confidence?: number | null;
   assumptions?: string[];
   tablesUsed?: string[];
+  usedContext?: boolean;
+  conversationMode?: 'new_query' | 'refine_query' | 'schema_answer' | 'clarify' | null;
+  workingStateRevision?: number | null;
 }
 
 /**

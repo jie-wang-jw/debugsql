@@ -13,6 +13,9 @@ export interface ChatMessage {
   confidence?: number | null;
   assumptions?: string[];
   tablesUsed?: string[];
+  usedContext?: boolean | null;
+  conversationMode?: 'new_query' | 'refine_query' | 'schema_answer' | 'clarify' | null;
+  workingStateRevision?: number | null;
 }
 
 /** A parsed segment of a message (plain text vs. code block). */
