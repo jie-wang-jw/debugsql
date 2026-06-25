@@ -13,6 +13,7 @@ class QueryPlanParser:
 
     def parse(self, raw_text: str) -> GeminiQueryPlan:
         payload = self._load_json(raw_text)
+        self._recover_sql_from_answer(payload)
         try:
             plan = GeminiQueryPlan.model_validate(payload)
         except Exception as exc:
@@ -38,6 +39,22 @@ class QueryPlanParser:
             raise QueryPlanParseError("LLM provider response must be a JSON object.")
 
         return payload
+
+    def _recover_sql_from_answer(self, payload: dict[str, Any]) -> None:
+        if payload.get("sql"):
+            return
+        answer = payload.get("answer")
+        if not isinstance(answer, str):
+            return
+
+        fenced = re.search(r"```(?:sql)?\s*((?:SELECT|WITH)\b.*?)\s*```", answer, flags=re.IGNORECASE | re.DOTALL)
+        if fenced:
+            payload["sql"] = fenced.group(1).strip()
+            return
+
+        labelled = re.search(r"\bSQL\s*:\s*((?:SELECT|WITH)\b.*)", answer, flags=re.IGNORECASE | re.DOTALL)
+        if labelled:
+            payload["sql"] = labelled.group(1).strip()
 
     def _strip_code_fence(self, text: str) -> str:
         if text.startswith("```"):

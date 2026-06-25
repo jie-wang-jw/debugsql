@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -16,6 +18,23 @@ from app.query_plan_routes import router as query_plan_router
 from app.tools.capabilities_routes import router as capabilities_router
 
 
+def configure_logging() -> None:
+    formatter = logging.Formatter(
+        "%(asctime)s %(levelname)s [%(name)s] %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+    for logger_name in ("uvicorn", "uvicorn.error", "uvicorn.access", "app"):
+        logger = logging.getLogger(logger_name)
+        for handler in logger.handlers:
+            handler.setFormatter(formatter)
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s [%(name)s] %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+
+
+configure_logging()
 settings = get_settings()
 log_gemini_startup(settings)
 log_openai_compatible_startup(settings)

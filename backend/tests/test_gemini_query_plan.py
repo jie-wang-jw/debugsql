@@ -80,6 +80,100 @@ class TestQueryPlanParser:
         with pytest.raises(QueryPlanParseError):
             QueryPlanParser().parse(payload)
 
+    def test_accepts_schema_answer_without_sql(self) -> None:
+        payload = json.dumps(
+            {
+                "mode": "schema_answer",
+                "can_answer": True,
+                "answer": "The database has cards and sets tables.",
+                "sql": None,
+                "explanation": "This is a schema-only answer.",
+                "assumptions": [],
+                "tables_used": [],
+                "confidence": 0.9,
+                "clarifying_question": None,
+                "steps": [],
+            }
+        )
+        plan = QueryPlanParser().parse(payload)
+        assert plan.mode == "schema_answer"
+        assert plan.sql is None
+
+    def test_normalizes_null_steps_to_empty_list(self) -> None:
+        payload = json.dumps(
+            {
+                "mode": "refine_query",
+                "can_answer": True,
+                "answer": "Limited the previous query.",
+                "sql": "SELECT id FROM cards LIMIT 5",
+                "explanation": "Refined the previous SQL with a lower limit.",
+                "assumptions": [],
+                "tables_used": ["cards"],
+                "confidence": 0.9,
+                "clarifying_question": None,
+                "steps": None,
+            }
+        )
+        plan = QueryPlanParser().parse(payload)
+        assert plan.steps == []
+
+    def test_normalizes_nullable_list_fields_and_string_confidence(self) -> None:
+        payload = json.dumps(
+            {
+                "mode": "new_query",
+                "can_answer": True,
+                "answer": "Prepared a cards query.",
+                "sql": "SELECT id FROM cards LIMIT 5",
+                "explanation": "Use the cards table.",
+                "assumptions": None,
+                "tables_used": None,
+                "confidence": "0.85",
+                "clarifying_question": None,
+                "steps": None,
+            }
+        )
+        plan = QueryPlanParser().parse(payload)
+        assert plan.assumptions == []
+        assert plan.tables_used == []
+        assert plan.confidence == 0.85
+        assert plan.steps == []
+
+    def test_recovers_sql_from_answer_code_block(self) -> None:
+        payload = json.dumps(
+            {
+                "mode": "refine_query",
+                "can_answer": True,
+                "answer": "Here is the refined query:\n```sql\nSELECT id FROM cards LIMIT 5\n```",
+                "sql": None,
+                "explanation": "Limit the previous query to five rows.",
+                "assumptions": [],
+                "tables_used": ["cards"],
+                "confidence": 0.8,
+                "clarifying_question": None,
+                "steps": [],
+            }
+        )
+        plan = QueryPlanParser().parse(payload)
+        assert plan.sql == "SELECT id FROM cards LIMIT 5"
+
+    def test_recovered_sql_still_must_be_read_only(self) -> None:
+        payload = json.dumps(
+            {
+                "mode": "new_query",
+                "can_answer": True,
+                "answer": "SQL: DROP TABLE cards",
+                "sql": None,
+                "explanation": "Bad SQL must still be rejected.",
+                "assumptions": [],
+                "tables_used": ["cards"],
+                "confidence": 0.1,
+                "clarifying_question": None,
+                "steps": [],
+            }
+        )
+        with pytest.raises(QueryPlanParseError):
+            QueryPlanParser().parse(payload)
+
 
 class TestGraphMapper:
     def test_maps_steps_to_linear_graph(self) -> None:
@@ -201,6 +295,7 @@ class TestGeminiPipelineIntegration:
 
     def test_gemini_sql_node_edit_updates_executable(self, monkeypatch) -> None:
         monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+        monkeypatch.setenv("QUERY_PLAN_PROVIDER", "gemini")
         get_settings.cache_clear()
         PLAN_STORE.clear()
 
@@ -273,3 +368,13 @@ class TestIntentClassifier:
             {"benchmark": "spider", "dbId": "card_games"},
         )
         assert intent.intent_type == "unsupported"
+
+    def test_refine_terms_are_not_blocked_as_plan_edit(self, monkeypatch) -> None:
+        monkeypatch.setenv("QUERY_PLAN_PROVIDER", "openai_compatible")
+        monkeypatch.setenv("LLM_API_BASE_URL", "https://example.test/v1")
+        monkeypatch.setenv("LLM_API_KEY", "test-key")
+        get_settings.cache_clear()
+
+        for message in ["limit to 10", "sort by name", "add filter for black border"]:
+            intent = classify_message(message, {"benchmark": "bird", "dbId": "card_games"})
+            assert intent.intent_type == "benchmark_query"

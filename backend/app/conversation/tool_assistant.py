@@ -29,6 +29,7 @@ _SCHEMA_QUESTION_TERMS = (
 def build_proposed_actions(
     message: str,
     dataset_context: dict | DatasetContext | None,
+    working_state: dict[str, Any] | None = None,
 ) -> tuple[str, list[ProposedToolAction], str | None, dict[str, object]]:
     """Build assistant content and proposed tool actions for a benchmark query."""
     context = normalize_context(dataset_context)
@@ -36,7 +37,7 @@ def build_proposed_actions(
     if context.dbType == "sqlite_benchmark" and context.benchmark and context.dbId:
         schema = get_schema_context(context.benchmark, context.dbId)
 
-    resolved = resolve_sql_for_message(message, context, schema)
+    resolved = resolve_sql_for_message(message, context, schema, working_state=working_state)
     sql = resolved.sql
     explanation = resolved.explanation
 
@@ -76,6 +77,8 @@ def build_proposed_actions(
             )
         )
         content = _sql_proposal_content(context, sql, explanation, resolved)
+    elif resolved.conversation_mode == "schema_answer" and resolved.answer:
+        content = _schema_answer_content(resolved)
     elif schema and _is_schema_question(message):
         content = _schema_overview_content(context, schema)
     else:
@@ -87,6 +90,9 @@ def build_proposed_actions(
         "assumptions": list(resolved.assumptions),
         "tablesUsed": list(resolved.tables_used),
         "clarifyingQuestion": resolved.clarifying_question,
+        "llmExplanation": resolved.explanation,
+        "conversationMode": resolved.conversation_mode,
+        "usedContext": resolved.used_context,
     }
     return content, actions, sql, metadata
 
@@ -117,6 +123,15 @@ def _is_schema_question(message: str) -> bool:
 
 def is_schema_question(message: str) -> bool:
     return _is_schema_question(message)
+
+
+def _schema_answer_content(resolved) -> str:
+    parts = [resolved.answer]
+    if resolved.explanation:
+        parts.extend(["", resolved.explanation])
+    if resolved.assumptions:
+        parts.extend(["", "Assumptions:", *[f"- {item}" for item in resolved.assumptions]])
+    return "\n".join(parts)
 
 
 def _schema_overview_content(context: DatasetContext, schema: dict[str, Any]) -> str:

@@ -60,6 +60,9 @@ export interface HistoryMessage {
   assumptions?: string[];
   tablesUsed?: string[];
   explanation?: string | null;
+  usedContext?: boolean | null;
+  conversationMode?: 'new_query' | 'refine_query' | 'schema_answer' | 'clarify' | null;
+  workingStateRevision?: number | null;
 }
 
 export interface HistoryConversationDetail {

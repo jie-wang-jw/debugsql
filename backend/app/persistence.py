@@ -39,6 +39,19 @@ def _safe_json(value: Any) -> Any:
     return json.loads(json.dumps(value, default=str))
 
 
+def _dataset_key(value: dict[str, Any] | None) -> tuple[str | None, str | None, str | None]:
+    payload = value or {}
+    return (
+        payload.get("dbType") or payload.get("db_type") or ("sqlite_benchmark" if payload.get("benchmark") else None),
+        payload.get("benchmark"),
+        payload.get("dbId") or payload.get("db_id"),
+    )
+
+
+def _same_dataset(left: dict[str, Any] | None, right: dict[str, Any] | None) -> bool:
+    return _dataset_key(left) == _dataset_key(right)
+
+
 def _result_preview(result: dict[str, Any] | None) -> dict[str, Any] | None:
     if not result:
         return None
@@ -80,6 +93,9 @@ def _message_history_payload(item: Message) -> dict[str, Any]:
         "assumptions": extra.get("assumptions") or [],
         "tablesUsed": extra.get("tablesUsed") or [],
         "explanation": extra.get("explanation"),
+        "usedContext": extra.get("usedContext"),
+        "conversationMode": extra.get("conversationMode"),
+        "workingStateRevision": extra.get("workingStateRevision"),
     }
 
 
@@ -105,6 +121,8 @@ def get_or_create_conversation(
     conversation = session.get(Conversation, conversation_id)
     now = _utc_now()
     if conversation:
+        if dataset_context and not _same_dataset(conversation.dataset_context, dataset_context):
+            conversation.working_state = None
         if dataset_context:
             conversation.dataset_context = _safe_json(dataset_context)
         if title and not conversation.title:
@@ -122,6 +140,109 @@ def get_or_create_conversation(
     session.add(conversation)
     session.flush()
     return conversation
+
+
+def get_conversation_working_state(
+    *,
+    session_id: str,
+    dataset_context: dict[str, Any] | None,
+    user_id: str | None = None,
+) -> dict[str, Any] | None:
+    with session_scope() as session:
+        user = session.get(User, user_id) if user_id else ensure_dev_user(session)
+        if not user:
+            return None
+        conversation_id = _stable_id("conv", {"user": user.id, "session": session_id})
+        conversation = session.get(Conversation, conversation_id)
+        if not conversation or conversation.user_id != user.id or not conversation.working_state:
+            return None
+        state = dict(conversation.working_state)
+        state_context = state.get("dataset_context") or conversation.dataset_context
+        if dataset_context and not _same_dataset(state_context, dataset_context):
+            return None
+        return _safe_json(state)
+
+
+def _build_working_state(
+    *,
+    previous: dict[str, Any] | None,
+    user_message: str,
+    assistant_content: str,
+    dataset_context: dict[str, Any] | None,
+    response: dict[str, Any],
+) -> dict[str, Any] | None:
+    sql = response.get("sql")
+    if not sql:
+        return None
+
+    previous = previous if previous and _same_dataset(previous.get("dataset_context"), dataset_context) else None
+    mode = response.get("conversationMode") or "new_query"
+    revision = int((previous or {}).get("revision") or 0) + 1
+    original_question = (
+        (previous or {}).get("original_question")
+        if mode == "refine_query" and previous
+        else user_message
+    )
+    return _safe_json(
+        {
+            "original_question": original_question,
+            "latest_user_request": user_message,
+            "current_sql": sql,
+            "answer": assistant_content,
+            "explanation": response.get("llmExplanation") or response.get("explanation"),
+            "assumptions": response.get("assumptions") or [],
+            "tables_used": response.get("tablesUsed") or [],
+            "dataset_context": dataset_context,
+            "latest_result_summary": (previous or {}).get("latest_result_summary"),
+            "latest_execution_run_id": (previous or {}).get("latest_execution_run_id"),
+            "revision": revision,
+            "conversation_mode": mode,
+            "updated_at": _utc_now().isoformat(),
+        }
+    )
+
+
+def _summarize_execution_result(result: dict[str, Any] | None) -> str:
+    if not result:
+        return "Executed SQL successfully."
+    rows = result.get("rows") or []
+    metrics = result.get("metrics") or {}
+    row_count = metrics.get("rowCount", len(rows))
+    if not rows:
+        return f"Executed SQL successfully. The query returned {row_count} rows."
+    first = rows[0] if isinstance(rows[0], dict) else {}
+    preview = ", ".join(f"{key}: {first.get(key)}" for key in list(first)[:4])
+    if preview:
+        return f"Executed SQL successfully. The query returned {row_count} rows. First row: {preview}."
+    return f"Executed SQL successfully. The query returned {row_count} rows."
+
+
+def update_working_state_execution_summary(
+    *,
+    session_id: str | None,
+    result: dict[str, Any] | None,
+    run_id: str | None,
+    user_id: str | None = None,
+) -> str | None:
+    if not session_id:
+        return None
+
+    summary = _summarize_execution_result(result)
+
+    def write(session: Session, user_id: str) -> None:
+        conversation_id = _stable_id("conv", {"user": user_id, "session": session_id})
+        conversation = session.get(Conversation, conversation_id)
+        if not conversation or not conversation.working_state:
+            return
+        state = dict(conversation.working_state)
+        state["latest_result_summary"] = summary
+        state["latest_execution_run_id"] = run_id
+        state["updated_at"] = _utc_now().isoformat()
+        conversation.working_state = _safe_json(state)
+        conversation.updated_at = _utc_now()
+
+    best_effort("update_working_state_execution_summary", write, user_id=user_id)
+    return summary
 
 
 def persist_chat_interaction(
@@ -144,6 +265,15 @@ def persist_chat_interaction(
         plan_id = response.get("planId")
         if plan_id:
             conversation.active_plan_id = plan_id
+        new_working_state = _build_working_state(
+            previous=conversation.working_state,
+            user_message=user_message,
+            assistant_content=assistant_content,
+            dataset_context=dataset_context,
+            response=response,
+        )
+        if new_working_state:
+            conversation.working_state = new_working_state
         conversation.updated_at = _utc_now()
 
         base = {"conversation": conversation.id, "time": time.time()}
@@ -178,6 +308,9 @@ def persist_chat_interaction(
                         "confidence": response.get("confidence"),
                         "assumptions": response.get("assumptions"),
                         "tablesUsed": response.get("tablesUsed"),
+                        "usedContext": response.get("usedContext"),
+                        "conversationMode": response.get("conversationMode"),
+                        "workingStateRevision": response.get("workingStateRevision"),
                     }
                 ),
             )

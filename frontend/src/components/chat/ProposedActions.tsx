@@ -52,7 +52,9 @@ export function ProposedActions({
         if (action.tool === 'run_sql') {
           const sql = String(action.arguments.sql ?? '');
           onExecutionResult?.(sql, result.data);
-          const summary = summarizeExecutionResult(result.data);
+          const summary = typeof result.data.assistantFollowup === 'string' && result.data.assistantFollowup.trim()
+            ? result.data.assistantFollowup.trim()
+            : summarizeExecutionResult(result.data);
           onResult(action.id, summary);
           onAssistantFollowup?.(summary);
         } else if (action.tool === 'run_sql_preview') {

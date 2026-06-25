@@ -52,7 +52,10 @@ export interface ToolResult {
   toolCallId: string;
   tool: string;
   success: boolean;
-  data: Record<string, unknown>;
+  data: Record<string, unknown> & {
+    assistantFollowup?: string;
+    workingStateRevision?: number;
+  };
   error?: string | null;
 }
 

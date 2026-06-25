@@ -6,7 +6,7 @@ from app.tools.capabilities_service import build_capabilities
 from app.tools.executor import execute_tool
 from app.tools.schemas import DatasetContext, ToolExecuteRequest, ToolResult
 from app.tools.registry import normalize_context
-from app.persistence import persist_execution_run, persist_operation_log
+from app.persistence import persist_execution_run, persist_operation_log, update_working_state_execution_summary
 
 
 router = APIRouter(tags=["capabilities"])
@@ -73,4 +73,12 @@ def post_tool_execute(body: ToolExecuteRequest, request: Request) -> dict:
             result=result.data,
             user_id=user_id,
         )
+        followup = update_working_state_execution_summary(
+            session_id=body.sessionId,
+            result=result.data,
+            run_id=result.toolCallId,
+            user_id=user_id,
+        )
+        if followup:
+            result.data["assistantFollowup"] = followup
     return {"success": True, "data": result.model_dump()}

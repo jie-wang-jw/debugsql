@@ -87,13 +87,19 @@ function MessageMetadata({ message }: { message: ChatMessage }) {
   const assumptions = message.assumptions?.filter(Boolean) ?? [];
   const tables = message.tablesUsed?.filter(Boolean) ?? [];
   const hasConfidence = typeof message.confidence === 'number';
-  if (!assumptions.length && !tables.length && !hasConfidence) return null;
+  const usedContext = Boolean(message.usedContext);
+  if (!assumptions.length && !tables.length && !hasConfidence && !usedContext) return null;
 
   return (
     <div className="chat-msg__metadata" aria-label="AI response metadata">
       {hasConfidence && (
         <span className="chat-msg__metadata-pill">
           confidence {Math.round((message.confidence ?? 0) * 100)}%
+        </span>
+      )}
+      {usedContext && (
+        <span className="chat-msg__metadata-pill">
+          using previous query
         </span>
       )}
       {tables.length > 0 && (

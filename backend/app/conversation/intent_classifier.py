@@ -17,16 +17,6 @@ HELP_TERMS = (
     "evaluate",
 )
 
-EDIT_TERMS = (
-    "change limit",
-    "set limit",
-    "remove filter",
-    "add filter",
-    "sort by",
-    "change",
-)
-
-
 def _llm_configured() -> bool:
     settings = get_settings()
     provider = settings.query_plan_provider.lower()
@@ -41,15 +31,6 @@ def classify_message(message: str, dataset_context: dict | None = None) -> Conve
     text = message.lower().strip()
     benchmark = (dataset_context or {}).get("benchmark")
     db_id = (dataset_context or {}).get("dbId")
-
-    if any(term in text for term in EDIT_TERMS):
-        return ConversationIntent(
-            intent_type="edit_plan",
-            confidence=0.65,
-            requires_plan=False,
-            requires_execution=False,
-            reason="Message appears to modify an existing plan.",
-        )
 
     if any(term in text for term in HELP_TERMS):
         return ConversationIntent(
