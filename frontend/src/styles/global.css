@@ -108,6 +108,18 @@
   --text-3xl: 2.25rem;  /* ~33.8px  – hero/landing h1 */
   --text-hero: clamp(2.4rem, 5vw, 4.4rem);
 
+  /* Readability bump for the dense dashboard UI. Keep this block after the
+     original scale so it wins without touching older encoded comments. */
+  --text-2xs: 0.78rem;
+  --text-xs:  0.84rem;
+  --text-sm:  0.92rem;
+  --text-base: 1rem;
+  --text-md:  1.08rem;
+  --text-lg:  1.18rem;
+  --text-xl:  1.35rem;
+  --text-2xl: 2rem;
+  --text-3xl: 2.5rem;
+
   /* ---- Transitions — smooth, professional ---- */
   --t-fast:    90ms ease;
   --t-default: 180ms ease;
@@ -142,6 +154,7 @@ html, body {
   overflow: hidden;
   font-family: var(--font-sans);
   font-size: 15px;
+  font-size: 16px;
   line-height: 1.6;
   background-color: var(--bg-base);
   color: var(--text-primary);
