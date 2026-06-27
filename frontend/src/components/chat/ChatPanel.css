@@ -192,9 +192,9 @@
 
 .dataset-selector {
   display: grid;
-  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.4fr) auto;
+  grid-template-columns: minmax(86px, 0.8fr) minmax(112px, 1.4fr) max-content;
   align-items: end;
-  gap: 8px;
+  gap: 10px;
   padding: 10px 12px;
   background: var(--bg-surface);
 }
@@ -212,6 +212,7 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-muted);
+  white-space: nowrap;
 }
 
 .dataset-selector__pill,
@@ -247,6 +248,7 @@
 .dataset-selector__meta {
   padding: 0 8px;
   white-space: nowrap;
+  max-width: 160px;
 }
 
 .dataset-selector__warning {
