@@ -18,7 +18,7 @@
   display: flex;
   align-items: center;
   gap: 0.45rem;
-  font-size: var(--text-sm);
+  font-size: var(--text-base);
   font-weight: 600;
   letter-spacing: 0.02em;
 }
@@ -32,7 +32,7 @@
   color: var(--text-secondary);
   border-radius: 6px;
   padding: 0.35rem 0.55rem;
-  font-size: var(--text-2xs);
+  font-size: var(--text-sm);
 }
 
 .capabilities-panel__context {
@@ -47,8 +47,8 @@
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
-  font-size: var(--text-2xs);
-  color: var(--text-muted);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
 }
 
 .capabilities-panel__context select {
@@ -57,7 +57,7 @@
   border: 1px solid var(--border-default);
   border-radius: 6px;
   padding: 0.35rem 0.45rem;
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
 }
 
 .capabilities-panel__status {
@@ -81,65 +81,67 @@
 
 .capabilities-section h3 {
   margin: 0 0 0.35rem;
-  font-size: var(--text-sm);
+  font-size: var(--text-base);
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--text-muted);
+  color: var(--text-secondary);
 }
 
 .capabilities-section__meta {
   margin: 0 0 0.65rem;
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-secondary);
 }
 
 .capabilities-tables {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-  gap: 0.55rem;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 0.7rem;
 }
 
 .capabilities-table-card {
   border: 1px solid var(--border-default);
   border-radius: 8px;
-  padding: 0.55rem 0.65rem;
+  padding: 0.75rem 0.8rem;
   background: var(--bg-elevated);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
 }
 
 .capabilities-table-card strong {
   display: block;
-  margin-bottom: 0.15rem;
+  margin-bottom: 0.2rem;
+  font-size: var(--text-base);
 }
 
 .capabilities-table-card span {
-  color: var(--text-muted);
-  font-size: var(--text-2xs);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
 }
 
 .capabilities-table-card ul {
   margin: 0.45rem 0 0;
   padding-left: 1rem;
   color: var(--text-secondary);
+  font-size: var(--text-sm);
 }
 
 .capabilities-relationships h4 {
   margin: 0.75rem 0 0.35rem;
-  font-size: var(--text-2xs);
+  font-size: var(--text-sm);
   color: var(--text-secondary);
 }
 
 .capabilities-relationships ul {
   margin: 0;
   padding-left: 1rem;
-  font-size: var(--text-2xs);
+  font-size: var(--text-sm);
   color: var(--text-secondary);
 }
 
 .capabilities-policies {
   margin: 0 0 0.65rem;
   padding-left: 1rem;
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-secondary);
 }
 
@@ -153,7 +155,7 @@
   border: 1px solid var(--border-default);
   border-radius: 999px;
   padding: 0.2rem 0.55rem;
-  font-size: var(--text-2xs);
+  font-size: var(--text-sm);
   color: var(--text-secondary);
   background: var(--bg-elevated);
 }
@@ -177,14 +179,14 @@
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  font-size: var(--text-2xs);
-  color: var(--text-muted);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
   margin-bottom: 0.25rem;
 }
 
 .capabilities-example__content {
   display: block;
-  font-size: var(--text-xs);
-  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  color: var(--text-primary);
   white-space: pre-wrap;
 }
