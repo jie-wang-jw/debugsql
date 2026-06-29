@@ -461,16 +461,29 @@
   align-items: center;
   justify-content: space-between;
   padding: 7px var(--sp-3);
-  border-bottom: 1px solid var(--border-subtle);
   background: var(--bg-elevated);
 }
 
-.sql-preview__header-left {
+.sql-preview--open .sql-preview__header {
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.sql-preview__toggle {
   display: flex;
   align-items: center;
   gap: 7px;
   color: var(--text-muted);
   font-size: var(--text-xs);
+  padding: 2px 0;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  text-align: left;
+}
+
+.sql-preview__toggle:hover {
+  color: var(--text-secondary);
 }
 
 .sql-preview__header-icon {

@@ -9,9 +9,9 @@
 // TODO: Support editable SQL with live backend validation
 // ================================================
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { FiCopy, FiCheck, FiCode } from 'react-icons/fi';
+import { FiCopy, FiCheck, FiCode, FiChevronDown, FiChevronRight } from 'react-icons/fi';
 
 // ---------------------------------------------------------------------------
 // Tokenizer
@@ -124,6 +124,11 @@ interface SQLPreviewProps {
 
 export function SQLPreview({ sql }: SQLPreviewProps) {
   const [copied, setCopied] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+
+  useEffect(() => {
+    setIsOpen(false);
+  }, [sql]);
 
   const handleCopy = useCallback(async () => {
     try {
@@ -139,17 +144,24 @@ export function SQLPreview({ sql }: SQLPreviewProps) {
 
   return (
     <motion.div
-      className="sql-preview"
+      className={`sql-preview ${isOpen ? 'sql-preview--open' : 'sql-preview--collapsed'}`}
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
     >
       {/* Header bar */}
       <div className="sql-preview__header">
-        <div className="sql-preview__header-left">
+        <button
+          type="button"
+          className="sql-preview__toggle"
+          onClick={() => setIsOpen((value) => !value)}
+          aria-expanded={isOpen}
+          aria-controls="generated-sql-preview"
+        >
+          {isOpen ? <FiChevronDown size={13} /> : <FiChevronRight size={13} />}
           <FiCode size={11} />
           <span className="sql-preview__title">Generated SQL</span>
-        </div>
+        </button>
         <motion.button
           className={`sql-preview__copy-btn ${copied ? 'sql-preview__copy-btn--done' : ''}`}
           onClick={handleCopy}
@@ -162,17 +174,18 @@ export function SQLPreview({ sql }: SQLPreviewProps) {
         </motion.button>
       </div>
 
-      {/* Code block */}
-      <pre className="sql-preview__code" aria-label="SQL query">
-        <code>
-          {tokens.map((token, idx) => {
-            const cls = TOKEN_CLASS[token.kind];
-            return cls
-              ? <span key={idx} className={cls}>{token.text}</span>
-              : token.text;
-          })}
-        </code>
-      </pre>
+      {isOpen && (
+        <pre id="generated-sql-preview" className="sql-preview__code" aria-label="SQL query">
+          <code>
+            {tokens.map((token, idx) => {
+              const cls = TOKEN_CLASS[token.kind];
+              return cls
+                ? <span key={idx} className={cls}>{token.text}</span>
+                : token.text;
+            })}
+          </code>
+        </pre>
+      )}
     </motion.div>
   );
 }
