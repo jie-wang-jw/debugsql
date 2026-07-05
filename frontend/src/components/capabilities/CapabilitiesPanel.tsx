@@ -18,6 +18,16 @@ interface CapabilitiesPanelProps {
   onExampleSelect?: (example: CapabilityExample) => void;
 }
 
+const SQLITE_BENCHMARK_IDS = new Set(['spider', 'bird']);
+const FALLBACK_SQLITE_BENCHMARKS: BenchmarkInfo[] = [
+  { id: 'spider', label: 'Spider', status: 'ready', databaseCount: 0 },
+  { id: 'bird', label: 'BIRD', status: 'ready', databaseCount: 0 },
+];
+
+function isSqliteBenchmarkOption(item: BenchmarkInfo): boolean {
+  return SQLITE_BENCHMARK_IDS.has(item.id.toLowerCase());
+}
+
 export function CapabilitiesPanel({ onExampleSelect }: CapabilitiesPanelProps) {
   const { selection, setDbType, setBenchmark, setDbId } = useDatasetContext();
   const [benchmarks, setBenchmarks] = useState<BenchmarkInfo[]>([]);
@@ -25,6 +35,10 @@ export function CapabilitiesPanel({ onExampleSelect }: CapabilitiesPanelProps) {
   const [capabilities, setCapabilities] = useState<CapabilitiesResponse | null>(null);
   const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle');
   const [error, setError] = useState<string | null>(null);
+  const isMultimodal = selection.dbType === 'multimodal_demo' || selection.benchmark === 'multimodal_demo';
+  const effectiveDbType = isMultimodal ? 'multimodal_demo' : selection.dbType;
+  const effectiveBenchmark = isMultimodal ? 'multimodal_demo' : selection.benchmark;
+  const effectiveDbId = isMultimodal ? 'multimodal_demo' : selection.dbId;
 
   useEffect(() => {
     getBenchmarks()
@@ -33,19 +47,36 @@ export function CapabilitiesPanel({ onExampleSelect }: CapabilitiesPanelProps) {
   }, []);
 
   useEffect(() => {
-    if (selection.dbType !== 'sqlite_benchmark') return;
-    getBenchmarkDatabases(selection.benchmark)
+    const benchmarkToLoad = isMultimodal
+      ? 'multimodal_demo'
+      : selection.dbType === 'sqlite_benchmark'
+        ? selection.benchmark
+        : null;
+    if (!benchmarkToLoad) {
+      setDatabases([]);
+      return;
+    }
+    let cancelled = false;
+    getBenchmarkDatabases(benchmarkToLoad)
       .then((items) => {
+        if (cancelled) return;
         setDatabases(items);
-        if (!selection.dbId && items.length > 0) {
+        if (isMultimodal) {
+          setDbId(items[0]?.dbId || 'multimodal_demo');
+        } else if (!selection.dbId && items.length > 0) {
           setDbId(items.find((item) => item.hasSQLite)?.dbId || items[0].dbId);
         }
       })
-      .catch(() => setDatabases([]));
-  }, [selection.benchmark, selection.dbId, selection.dbType, setDbId]);
+      .catch(() => {
+        if (!cancelled) setDatabases([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isMultimodal, selection.benchmark, selection.dbId, selection.dbType, setBenchmark, setDbId, setDbType]);
 
   const loadCapabilities = useCallback(async () => {
-    if (selection.dbType === 'sqlite_benchmark' && !selection.dbId) {
+    if (!isMultimodal && selection.dbType === 'sqlite_benchmark' && !selection.dbId) {
       setCapabilities(null);
       return;
     }
@@ -53,9 +84,9 @@ export function CapabilitiesPanel({ onExampleSelect }: CapabilitiesPanelProps) {
     setError(null);
     try {
       const payload = await getCapabilities({
-        dbType: selection.dbType,
-        benchmark: selection.dbType === 'sqlite_benchmark' ? selection.benchmark : undefined,
-        dbId: selection.dbType === 'sqlite_benchmark' ? selection.dbId : undefined,
+        dbType: isMultimodal ? 'multimodal_demo' : selection.dbType,
+        benchmark: isMultimodal ? 'multimodal_demo' : selection.dbType === 'sqlite_benchmark' ? selection.benchmark : undefined,
+        dbId: isMultimodal ? 'multimodal_demo' : selection.dbType === 'sqlite_benchmark' ? selection.dbId : undefined,
       });
       setCapabilities(payload);
       setStatus('idle');
@@ -63,7 +94,7 @@ export function CapabilitiesPanel({ onExampleSelect }: CapabilitiesPanelProps) {
       setStatus('error');
       setError(err instanceof Error ? err.message : 'Failed to load capabilities');
     }
-  }, [selection.benchmark, selection.dbId, selection.dbType]);
+  }, [isMultimodal, selection.benchmark, selection.dbId, selection.dbType]);
 
   useEffect(() => {
     void loadCapabilities();
@@ -71,6 +102,8 @@ export function CapabilitiesPanel({ onExampleSelect }: CapabilitiesPanelProps) {
 
   const tables = (capabilities?.schemaPreview?.tables as Array<{ name: string; columns?: Array<{ name: string }> }>) ?? [];
   const relationships = (capabilities?.schemaPreview?.relationships as Array<Record<string, string>>) ?? [];
+  const mediaTypes = (capabilities?.schemaPreview?.mediaTypes as Array<{ type: string; count: number }>) ?? [];
+  const sqliteBenchmarks = benchmarks.filter(isSqliteBenchmarkOption);
 
   return (
     <div className="capabilities-panel">
@@ -89,31 +122,51 @@ export function CapabilitiesPanel({ onExampleSelect }: CapabilitiesPanelProps) {
         <label>
           <span>Database type</span>
           <select
-            value={selection.dbType}
-            onChange={(event) => setDbType(event.target.value as 'sqlite_benchmark' | 'postgres')}
+            value={effectiveDbType}
+            onChange={(event) => {
+              const nextDbType = event.target.value as 'sqlite_benchmark' | 'postgres' | 'multimodal_demo';
+              setDbType(nextDbType);
+              if (nextDbType === 'multimodal_demo') {
+                setBenchmark('multimodal_demo');
+                setDbId('multimodal_demo');
+              } else if (nextDbType === 'sqlite_benchmark' && selection.benchmark === 'multimodal_demo') {
+                setBenchmark('spider');
+                setDbId('');
+              }
+            }}
           >
             <option value="sqlite_benchmark">Benchmark SQLite</option>
+            <option value="multimodal_demo">Multimodal Demo</option>
             <option value="postgres">PostgreSQL</option>
           </select>
         </label>
 
-        {selection.dbType === 'sqlite_benchmark' && (
+        {effectiveDbType === 'sqlite_benchmark' && (
           <>
             <label>
               <span>Benchmark</span>
-              <select value={selection.benchmark} onChange={(event) => setBenchmark(event.target.value)}>
-                {(benchmarks.length > 0 ? benchmarks : [{ id: selection.benchmark, label: selection.benchmark }]).map(
-                  (item) => (
+              <select
+                value={effectiveBenchmark}
+                onChange={(event) => {
+                  const nextBenchmark = event.target.value;
+                  setDbType('sqlite_benchmark');
+                  setBenchmark(nextBenchmark);
+                }}
+              >
+                {(sqliteBenchmarks.length > 0 ? sqliteBenchmarks : FALLBACK_SQLITE_BENCHMARKS).map((item) => (
                     <option key={item.id} value={item.id}>
                       {item.label}
                     </option>
-                  ),
-                )}
+                  ))}
               </select>
             </label>
             <label>
               <span>Database</span>
-              <select value={selection.dbId} onChange={(event) => setDbId(event.target.value)}>
+              <select
+                value={effectiveDbId}
+                onChange={(event) => setDbId(event.target.value)}
+                disabled={isMultimodal}
+              >
                 {databases.map((database) => (
                   <option key={database.dbId} value={database.dbId}>
                     {database.dbId}
@@ -130,11 +183,39 @@ export function CapabilitiesPanel({ onExampleSelect }: CapabilitiesPanelProps) {
 
       {capabilities && (
         <div className="capabilities-panel__body">
+          <section className="capabilities-section capabilities-section--guide">
+            <h3>How to use this</h3>
+            <ol className="capabilities-guide">
+              <li>Review the tables and media types available in this dataset.</li>
+              <li>Click an example below or ask a question in the chat panel.</li>
+              <li>Validate the proposed SQL, then approve execution to see real results.</li>
+            </ol>
+          </section>
+
+          {(capabilities.capabilityLabels?.length ?? 0) > 0 && (
+            <section className="capabilities-section">
+              <h3>This benchmark supports</h3>
+              <ul className="capabilities-support-list">
+                {capabilities.capabilityLabels!.map((label) => (
+                  <li key={label}>{label}</li>
+                ))}
+              </ul>
+            </section>
+          )}
           <section className="capabilities-section">
             <h3>What you can see</h3>
             <p className="capabilities-section__meta">
               {capabilities.connector.label} · {tables.length} tables · read-only
             </p>
+            {mediaTypes.length > 0 && (
+              <div className="capabilities-media">
+                {mediaTypes.map((item) => (
+                  <span key={item.type} className="capabilities-media__chip">
+                    {item.type}: {item.count}
+                  </span>
+                ))}
+              </div>
+            )}
             <div className="capabilities-tables">
               {tables.map((table) => (
                 <article key={table.name} className="capabilities-table-card">

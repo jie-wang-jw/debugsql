@@ -13,6 +13,12 @@ export interface BenchmarkInfo {
   label: string;
   status: 'ready' | 'missing' | 'placeholder' | string;
   databaseCount: number;
+  /** Unified descriptor fields (backend benchmarks registry). */
+  connector?: string;
+  modalities?: string[];
+  capabilities?: string[];
+  description?: string;
+  extra?: Record<string, unknown>;
 }
 
 export interface BenchmarkDatabaseInfo {

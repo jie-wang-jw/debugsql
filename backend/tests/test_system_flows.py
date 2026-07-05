@@ -28,6 +28,9 @@ from app.persistence import persist_execution_run
 from app.persistence import persist_chat_interaction
 from app.gemini.openai_compatible_service import OpenAICompatibleService
 from app.gemini.schemas import GeminiQueryPlan
+from app.conversation.sql_resolver import ResolvedSQL
+from app.multimodal.registry import dataset_info
+from app.multimodal.retrieval import search_media
 
 
 @pytest.fixture(autouse=True)
@@ -640,3 +643,138 @@ def test_repair_case_without_controlled_logs_marks_metrics_unavailable() -> None
     assert response.status_code == 200
     assert response.json()["data"]["metrics"]["metricsAvailable"] is False
     assert response.json()["data"]["metrics"]["debugRecoveryRate"] is None
+
+
+def test_multimodal_registry_and_preview_endpoint_are_safe() -> None:
+    info = dataset_info()
+    assert info["id"] == "multimodal_demo"
+    assert info["mediaCounts"]["image"] >= 1
+
+    matches = search_media("red backpack image", media_type="image", limit=3)
+    assert matches
+    assert matches[0].media_type == "image"
+
+    client = _client()
+    ok = client.get(f"/multimodal/assets/{matches[0].asset_id}/preview")
+    assert ok.status_code == 200
+
+    unknown = client.get("/multimodal/assets/../../secret/preview")
+    assert unknown.status_code in {400, 404}
+
+
+def test_multimodal_capabilities_query_execution_and_history_restore() -> None:
+    client = _client()
+    context = {"dbType": "multimodal_demo", "dbId": "multimodal_demo"}
+    capabilities = client.get("/capabilities?dbType=multimodal_demo").json()["data"]
+    assert capabilities["connector"]["dbType"] == "multimodal_demo"
+    assert capabilities["schemaPreview"]["mediaTypes"]
+    assert capabilities["examples"]
+
+    response = client.post(
+        "/query",
+        json={
+            "message": "Find images that look like a red backpack",
+            "sessionId": "pytest-multimodal-session",
+            "datasetContext": context,
+        },
+    )
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert data["mediaMatches"]
+    assert data["requiresApproval"] is True
+    assert "media_matches" in data["sql"]
+
+    run_action = next(action for action in data["proposedActions"] if action["tool"] == "run_sql")
+    executed = client.post(
+        "/tools/execute",
+        json={
+            "tool": "run_sql",
+            "toolCallId": "pytest-multimodal-run",
+            "arguments": run_action["arguments"],
+            "context": context,
+            "approved": True,
+            "sessionId": "pytest-multimodal-session",
+        },
+    )
+    assert executed.status_code == 200
+    result = executed.json()["data"]["data"]
+    assert result["mediaPreviews"]
+    assert result["mediaPreviews"][0]["preview_url"].startswith("/api/multimodal/assets/")
+
+    detail_id = client.get("/history/summary").json()["data"]["conversations"][0]["id"]
+    detail = client.get(f"/history/conversations/{detail_id}").json()["data"]
+    assert detail["datasetContext"]["dbType"] == "multimodal_demo"
+    assert detail["latestExecutionResultPreview"]["mediaPreviews"]
+
+
+def test_multimodal_refinement_preserves_media_predicate() -> None:
+    client = _client()
+    context = {"dbType": "multimodal_demo", "dbId": "multimodal_demo"}
+    first = client.post(
+        "/query",
+        json={
+            "message": "Find images that look like a red backpack",
+            "sessionId": "pytest-multimodal-refine",
+            "datasetContext": context,
+        },
+    ).json()["data"]
+    assert first["usedContext"] is False
+
+    second = client.post(
+        "/query",
+        json={
+            "message": "limit to 1",
+            "sessionId": "pytest-multimodal-refine",
+            "datasetContext": context,
+        },
+    ).json()["data"]
+    assert second["usedContext"] is True
+    assert second["mediaPredicate"] == "Find images that look like a red backpack"
+    assert second["mediaLimit"] == 1
+    assert "LIMIT 1" in second["sql"]
+
+
+def test_sql_proposal_does_not_claim_final_answer_before_execution(monkeypatch) -> None:
+    import app.conversation.tool_assistant as tool_assistant
+
+    monkeypatch.setenv("QUERY_PLAN_PROVIDER", "openai_compatible")
+    monkeypatch.setenv("LLM_API_BASE_URL", "https://example.test/v1")
+    monkeypatch.setenv("LLM_API_KEY", "test-key")
+    get_settings.cache_clear()
+
+    def fake_resolver(*_args, **_kwargs) -> ResolvedSQL:
+        return ResolvedSQL(
+            sql="SELECT COUNT(*) AS count FROM author;",
+            explanation="Counts rows in the author table.",
+            provider="test",
+            answer="There are 1,048,576 authors in the database.",
+            tables_used=("author",),
+            confidence=0.95,
+        )
+
+    monkeypatch.setattr(tool_assistant, "resolve_sql_for_message", fake_resolver)
+
+    response = _client().post(
+        "/query",
+        json={
+            "message": "how many authors are in academic?",
+            "sessionId": "pytest-no-preexecution-answer",
+            "datasetContext": {
+                "dbType": "sqlite_benchmark",
+                "benchmark": "spider",
+                "dbId": "academic",
+            },
+        },
+    )
+    assert response.status_code == 200
+    content = response.json()["data"]["content"]
+    assert "I prepared a read-only SQL query" in content
+    assert "actual result after the query runs" in content
+    assert "1,048,576" not in content
+    assert "SELECT COUNT(*) AS count FROM author;" in content
+
+
+def test_goapi_example_is_not_imported_or_required() -> None:
+    import sys
+
+    assert "goapi_example" not in sys.modules

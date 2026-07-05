@@ -9,6 +9,8 @@ from app.tools.schemas import CapabilityExample, CapabilitiesResponse, DatasetCo
 
 
 def build_capabilities(raw_context: dict | DatasetContext | None) -> CapabilitiesResponse:
+    from app.benchmarks.registry import descriptor_for_context
+
     context = normalize_context(raw_context)
     connector = get_connector(context)
     caps = connector.capabilities()
@@ -20,6 +22,7 @@ def build_capabilities(raw_context: dict | DatasetContext | None) -> Capabilitie
         "maxSampleRows": caps.maxSampleRows,
         "supportedTools": [tool.name for tool in list_tools_for_context(context)],
     }
+    descriptor = descriptor_for_context(context.dbType, context.benchmark)
     return CapabilitiesResponse(
         context=context,
         connector=caps,
@@ -27,6 +30,8 @@ def build_capabilities(raw_context: dict | DatasetContext | None) -> Capabilitie
         schemaPreview=schema_preview,
         policies=policies,
         examples=examples,
+        benchmark=descriptor.model_dump() if descriptor else None,
+        capabilityLabels=descriptor.capability_labels() if descriptor else [],
     )
 
 
@@ -89,5 +94,38 @@ def _build_examples(context: DatasetContext, schema_preview: dict[str, Any]) -> 
                     content="Show me the schema and relationships I can query.",
                 ),
             ]
+        )
+    elif context.dbType == "multimodal_demo":
+        for index, item in enumerate(schema_preview.get("exampleQuestions") or []):
+            question = item.get("question") if isinstance(item, dict) else None
+            if question:
+                examples.append(
+                    CapabilityExample(
+                        id=f"multimodal-prompt-{index}",
+                        kind="prompt",
+                        label=f"Media example {index + 1}",
+                        content=question,
+                    )
+                )
+        examples.append(
+            CapabilityExample(
+                id="multimodal-sql-1",
+                kind="sql",
+                label="All prepared media",
+                content=(
+                    "SELECT e.name, a.media_type, a.caption FROM entities e "
+                    "JOIN media_assets a ON a.entity_id = e.id LIMIT 10;"
+                ),
+            )
+        )
+        from app.tools.connectors.multimodal_demo import NL_FILTER_EXAMPLE_SQL
+
+        examples.append(
+            CapabilityExample(
+                id="multimodal-sql-nl-filter",
+                kind="sql",
+                label="Semantic filter (NL_FILTER)",
+                content=NL_FILTER_EXAMPLE_SQL,
+            )
         )
     return examples

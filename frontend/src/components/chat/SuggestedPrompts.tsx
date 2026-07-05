@@ -13,6 +13,9 @@ import type { SuggestedPrompt } from './chat.types';
 interface SuggestedPromptsProps {
   prompts?: SuggestedPrompt[];
   databaseLabel?: string;
+  title?: string;
+  description?: React.ReactNode;
+  sectionLabel?: string;
   onSelect: (prompt: string) => void;
 }
 
@@ -36,6 +39,9 @@ const PROMPT_ICONS: Record<SuggestedPrompt['icon'], React.ComponentType<{ size?:
 export function SuggestedPrompts({
   prompts,
   databaseLabel,
+  title = 'Start a SQL Conversation',
+  description,
+  sectionLabel,
   onSelect,
 }: SuggestedPromptsProps) {
   const visiblePrompts = prompts?.length ? prompts : DEFAULT_PROMPTS;
@@ -56,16 +62,20 @@ export function SuggestedPrompts({
         >
           <FiZap size={22} />
         </motion.div>
-        <h2 className="sp-hero__title">Start a SQL Conversation</h2>
+        <h2 className="sp-hero__title">{title}</h2>
         <p className="sp-hero__desc">
-          Ask a question for the selected database.<br />
-          I'll generate SQL and an editable query plan.
+          {description ?? (
+            <>
+              Ask a question for the selected database.<br />
+              I'll prepare safe SQL and ask before running it.
+            </>
+          )}
         </p>
       </div>
 
       <div className="sp-cards">
         <p className="sp-cards__label">
-          {databaseLabel ? `Example questions from ${databaseLabel}` : 'Try a suggestion'}
+          {sectionLabel ?? (databaseLabel ? `Example questions from ${databaseLabel}` : 'Try a suggestion')}
         </p>
         <div className="sp-cards__grid">
           {visiblePrompts.map((prompt, i) => {

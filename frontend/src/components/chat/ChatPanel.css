@@ -192,7 +192,7 @@
 
 .dataset-selector {
   display: grid;
-  grid-template-columns: minmax(86px, 0.8fr) minmax(112px, 1.4fr) max-content;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
   align-items: end;
   gap: 10px;
   padding: 10px 12px;
@@ -232,6 +232,11 @@
   padding: 0 9px;
   font-family: var(--font-mono);
   color: var(--accent-blue-light);
+  min-width: 0;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .dataset-selector__select {
@@ -246,9 +251,13 @@
 }
 
 .dataset-selector__meta {
+  grid-column: 1 / -1;
   padding: 0 8px;
-  white-space: nowrap;
-  max-width: 160px;
+  width: 100%;
+  min-height: 28px;
+  height: auto;
+  line-height: 1.35;
+  white-space: normal;
 }
 
 .dataset-selector__warning {

@@ -2,7 +2,7 @@ import { apiGet, apiPost } from './client';
 import type { RequestOptions } from './client';
 import type { DatasetContext } from './chatApi';
 
-export type DbType = 'sqlite_benchmark' | 'postgres';
+export type DbType = 'sqlite_benchmark' | 'postgres' | 'multimodal_demo';
 
 export interface ConnectorCapabilities {
   dbType: DbType;
@@ -30,6 +30,18 @@ export interface CapabilityExample {
   content: string;
 }
 
+export interface BenchmarkDescriptor {
+  id: string;
+  label: string;
+  status: string;
+  connector: string;
+  modalities: string[];
+  capabilities: string[];
+  databaseCount: number;
+  description?: string;
+  extra?: Record<string, unknown>;
+}
+
 export interface CapabilitiesResponse {
   context: DatasetContext & { dbType?: DbType };
   connector: ConnectorCapabilities;
@@ -37,6 +49,8 @@ export interface CapabilitiesResponse {
   schemaPreview: Record<string, unknown>;
   policies: Record<string, unknown>;
   examples: CapabilityExample[];
+  benchmark?: BenchmarkDescriptor | null;
+  capabilityLabels?: string[];
 }
 
 export interface ToolExecuteRequest {

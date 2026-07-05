@@ -21,6 +21,8 @@ postgres_data/
 debugsql_data/
 data/*
 !data/.gitkeep
+!data/multimodal_demo/
+!data/multimodal_demo/**
 !data/benchmarks/
 !data/benchmarks/.gitkeep
 !data/benchmarks/bird/
@@ -46,3 +48,23 @@ data/benchmarks/spider/sqlite/*
 
 .DS_Store
 Thumbs.db
+
+# Local AI/editor helper files
+.agent/
+.agents/
+.claude-plugin/
+.claude/
+.codegraph/
+.codex/
+.cursor/
+.gemini/
+.mcp.json
+.trellis/
+.understand-anything/
+AGENTS.md
+CLAUDE.md
+CURSOR.md
+EXAMPLES.md
+README.zh.md
+goapi_example.py
+skills/

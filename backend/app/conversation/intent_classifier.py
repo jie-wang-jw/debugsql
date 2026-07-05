@@ -29,6 +29,7 @@ def _llm_configured() -> bool:
 
 def classify_message(message: str, dataset_context: dict | None = None) -> ConversationIntent:
     text = message.lower().strip()
+    db_type = (dataset_context or {}).get("dbType") or (dataset_context or {}).get("db_type")
     benchmark = (dataset_context or {}).get("benchmark")
     db_id = (dataset_context or {}).get("dbId")
 
@@ -39,6 +40,15 @@ def classify_message(message: str, dataset_context: dict | None = None) -> Conve
             requires_plan=False,
             requires_execution=False,
             reason="Message is asking about system or benchmark usage.",
+        )
+
+    if db_type == "multimodal_demo":
+        return ConversationIntent(
+            intent_type="benchmark_query",
+            confidence=0.75,
+            requires_plan=False,
+            requires_execution=True,
+            reason="Message will be handled by the multimodal assistant.",
         )
 
     if benchmark in SQLITE_ROOTS and db_id:

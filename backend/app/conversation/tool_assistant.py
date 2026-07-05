@@ -4,6 +4,7 @@ import uuid
 from typing import Any
 
 from app.benchmark_registry import get_schema_context
+from app.multimodal.query_planner import resolve_multimodal_query
 from app.conversation.sql_resolver import resolve_sql_for_message
 from app.tools.registry import normalize_context
 from app.tools.schemas import DatasetContext, ProposedToolAction
@@ -33,6 +34,53 @@ def build_proposed_actions(
 ) -> tuple[str, list[ProposedToolAction], str | None, dict[str, object]]:
     """Build assistant content and proposed tool actions for a benchmark query."""
     context = normalize_context(dataset_context)
+    if context.dbType == "multimodal_demo":
+        plan = resolve_multimodal_query(message, working_state=working_state)
+        actions = [
+            ProposedToolAction(
+                id=_action_id("introspect"),
+                tool="introspect_schema",
+                label="Inspect multimodal schema",
+                description="Load prepared media tables and image/audio/video capabilities.",
+                arguments={},
+                requiresApproval=False,
+            )
+        ]
+        if plan.sql:
+            actions.extend(
+                [
+                    ProposedToolAction(
+                        id=_action_id("preview"),
+                        tool="run_sql_preview",
+                        label="Validate SQL",
+                        description="Check that the multimodal query is read-only and safe to run.",
+                        arguments={"sql": plan.sql},
+                        requiresApproval=False,
+                    ),
+                    ProposedToolAction(
+                        id=_action_id("run"),
+                        tool="run_sql",
+                        label="Run SQL",
+                        description="Execute the prepared multimodal query after approval.",
+                        arguments={"sql": plan.sql},
+                        requiresApproval=True,
+                    ),
+                ]
+            )
+        content = _multimodal_content(plan)
+        return content, actions, plan.sql, {
+            "provider": "multimodal_demo",
+            "confidence": 0.8 if plan.media_matches else 0.35,
+            "assumptions": plan.assumptions,
+            "tablesUsed": ["entities", "media_assets"],
+            "llmExplanation": plan.explanation,
+            "conversationMode": "refine_query" if plan.used_context else "new_query",
+            "usedContext": plan.used_context,
+            "mediaPredicate": plan.media_predicate,
+            "mediaType": plan.media_type,
+            "mediaMatches": [match.model_dump() for match in plan.media_matches],
+            "mediaLimit": plan.limit,
+        }
     schema = None
     if context.dbType == "sqlite_benchmark" and context.benchmark and context.dbId:
         schema = get_schema_context(context.benchmark, context.dbId)
@@ -100,9 +148,10 @@ def build_proposed_actions(
 def _sql_proposal_content(context: DatasetContext, sql: str, explanation: str, resolved) -> str:
     scope = _scope_label(context)
     parts = [
-        resolved.answer or f"I prepared a read-only SQL query for **{scope}**.",
+        f"I prepared a read-only SQL query for **{scope}**.",
         "",
-        "Review the proposed actions below. Validation can run immediately; execution requires your approval.",
+        "Review the proposed actions below. Validation can run immediately; execution requires your approval. "
+        "I will summarize the actual result after the query runs.",
     ]
     if explanation:
         parts.extend(["", explanation])
@@ -113,6 +162,34 @@ def _sql_proposal_content(context: DatasetContext, sql: str, explanation: str, r
     if resolved.confidence is not None:
         parts.extend(["", f"Confidence: {resolved.confidence:.2f}"])
     parts.extend(["", "```sql", sql.strip().rstrip(";") + ";", "```"])
+    return "\n".join(parts)
+
+
+def _multimodal_content(plan) -> str:
+    parts = [
+        plan.answer,
+        "",
+        "Review the proposed actions below. Validation can run immediately; execution requires your approval.",
+        "",
+        plan.explanation,
+        "",
+        f"Media predicate: `{plan.media_predicate}`",
+        f"Matched media: {len(plan.media_matches)}",
+    ]
+    if plan.media_matches:
+        parts.extend(
+            [
+                "",
+                "Top matches:",
+                *[
+                    f"- {match.asset_id} ({match.media_type}, score {match.score:.2f}): {match.caption or match.transcript}"
+                    for match in plan.media_matches[:5]
+                ],
+            ]
+        )
+    if plan.assumptions:
+        parts.extend(["", "Assumptions:", *[f"- {item}" for item in plan.assumptions]])
+    parts.extend(["", "```sql", plan.sql.strip().rstrip(";") + ";", "```"])
     return "\n".join(parts)
 
 
@@ -193,6 +270,8 @@ def _no_sql_content(context: DatasetContext, message: str, resolved) -> str:
 
 
 def _scope_label(context: DatasetContext) -> str:
+    if context.dbType == "multimodal_demo":
+        return "Multimodal Demo"
     if context.dbType == "postgres":
         return "PostgreSQL"
     if context.benchmark and context.dbId:

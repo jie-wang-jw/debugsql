@@ -1,0 +1,72 @@
+[
+  {
+    "id": "product_001",
+    "name": "Red Trail Backpack",
+    "category": "bag",
+    "price": 79.99,
+    "description": "A red outdoor backpack with black straps."
+  },
+  {
+    "id": "product_002",
+    "name": "Wooden Chair",
+    "category": "furniture",
+    "price": 64.5,
+    "description": "Wooden chair with blue cushions for a small apartment."
+  },
+  {
+    "id": "event_001",
+    "name": "Classroom Teaching Clip",
+    "category": "video",
+    "price": 0,
+    "description": "Short video segment showing a classroom lecture."
+  },
+  {
+    "id": "audio_001",
+    "name": "Applause Clip",
+    "category": "audio",
+    "price": 0,
+    "description": "Audio recording containing audience applause."
+  },
+  {
+    "id": "case_001",
+    "name": "Damaged Refund Case",
+    "category": "support",
+    "price": 29.99,
+    "description": "Support case where text mentions refund and image shows damaged goods."
+  },
+  {
+    "id": "car_black_audi",
+    "name": "Black Audi",
+    "category": "car",
+    "price": 24000,
+    "description": "ThalamusDB cars sample image showing a black Audi."
+  },
+  {
+    "id": "car_red_mercedes",
+    "name": "Red Mercedes",
+    "category": "car",
+    "price": 31000,
+    "description": "ThalamusDB cars sample image showing a red Mercedes."
+  },
+  {
+    "id": "car_silver_volvo",
+    "name": "Silver Volvo",
+    "category": "car",
+    "price": 21000,
+    "description": "ThalamusDB cars sample image showing a silver Volvo."
+  },
+  {
+    "id": "car_white_ford",
+    "name": "White Ford",
+    "category": "car",
+    "price": 18000,
+    "description": "ThalamusDB cars sample image showing a white Ford."
+  },
+  {
+    "id": "car_white_toyota",
+    "name": "White Toyota",
+    "category": "car",
+    "price": 19500,
+    "description": "ThalamusDB cars sample image showing a white Toyota."
+  }
+]

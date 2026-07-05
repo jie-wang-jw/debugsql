@@ -69,6 +69,10 @@ def handle_chat_message(
         confidence=metadata.get("confidence") if isinstance(metadata.get("confidence"), float) else None,
         assumptions=list(metadata.get("assumptions") or []),
         tablesUsed=list(metadata.get("tablesUsed") or []),
+        mediaMatches=list(metadata.get("mediaMatches") or []),
+        mediaPredicate=metadata.get("mediaPredicate") if isinstance(metadata.get("mediaPredicate"), str) else None,
+        mediaType=metadata.get("mediaType") if isinstance(metadata.get("mediaType"), str) else None,
+        mediaLimit=metadata.get("mediaLimit") if isinstance(metadata.get("mediaLimit"), int) else None,
         usedContext=bool(metadata.get("usedContext")),
         conversationMode=metadata.get("conversationMode") if isinstance(metadata.get("conversationMode"), str) else None,
     )

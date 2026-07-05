@@ -1,6 +1,7 @@
 import {
   createContext,
   useContext,
+  useCallback,
   useMemo,
   useState,
   type ReactNode,
@@ -31,14 +32,42 @@ const DEFAULT_SELECTION: DatasetSelection = {
 export function DatasetProvider({ children }: { children: ReactNode }) {
   const [selection, setSelection] = useState<DatasetSelection>(DEFAULT_SELECTION);
 
+  const setDbType = useCallback((dbType: DbType) => {
+    setSelection((prev) => {
+      if (dbType === 'multimodal_demo') {
+        return { dbType, benchmark: 'multimodal_demo', dbId: 'multimodal_demo' };
+      }
+      if (dbType === 'sqlite_benchmark' && prev.benchmark === 'multimodal_demo') {
+        return { dbType, benchmark: 'spider', dbId: '' };
+      }
+      return { ...prev, dbType };
+    });
+  }, []);
+
+  const setBenchmark = useCallback((benchmark: string) => {
+    setSelection((prev) => {
+      if (benchmark === 'multimodal_demo') {
+        return { dbType: 'multimodal_demo', benchmark, dbId: 'multimodal_demo' };
+      }
+      if (prev.dbType === 'multimodal_demo') {
+        return { dbType: 'sqlite_benchmark', benchmark, dbId: '' };
+      }
+      return { ...prev, benchmark };
+    });
+  }, []);
+
+  const setDbId = useCallback((dbId: string) => {
+    setSelection((prev) => ({ ...prev, dbId }));
+  }, []);
+
   const value = useMemo<DatasetContextValue>(
     () => ({
       selection,
-      setDbType: (dbType) => setSelection((prev) => ({ ...prev, dbType })),
-      setBenchmark: (benchmark) => setSelection((prev) => ({ ...prev, benchmark })),
-      setDbId: (dbId) => setSelection((prev) => ({ ...prev, dbId })),
+      setDbType,
+      setBenchmark,
+      setDbId,
     }),
-    [selection],
+    [selection, setBenchmark, setDbId, setDbType],
   );
 
   return <DatasetContext.Provider value={value}>{children}</DatasetContext.Provider>;

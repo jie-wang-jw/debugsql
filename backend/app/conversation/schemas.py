@@ -37,6 +37,10 @@ class ConversationResponse(BaseModel):
     confidence: float | None = None
     assumptions: list[str] = Field(default_factory=list)
     tablesUsed: list[str] = Field(default_factory=list)
+    mediaMatches: list[dict] = Field(default_factory=list)
+    mediaPredicate: str | None = None
+    mediaType: str | None = None
+    mediaLimit: int | None = None
     usedContext: bool = False
     conversationMode: ConversationMode | None = None
     workingStateRevision: int | None = None

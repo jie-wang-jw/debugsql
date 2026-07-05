@@ -8,6 +8,7 @@ from app.benchmark_registry import (
     execute_benchmark_sql,
     get_schema_context,
 )
+from app.semantic_sql import UNSUPPORTED_MESSAGE, contains_semantic_operators
 from app.tools.connector_base import DatabaseConnector
 from app.tools.policy import is_safe_read_query
 from app.tools.schemas import ConnectorCapabilities, DatasetContext
@@ -97,9 +98,18 @@ class BenchmarkSQLiteConnector(DatabaseConnector):
             "exampleQuestions": benchmark_questions(context.benchmark or "", context.dbId, limit=5),
         }
 
+    def validate_sql(self, sql: str) -> dict[str, Any]:
+        if contains_semantic_operators(sql):
+            return {"valid": False, "readOnly": False, "message": UNSUPPORTED_MESSAGE}
+        return super().validate_sql(sql)
+
     def execute_readonly(self, context: DatasetContext, sql: str, max_rows: int = 100) -> dict[str, Any]:
         if not context.benchmark or not context.dbId:
             return _error_result(sql, "Benchmark and database must be selected.")
+        if contains_semantic_operators(sql):
+            # Reject before SQLite sees the query to avoid raw
+            # "no such function: NL_FILTER" errors.
+            return _error_result(sql, UNSUPPORTED_MESSAGE)
         if not is_safe_read_query(sql):
             return _error_result(sql, "Only read-only SELECT/WITH SQL can be executed.")
         return execute_benchmark_sql(context.benchmark, context.dbId, sql)

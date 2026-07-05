@@ -23,6 +23,18 @@ export interface ExecutionMetrics {
   estimatedRows:    number;
 }
 
+export interface MediaPreview {
+  asset_id: string;
+  entity_id: string;
+  media_type: 'image' | 'audio' | 'video' | 'text';
+  score: number;
+  preview_url?: string | null;
+  caption?: string | null;
+  transcript?: string | null;
+  tags?: string[];
+  metadata?: Record<string, unknown>;
+}
+
 /** Full result payload produced by a successful execution run. */
 export interface ExecutionResult {
   /** The SQL that was executed (or would be sent to the DB). */
@@ -30,6 +42,7 @@ export interface ExecutionResult {
   columns: ExecutionColumn[];
   rows:    ExecutionRow[];
   metrics: ExecutionMetrics;
+  mediaPreviews?: MediaPreview[];
 }
 
 export type ExecutionResultPreview = Partial<ExecutionResult> & {

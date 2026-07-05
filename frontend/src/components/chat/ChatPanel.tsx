@@ -27,6 +27,15 @@ import './ChatPanel.css';
 
 const INITIAL_MESSAGES: ChatMessage[] = [];
 const HISTORY_SUMMARY_LIMIT = 20;
+const SQLITE_BENCHMARK_IDS = new Set(['spider', 'bird']);
+const FALLBACK_SQLITE_BENCHMARKS: BenchmarkInfo[] = [
+  { id: 'spider', label: 'Spider', status: 'ready', databaseCount: 0 },
+  { id: 'bird', label: 'BIRD', status: 'ready', databaseCount: 0 },
+];
+
+function isSqliteBenchmarkOption(item: BenchmarkInfo): boolean {
+  return SQLITE_BENCHMARK_IDS.has(item.id.toLowerCase());
+}
 
 interface ChatPanelProps {
   onPromptFromExplorer?: (content: string) => void;
@@ -51,13 +60,15 @@ export function ChatPanel({
   const [historyHasMore, setHistoryHasMore] = useState(false);
   const [benchmarks, setBenchmarks] = useState<BenchmarkInfo[]>([]);
   const [databases, setDatabases] = useState<BenchmarkDatabaseInfo[]>([]);
-  const { selection, setBenchmark, setDbId } = useDatasetContext();
+  const { selection, setDbType, setBenchmark, setDbId } = useDatasetContext();
   const bottomRef = useRef<HTMLDivElement>(null);
   const { restoreExecution } = useExecutionContext();
 
   const datasetContext =
     selection.dbType === 'postgres'
       ? { dbType: 'postgres' as const }
+      : selection.dbType === 'multimodal_demo'
+        ? { dbType: 'multimodal_demo' as const, dbId: 'multimodal_demo' }
       : selection.dbId
         ? { dbType: 'sqlite_benchmark' as const, benchmark: selection.benchmark, dbId: selection.dbId }
         : undefined;
@@ -88,10 +99,11 @@ export function ChatPanel({
       .then((items) => {
         if (!isMounted) return;
         setBenchmarks(items);
+        const sqliteItems = items.filter(isSqliteBenchmarkOption);
         const preferred =
-          items.find((item) => item.status === 'ready' && item.id === 'spider') ??
-          items.find((item) => item.status === 'ready') ??
-          items[0];
+          sqliteItems.find((item) => item.status === 'ready' && item.id === 'spider') ??
+          sqliteItems.find((item) => item.status === 'ready') ??
+          sqliteItems[0];
         if (preferred && !selection.benchmark) {
           setBenchmark(preferred.id);
         }
@@ -105,13 +117,29 @@ export function ChatPanel({
   }, [selection.benchmark, setBenchmark]);
 
   useEffect(() => {
-    if (selection.dbType !== 'sqlite_benchmark') return;
+    if (selection.dbType === 'sqlite_benchmark' && selection.benchmark === 'multimodal_demo') {
+      setDbType('multimodal_demo');
+      setDbId('multimodal_demo');
+      return;
+    }
+    const benchmarkToLoad =
+      selection.dbType === 'multimodal_demo'
+        ? 'multimodal_demo'
+        : selection.dbType === 'sqlite_benchmark'
+          ? selection.benchmark
+          : null;
+    if (!benchmarkToLoad) {
+      setDatabases([]);
+      return;
+    }
     let isMounted = true;
-    getBenchmarkDatabases(selection.benchmark)
+    getBenchmarkDatabases(benchmarkToLoad)
       .then((items) => {
         if (!isMounted) return;
         setDatabases(items);
-        if (!selection.dbId) {
+        if (selection.dbType === 'multimodal_demo') {
+          setDbId(items[0]?.dbId || 'multimodal_demo');
+        } else if (!selection.dbId) {
           setDbId(items.find((item) => item.hasSQLite)?.dbId || items[0]?.dbId || '');
         }
       })
@@ -121,7 +149,7 @@ export function ChatPanel({
     return () => {
       isMounted = false;
     };
-  }, [selection.benchmark, selection.dbId, selection.dbType, setDbId]);
+  }, [selection.benchmark, selection.dbId, selection.dbType, setDbId, setDbType]);
 
   const applyExecutionResult = useCallback((sql: string, data: Record<string, unknown>) => {
     const columns = (data.columns as ExecutionResult['columns']) ?? [];
@@ -133,7 +161,14 @@ export function ChatPanel({
       estimatedRows: rows.length,
     };
     restoreExecution(
-      { sql, columns, rows, metrics, rowCount: metrics.rowCount },
+      {
+        sql,
+        columns,
+        rows,
+        metrics,
+        rowCount: metrics.rowCount,
+        mediaPreviews: (data.mediaPreviews as ExecutionResult['mediaPreviews']) ?? [],
+      },
       'success',
     );
   }, [restoreExecution]);
@@ -171,6 +206,10 @@ export function ChatPanel({
           usedContext: response.usedContext,
           conversationMode: response.conversationMode,
           workingStateRevision: response.workingStateRevision,
+          mediaMatches: response.mediaMatches ?? [],
+          mediaPredicate: response.mediaPredicate,
+          mediaType: response.mediaType,
+          mediaLimit: response.mediaLimit,
         };
         setMessages((prev) => [...prev, aiMsg]);
         void refreshHistory();
@@ -254,6 +293,10 @@ export function ChatPanel({
             usedContext: message.usedContext,
             conversationMode: message.conversationMode,
             workingStateRevision: message.workingStateRevision,
+            mediaMatches: message.mediaMatches ?? [],
+            mediaPredicate: message.mediaPredicate,
+            mediaType: message.mediaType,
+            mediaLimit: message.mediaLimit,
             actionResults: buildRestoredActionResults(message.proposedActions, latestSummary),
           })),
         );
@@ -280,18 +323,48 @@ export function ChatPanel({
     description: item.question,
     icon: 'question',
   }));
+  const multimodalPrompts: SuggestedPrompt[] = [
+    {
+      id: 'multimodal-image',
+      label: 'Find matching images',
+      description: 'Find red cars with sporty-looking images',
+      icon: 'question',
+    },
+    {
+      id: 'multimodal-audio',
+      label: 'Search audio transcripts',
+      description: 'Show audio clips mentioning engine noise',
+      icon: 'question',
+    },
+    {
+      id: 'multimodal-video',
+      label: 'Search video evidence',
+      description: 'Find videos with a red car in the frame',
+      icon: 'question',
+    },
+    {
+      id: 'multimodal-join',
+      label: 'Combine SQL and media',
+      description: 'Find cars under 30000 dollars with red exterior images',
+      icon: 'question',
+    },
+  ];
+  const prompts = selection.dbType === 'multimodal_demo' ? multimodalPrompts : databasePrompts;
+  const isMultimodal = selection.dbType === 'multimodal_demo';
 
   return (
     <div className="chat-panel">
       <ChatHeader status={status} />
-      {selection.dbType === 'sqlite_benchmark' && (
+      {(selection.dbType === 'sqlite_benchmark' || selection.dbType === 'multimodal_demo') && (
         <DatasetSelector
           benchmarks={benchmarks}
-          benchmark={selection.benchmark}
+          benchmark={selection.dbType === 'multimodal_demo' ? 'multimodal_demo' : selection.benchmark}
+          onDbTypeChange={setDbType}
           onBenchmarkChange={setBenchmark}
           databases={databases}
-          selectedDbId={selection.dbId}
+          selectedDbId={selection.dbType === 'multimodal_demo' ? 'multimodal_demo' : selection.dbId}
           onDbChange={setDbId}
+          isMultimodal={selection.dbType === 'multimodal_demo'}
         />
       )}
 
@@ -299,9 +372,19 @@ export function ChatPanel({
         <AnimatePresence mode="wait">
           {isEmpty ? (
             <SuggestedPrompts
-              key={`suggestions-${selection.dbId}`}
-              prompts={databasePrompts}
-              databaseLabel={selection.dbId || 'database'}
+              key={`suggestions-${selection.dbType}-${selection.dbId}`}
+              prompts={prompts}
+              databaseLabel={isMultimodal ? 'Multimodal Demo' : selection.dbId || 'database'}
+              title={isMultimodal ? 'Ask across tables and media' : 'Ask a data question'}
+              description={
+                isMultimodal ? (
+                  <>
+                    Ask for records using normal fields and image, audio, or video meaning.<br />
+                    I will prepare a safe query and ask before running it.
+                  </>
+                ) : undefined
+              }
+              sectionLabel={isMultimodal ? 'Try a multimodal query' : undefined}
               onSelect={(prompt) => {
                 onPromptFromExplorer?.(prompt);
                 void sendMessage(prompt);
@@ -443,23 +526,41 @@ function HistoryPanel({
 interface DatasetSelectorProps {
   benchmarks: BenchmarkInfo[];
   benchmark: string;
+  onDbTypeChange: (dbType: 'sqlite_benchmark' | 'postgres' | 'multimodal_demo') => void;
   onBenchmarkChange: (benchmark: string) => void;
   databases: BenchmarkDatabaseInfo[];
   selectedDbId: string;
   onDbChange: (dbId: string) => void;
+  isMultimodal?: boolean;
 }
 
 function DatasetSelector({
   benchmarks,
   benchmark,
+  onDbTypeChange,
   onBenchmarkChange,
   databases,
   selectedDbId,
   onDbChange,
+  isMultimodal = false,
 }: DatasetSelectorProps) {
   const selected = databases.find((item) => item.dbId === selectedDbId);
   const localDbCount = databases.filter((item) => item.hasSQLite).length;
   const missingSqlite = Boolean(selected && !selected.hasSQLite);
+  const sqliteBenchmarks = benchmarks.filter(isSqliteBenchmarkOption);
+  const benchmarkOptions = [
+    { id: 'multimodal_demo', label: 'Multimodal Demo' },
+    ...(sqliteBenchmarks.length > 0 ? sqliteBenchmarks : FALLBACK_SQLITE_BENCHMARKS),
+  ];
+  const multimodalBenchmark = benchmarks.find((item) => item.id === 'multimodal_demo');
+  const multimodalMediaCounts = multimodalBenchmark?.extra?.mediaCounts as
+    | Record<string, number>
+    | undefined;
+  const multimodalMeta = multimodalMediaCounts
+    ? `${selected?.tableCount ?? 2} tables · ${Object.entries(multimodalMediaCounts)
+        .map(([type, count]) => `${count} ${type}`)
+        .join(' · ')}`
+    : `${selected?.tableCount ?? 2} tables · image/audio/video`;
 
   return (
     <div className="dataset-selector-wrap">
@@ -469,37 +570,52 @@ function DatasetSelector({
           <select
             className="dataset-selector__select"
             value={benchmark}
-            onChange={(event) => onBenchmarkChange(event.target.value)}
+            onChange={(event) => {
+              const nextBenchmark = event.target.value;
+              if (nextBenchmark === 'multimodal_demo') {
+                onDbTypeChange('multimodal_demo');
+                onBenchmarkChange('multimodal_demo');
+                onDbChange('multimodal_demo');
+              } else {
+                onDbTypeChange('sqlite_benchmark');
+                onBenchmarkChange(nextBenchmark);
+                onDbChange('');
+              }
+            }}
           >
-            {(benchmarks.length > 0 ? benchmarks : [{ id: benchmark, label: benchmark }]).map(
-              (item) => (
-                <option key={item.id} value={item.id}>
-                  {item.label}
-                  {'status' in item && item.status !== 'ready' ? ` (${item.status})` : ''}
-                </option>
-              ),
-            )}
-          </select>
-        </label>
-        <label className="dataset-selector__field">
-          <span className="dataset-selector__label">Database</span>
-          <select
-            className="dataset-selector__select"
-            value={selectedDbId}
-            onChange={(event) => onDbChange(event.target.value)}
-          >
-            {databases.map((database) => (
-              <option key={database.dbId} value={database.dbId}>
-                {database.dbId}
-                {database.hasSQLite ? '' : ' (no local DB)'}
+            {benchmarkOptions.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.label}
+                {'status' in item && item.status !== 'ready' ? ` (${item.status})` : ''}
               </option>
             ))}
           </select>
         </label>
+        <label className="dataset-selector__field">
+          <span className="dataset-selector__label">Database</span>
+          {isMultimodal ? (
+            <span className="dataset-selector__pill">{selected?.dbId || 'multimodal_demo'}</span>
+          ) : (
+            <select
+              className="dataset-selector__select"
+              value={selectedDbId}
+              onChange={(event) => onDbChange(event.target.value)}
+            >
+              {databases.map((database) => (
+                <option key={database.dbId} value={database.dbId}>
+                  {database.dbId}
+                  {database.hasSQLite ? '' : ' (no local DB)'}
+                </option>
+              ))}
+            </select>
+          )}
+        </label>
         <span className="dataset-selector__meta">
-          {selected
-            ? `${selected.tableCount} tables · ${localDbCount}/${databases.length} local`
-            : 'loading'}
+          {isMultimodal
+            ? multimodalMeta
+            : selected
+              ? `${selected.tableCount} tables · ${localDbCount}/${databases.length} local`
+              : 'loading'}
         </span>
       </div>
       {missingSqlite && (

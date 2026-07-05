@@ -131,6 +131,7 @@ export function ExecutionProvider({ children }: { children: ReactNode }) {
       columns,
       rows,
       metrics,
+      mediaPreviews: preview.mediaPreviews ?? [],
     });
     setStatus(restoredStatus === 'error' || restoredStatus === 'failed' ? 'failed' : 'success');
   }, []);

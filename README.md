@@ -49,11 +49,13 @@ Docker Compose maps the host path with:
 
 ```env
 BENCHMARK_HOST_DATA_DIR=./data/benchmarks
+MULTIMODAL_HOST_DATA_DIR=./data/multimodal_demo
 ```
 
 On a production-like server, set `BENCHMARK_HOST_DATA_DIR` to a durable path
-such as `/data/debugsql/data/benchmarks`. Do not commit raw benchmark downloads to
-Git.
+such as `/data/debugsql/data/benchmarks`. The multimodal demo assets are small
+and can be deployed from `data/multimodal_demo`; set `MULTIMODAL_HOST_DATA_DIR`
+to that folder on the server. Do not commit raw benchmark downloads to Git.
 
 ## Spider Dataset Setup
 
@@ -340,11 +342,13 @@ FRONTEND_BASE_URL=http://SERVER_IP
 DEBUGSQL_AUTO_LOGIN=0
 BENCHMARK_HOST_DATA_DIR=/data/debugsql/data/benchmarks
 BENCHMARK_DATA_DIR=/app/data/benchmarks
+MULTIMODAL_HOST_DATA_DIR=/data/debugsql/data/multimodal_demo
+MULTIMODAL_DATA_DIR=/app/data/multimodal_demo
 EMAIL_DEV_LOG_CODES=0
 QUERY_PLAN_PROVIDER=openai_compatible
-LLM_API_BASE_URL=https://your-workspace.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1
+LLM_API_BASE_URL=https://goapi.gptnb.ai/v1
 LLM_API_KEY=...
-LLM_MODEL=qwen-plus
+LLM_MODEL=gpt-3.5-turbo
 ```
 
 Use `DEBUGSQL_AUTO_LOGIN=1` only for private local debugging. The server should
@@ -598,15 +602,15 @@ LLM provider for the chat-driven data assistant:
 ```bash
 NL2IR_PROVIDER=stub
 QUERY_PLAN_PROVIDER=openai_compatible
-LLM_API_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+LLM_API_BASE_URL=https://goapi.gptnb.ai/v1
 LLM_API_KEY=...
-LLM_MODEL=qwen-plus
+LLM_MODEL=gpt-3.5-turbo
 ```
 
 The current runtime is chat-driven. The user selects a BIRD/Spider SQLite
 database, asks a question, reviews the proposed read-only SQL, validates it,
 and approves execution. The default LLM path uses an OpenAI-compatible chat API,
-so Alibaba Cloud Model Studio, DeepSeek, or a compatible gateway can be swapped
+so GPTNB GoAPI, Alibaba Cloud Model Studio, DeepSeek, or a compatible gateway can be swapped
 by changing environment variables. Gemini remains available as an optional
 provider.
 

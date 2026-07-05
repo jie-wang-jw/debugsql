@@ -1,0 +1,99 @@
+[
+  {
+    "id": "img_red_backpack",
+    "media_type": "image",
+    "file_path": "media/images/red_backpack.svg",
+    "entity_id": "product_001",
+    "caption": "red backpack with black straps on a table",
+    "tags": ["red", "backpack", "bag", "outdoor"],
+    "source_table": "products"
+  },
+  {
+    "id": "img_wooden_chair",
+    "media_type": "image",
+    "file_path": "media/images/wooden_chair.svg",
+    "entity_id": "product_002",
+    "caption": "wooden chair with blue cushions",
+    "tags": ["wooden", "chair", "blue", "cushion", "furniture"],
+    "source_table": "products"
+  },
+  {
+    "id": "img_damaged_goods",
+    "media_type": "image",
+    "file_path": "media/images/damaged_goods.svg",
+    "entity_id": "case_001",
+    "caption": "damaged box and broken product returned for refund",
+    "tags": ["damaged", "refund", "broken", "goods", "support"],
+    "source_table": "support_cases"
+  },
+  {
+    "id": "aud_applause",
+    "media_type": "audio",
+    "file_path": "media/audio/applause.txt",
+    "entity_id": "audio_001",
+    "caption": "audio clip with audience applause",
+    "transcript": "The recording contains loud applause and cheering from an audience.",
+    "tags": ["audio", "applause", "audience", "cheering"],
+    "source_table": "audio_clips"
+  },
+  {
+    "id": "vid_classroom",
+    "media_type": "video",
+    "file_path": "media/video/classroom_keyframe.svg",
+    "entity_id": "event_001",
+    "caption": "video key frame showing classroom teaching and a lecture",
+    "transcript": "A teacher explains a topic to students in a classroom lecture.",
+    "tags": ["video", "classroom", "teaching", "lecture", "students"],
+    "source_table": "videos"
+  },
+  {
+    "id": "img_car_black_audi",
+    "media_type": "image",
+    "file_path": "media/images/black_audi.jpg",
+    "entity_id": "car_black_audi",
+    "caption": "black Audi car from the ThalamusDB cars image sample",
+    "tags": ["image", "car", "black", "audi", "thalamusdb"],
+    "source_table": "thalamusdb_cars",
+    "metadata": {"source": "itrummer/thalamusdb data/cars/images"}
+  },
+  {
+    "id": "img_car_red_mercedes",
+    "media_type": "image",
+    "file_path": "media/images/red_mercedes.jpg",
+    "entity_id": "car_red_mercedes",
+    "caption": "red Mercedes car from the ThalamusDB cars image sample",
+    "tags": ["image", "car", "red", "mercedes", "thalamusdb"],
+    "source_table": "thalamusdb_cars",
+    "metadata": {"source": "itrummer/thalamusdb data/cars/images"}
+  },
+  {
+    "id": "img_car_silver_volvo",
+    "media_type": "image",
+    "file_path": "media/images/silver_volvo.jpg",
+    "entity_id": "car_silver_volvo",
+    "caption": "silver Volvo car from the ThalamusDB cars image sample",
+    "tags": ["image", "car", "silver", "volvo", "thalamusdb"],
+    "source_table": "thalamusdb_cars",
+    "metadata": {"source": "itrummer/thalamusdb data/cars/images"}
+  },
+  {
+    "id": "img_car_white_ford",
+    "media_type": "image",
+    "file_path": "media/images/white_ford.jpg",
+    "entity_id": "car_white_ford",
+    "caption": "white Ford car from the ThalamusDB cars image sample",
+    "tags": ["image", "car", "white", "ford", "thalamusdb"],
+    "source_table": "thalamusdb_cars",
+    "metadata": {"source": "itrummer/thalamusdb data/cars/images"}
+  },
+  {
+    "id": "img_car_white_toyota",
+    "media_type": "image",
+    "file_path": "media/images/white_toyota.jpg",
+    "entity_id": "car_white_toyota",
+    "caption": "white Toyota car from the ThalamusDB cars image sample",
+    "tags": ["image", "car", "white", "toyota", "thalamusdb"],
+    "source_table": "thalamusdb_cars",
+    "metadata": {"source": "itrummer/thalamusdb data/cars/images"}
+  }
+]

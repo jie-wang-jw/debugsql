@@ -24,6 +24,7 @@ import { useExecutionContext }  from '../../store/ExecutionContext';
 import { ExecutionStatus }      from './ExecutionStatus';
 import { SQLPreview }           from './SQLPreview';
 import { ResultsTable }         from './ResultsTable';
+import type { MediaPreview } from '../../types/execution.types';
 
 // ---------------------------------------------------------------------------
 // Sub-components
@@ -123,7 +124,7 @@ function IdleState() {
       </div>
       <p className="exec-panel__idle-title">No execution yet</p>
       <p className="exec-panel__idle-hint">
-        Send a query in the chat to generate SQL and execute the pipeline.
+        Ask a question in the chat. When SQL is proposed, validate it and approve execution here.
       </p>
     </motion.div>
   );
@@ -179,6 +180,40 @@ function FailedState() {
   );
 }
 
+function MediaPreviewGrid({ items }: { items: MediaPreview[] }) {
+  if (!items.length) return null;
+  return (
+    <section className="media-preview-grid" aria-label="Media previews">
+      <div className="media-preview-grid__header">
+        <span>Media previews</span>
+        <small>{items.length} matched assets</small>
+      </div>
+      <div className="media-preview-grid__items">
+        {items.map((item) => (
+          <article key={item.asset_id} className="media-preview-card">
+            {item.media_type === 'image' || item.media_type === 'video' ? (
+              <img
+                src={item.preview_url ?? ''}
+                alt={item.caption ?? item.asset_id}
+                className="media-preview-card__visual"
+              />
+            ) : (
+              <div className="media-preview-card__audio">
+                <span>Audio transcript</span>
+              </div>
+            )}
+            <div className="media-preview-card__body">
+              <strong>{item.asset_id}</strong>
+              <span>{item.media_type} / score {item.score.toFixed(2)}</span>
+              <p>{item.caption || item.transcript || 'No preview text available.'}</p>
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Main panel
 // ---------------------------------------------------------------------------
@@ -227,6 +262,7 @@ export function ExecutionPanel() {
             <div key="success" className="exec-panel__results">
               <MetricsBar />
               <SQLPreview sql={result.sql} />
+              <MediaPreviewGrid items={result.mediaPreviews ?? []} />
               <ResultsTable columns={result.columns} rows={result.rows} />
             </div>
           )}

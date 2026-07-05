@@ -48,6 +48,11 @@ class Settings(BaseSettings):
     llm_timeout_seconds: int = 30
     query_plan_provider: str = "openai_compatible"
     benchmark_data_dir: str = "data/benchmarks"
+    multimodal_data_dir: str = "data/multimodal_demo"
+    # Minimum fraction of predicate terms that must match for NL_FILTER
+    # boolean membership (0..1). 0.6 requires more than half the terms.
+    semantic_sql_score_cutoff: float = 0.6
+    semantic_sql_max_matches: int = 20
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
 
     model_config = SettingsConfigDict(

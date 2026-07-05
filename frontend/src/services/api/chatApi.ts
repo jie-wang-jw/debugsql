@@ -31,7 +31,7 @@ export interface SessionMessage {
 }
 
 export interface DatasetContext {
-  dbType?: 'sqlite_benchmark' | 'postgres';
+  dbType?: 'sqlite_benchmark' | 'postgres' | 'multimodal_demo';
   benchmark?: string;
   dbId?: string;
 }
@@ -68,6 +68,10 @@ export interface ChatQueryResponse {
   usedContext?: boolean;
   conversationMode?: 'new_query' | 'refine_query' | 'schema_answer' | 'clarify' | null;
   workingStateRevision?: number | null;
+  mediaMatches?: Array<Record<string, unknown>>;
+  mediaPredicate?: string | null;
+  mediaType?: string | null;
+  mediaLimit?: number | null;
 }
 
 /**

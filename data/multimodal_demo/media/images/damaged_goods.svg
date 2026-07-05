@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="420" height="260" viewBox="0 0 420 260">
+  <rect width="420" height="260" fill="#17181d"/>
+  <path d="M110 85 L210 45 L315 95 L215 145 Z" fill="#b8864b"/>
+  <path d="M110 85 L215 145 L215 218 L110 158 Z" fill="#94622f"/>
+  <path d="M315 95 L215 145 L215 218 L315 160 Z" fill="#7d4f29"/>
+  <path d="M150 110 L185 130 L168 148 L204 167" stroke="#ef4444" stroke-width="8" fill="none"/>
+  <text x="210" y="238" text-anchor="middle" font-family="Arial" font-size="18" fill="#f4f4f5">damaged goods refund</text>
+</svg>

@@ -5,7 +5,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field
 
 
-DbType = Literal["sqlite_benchmark", "postgres"]
+DbType = Literal["sqlite_benchmark", "postgres", "multimodal_demo"]
 
 
 class DatasetContext(BaseModel):
@@ -67,6 +67,9 @@ class CapabilitiesResponse(BaseModel):
     schemaPreview: dict[str, Any] = Field(default_factory=dict)
     policies: dict[str, Any] = Field(default_factory=dict)
     examples: list[CapabilityExample] = Field(default_factory=list)
+    # Unified benchmark descriptor (capabilities/modalities) when resolvable.
+    benchmark: dict[str, Any] | None = None
+    capabilityLabels: list[str] = Field(default_factory=list)
 
 
 class ToolExecuteRequest(BaseModel):

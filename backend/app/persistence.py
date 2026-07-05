@@ -56,11 +56,14 @@ def _result_preview(result: dict[str, Any] | None) -> dict[str, Any] | None:
     if not result:
         return None
     rows = result.get("rows") or []
-    return {
+    preview = {
         "columns": result.get("columns") or [],
         "rows": rows[:20],
-        "rowCount": len(rows),
+        "rowCount": (result.get("metrics") or {}).get("rowCount", len(rows)),
     }
+    if "mediaPreviews" in result:
+        preview["mediaPreviews"] = (result.get("mediaPreviews") or [])[:20]
+    return preview
 
 
 def _execution_restore_preview(run: ExecutionRun | None) -> dict[str, Any] | None:
@@ -96,6 +99,10 @@ def _message_history_payload(item: Message) -> dict[str, Any]:
         "usedContext": extra.get("usedContext"),
         "conversationMode": extra.get("conversationMode"),
         "workingStateRevision": extra.get("workingStateRevision"),
+        "mediaMatches": extra.get("mediaMatches") or [],
+        "mediaPredicate": extra.get("mediaPredicate"),
+        "mediaType": extra.get("mediaType"),
+        "mediaLimit": extra.get("mediaLimit"),
     }
 
 
@@ -192,6 +199,10 @@ def _build_working_state(
             "explanation": response.get("llmExplanation") or response.get("explanation"),
             "assumptions": response.get("assumptions") or [],
             "tables_used": response.get("tablesUsed") or [],
+            "mediaPredicate": response.get("mediaPredicate"),
+            "mediaType": response.get("mediaType"),
+            "mediaMatches": response.get("mediaMatches") or [],
+            "limit": response.get("mediaLimit"),
             "dataset_context": dataset_context,
             "latest_result_summary": (previous or {}).get("latest_result_summary"),
             "latest_execution_run_id": (previous or {}).get("latest_execution_run_id"),
@@ -308,6 +319,10 @@ def persist_chat_interaction(
                         "confidence": response.get("confidence"),
                         "assumptions": response.get("assumptions"),
                         "tablesUsed": response.get("tablesUsed"),
+                        "mediaMatches": response.get("mediaMatches"),
+                        "mediaPredicate": response.get("mediaPredicate"),
+                        "mediaType": response.get("mediaType"),
+                        "mediaLimit": response.get("mediaLimit"),
                         "usedContext": response.get("usedContext"),
                         "conversationMode": response.get("conversationMode"),
                         "workingStateRevision": response.get("workingStateRevision"),

@@ -104,6 +104,14 @@ def execute_tool(
 
     try:
         data = _dispatch_tool(connector, normalized, tool_name, arguments)
+        if tool_name == "run_sql" and _execution_error_message(data):
+            return ToolResult(
+                toolCallId=call_id,
+                tool=tool_name,
+                success=False,
+                data=data,
+                error=_execution_error_message(data),
+            )
         return ToolResult(toolCallId=call_id, tool=tool_name, success=True, data=data)
     except Exception as exc:
         return ToolResult(toolCallId=call_id, tool=tool_name, success=False, error=str(exc))
@@ -149,3 +157,14 @@ def _dispatch_tool(
         max_rows = int(arguments.get("maxRows") or connector.capabilities().maxRows)
         return connector.execute_readonly(context, sql, max_rows=max_rows)
     raise ValueError(f"Tool '{tool_name}' is not implemented.")
+
+
+def _execution_error_message(data: dict[str, Any]) -> str | None:
+    rows = data.get("rows")
+    if not isinstance(rows, list) or not rows:
+        return None
+    first = rows[0]
+    if not isinstance(first, dict) or first.get("error") != "execution_error":
+        return None
+    message = first.get("message")
+    return str(message) if message else "SQL execution failed."

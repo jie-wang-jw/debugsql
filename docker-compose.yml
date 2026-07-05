@@ -31,10 +31,12 @@ services:
       DEBUGSQL_AUTO_LOGIN: ${DEBUGSQL_AUTO_LOGIN:-1}
       NL2IR_PROVIDER: ${NL2IR_PROVIDER:-stub}
       BENCHMARK_DATA_DIR: ${BENCHMARK_DATA_DIR:-/app/data/benchmarks}
+      MULTIMODAL_DATA_DIR: ${MULTIMODAL_DATA_DIR:-/app/data/multimodal_demo}
     expose:
       - "8000"
     volumes:
       - ${BENCHMARK_HOST_DATA_DIR:-./data/benchmarks}:/app/data/benchmarks:ro
+      - ${MULTIMODAL_HOST_DATA_DIR:-./data/multimodal_demo}:/app/data/multimodal_demo:ro
     depends_on:
       postgres:
         condition: service_healthy
