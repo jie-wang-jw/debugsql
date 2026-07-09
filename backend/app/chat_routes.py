@@ -5,7 +5,12 @@ from fastapi import APIRouter, Request
 
 from app.conversation.handlers import handle_chat_message
 from app.conversation.schemas import ConversationResponse
-from app.persistence import get_conversation_working_state, persist_chat_failure, persist_chat_interaction
+from app.persistence import (
+    get_conversation_message_history,
+    get_conversation_working_state,
+    persist_chat_failure,
+    persist_chat_interaction,
+)
 from app.request_auth import request_user_id
 
 
@@ -27,12 +32,18 @@ def query(request: ChatQueryRequest, http_request: Request) -> dict:
         dataset_context=request.datasetContext,
         user_id=user_id,
     )
+    conversation_history = get_conversation_message_history(
+        session_id=request.sessionId,
+        dataset_context=request.datasetContext,
+        user_id=user_id,
+    )
     try:
         response = handle_chat_message(
             request.message,
             request.sessionId,
             request.datasetContext,
             working_state=working_state,
+            conversation_history=conversation_history,
         )
         if response.sql:
             response.workingStateRevision = int((working_state or {}).get("revision") or 0) + 1

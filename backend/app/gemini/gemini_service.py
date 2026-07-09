@@ -37,6 +37,7 @@ class GeminiService:
         message: str,
         schema_context: dict[str, Any] | None = None,
         working_state: dict[str, Any] | None = None,
+        conversation_history: list[dict[str, Any]] | None = None,
     ) -> GeminiQueryPlan:
         if not self.is_configured:
             raise GeminiConfigError(
@@ -48,6 +49,7 @@ class GeminiService:
             message,
             schema_context,
             working_state=working_state,
+            conversation_history=conversation_history,
         )
         started = time.perf_counter()
 
@@ -96,8 +98,14 @@ class GeminiService:
         message: str,
         schema_context: dict[str, Any] | None = None,
         working_state: dict[str, Any] | None = None,
+        conversation_history: list[dict[str, Any]] | None = None,
     ) -> tuple[GeminiQueryPlan, dict[str, Any]]:
-        plan = self.generate_query_plan(message, schema_context, working_state=working_state)
+        plan = self.generate_query_plan(
+            message,
+            schema_context,
+            working_state=working_state,
+            conversation_history=conversation_history,
+        )
         graph = gemini_plan_to_graph(plan, message)
         return plan, graph
 

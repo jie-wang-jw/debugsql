@@ -11,6 +11,7 @@ def handle_chat_message(
     session_id: str,
     dataset_context: dict | None = None,
     working_state: dict | None = None,
+    conversation_history: list[dict] | None = None,
 ) -> ConversationResponse:
     intent = classify_message(message, dataset_context)
     context = normalize_context(dataset_context)
@@ -55,6 +56,7 @@ def handle_chat_message(
         message,
         context,
         working_state=working_state,
+        conversation_history=conversation_history,
     )
     requires_approval = any(action.requiresApproval for action in proposed_actions)
     return ConversationResponse(

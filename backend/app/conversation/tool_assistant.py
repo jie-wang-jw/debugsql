@@ -31,6 +31,7 @@ def build_proposed_actions(
     message: str,
     dataset_context: dict | DatasetContext | None,
     working_state: dict[str, Any] | None = None,
+    conversation_history: list[dict[str, Any]] | None = None,
 ) -> tuple[str, list[ProposedToolAction], str | None, dict[str, object]]:
     """Build assistant content and proposed tool actions for a benchmark query."""
     context = normalize_context(dataset_context)
@@ -85,7 +86,13 @@ def build_proposed_actions(
     if context.dbType == "sqlite_benchmark" and context.benchmark and context.dbId:
         schema = get_schema_context(context.benchmark, context.dbId)
 
-    resolved = resolve_sql_for_message(message, context, schema, working_state=working_state)
+    resolved = resolve_sql_for_message(
+        message,
+        context,
+        schema,
+        working_state=working_state,
+        conversation_history=conversation_history,
+    )
     sql = resolved.sql
     explanation = resolved.explanation
 

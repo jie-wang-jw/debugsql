@@ -170,6 +170,30 @@ def get_conversation_working_state(
         return _safe_json(state)
 
 
+def get_conversation_message_history(
+    *,
+    session_id: str,
+    dataset_context: dict[str, Any] | None,
+    user_id: str | None = None,
+) -> list[dict[str, Any]]:
+    with session_scope() as session:
+        user = session.get(User, user_id) if user_id else ensure_dev_user(session)
+        if not user:
+            return []
+        conversation_id = _stable_id("conv", {"user": user.id, "session": session_id})
+        conversation = session.get(Conversation, conversation_id)
+        if not conversation or conversation.user_id != user.id:
+            return []
+        if dataset_context and not _same_dataset(conversation.dataset_context, dataset_context):
+            return []
+        messages = session.execute(
+            select(Message)
+            .where(Message.conversation_id == conversation.id, Message.user_id == user.id)
+            .order_by(Message.created_at, Message.id)
+        ).scalars().all()
+        return [_message_history_payload(item) for item in messages]
+
+
 def _build_working_state(
     *,
     previous: dict[str, Any] | None,

@@ -34,6 +34,7 @@ def resolve_sql_for_message(
     context: DatasetContext,
     schema: dict[str, Any] | None = None,
     working_state: dict[str, Any] | None = None,
+    conversation_history: list[dict[str, Any]] | None = None,
 ) -> ResolvedSQL:
     """Resolve NL questions to SQL using the same provider priority as the plan pipeline."""
     if schema is None and context.dbType == "sqlite_benchmark" and context.benchmark and context.dbId:
@@ -41,7 +42,7 @@ def resolve_sql_for_message(
 
     llm_available = _should_use_llm()
     if llm_available:
-        resolved = _resolve_with_llm(message, schema, working_state)
+        resolved = _resolve_with_llm(message, schema, working_state, conversation_history)
         if resolved:
             return resolved
         if working_state:
@@ -49,7 +50,7 @@ def resolve_sql_for_message(
             # Retry once as a standalone question so a self-contained request still
             # resolves instead of dead-ending on a clarify message.
             logger.warning("llm_refine_returned_empty; retrying as a standalone query.")
-            resolved = _resolve_with_llm(message, schema, None)
+            resolved = _resolve_with_llm(message, schema, None, conversation_history)
             if resolved:
                 return resolved
 
@@ -133,6 +134,7 @@ def _resolve_with_llm(
     message: str,
     schema: dict[str, Any] | None,
     working_state: dict[str, Any] | None = None,
+    conversation_history: list[dict[str, Any]] | None = None,
 ) -> ResolvedSQL | None:
     provider = get_settings().query_plan_provider.strip().lower()
     if provider == "openai_compatible":
@@ -150,7 +152,12 @@ def _resolve_with_llm(
             provider,
             get_settings().llm_model if provider == "openai_compatible" else get_settings().gemini_model,
         )
-        plan = service.generate_query_plan(message, schema, working_state=working_state)
+        plan = service.generate_query_plan(
+            message,
+            schema,
+            working_state=working_state,
+            conversation_history=conversation_history,
+        )
     except (GeminiConfigError, QueryPlanParseError, TimeoutError, RuntimeError) as exc:
         logger.warning("%s SQL resolution failed: %s", provider, exc)
         return None

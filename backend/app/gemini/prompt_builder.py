@@ -21,10 +21,13 @@ class PromptBuilder:
         schema_context: dict[str, Any] | None = None,
         dialect: str = "sqlite",
         working_state: dict[str, Any] | None = None,
+        conversation_history: list[dict[str, Any]] | None = None,
     ) -> tuple[str, str]:
         schema_block = self._format_schema(schema_context)
+        history_block = self._format_conversation_history(conversation_history)
         context_block = self._format_working_state(working_state)
         user_prompt = (
+            f"{history_block}"
             f"{context_block}"
             f"Current user request:\n{message.strip()}\n\n"
             f"SQL dialect: {dialect}\n"
@@ -46,6 +49,25 @@ class PromptBuilder:
             "If the schema does not support the request, set can_answer=false and do not invent SQL."
         )
         return self.SYSTEM_INSTRUCTION, user_prompt
+
+    def _format_conversation_history(self, conversation_history: list[dict[str, Any]] | None) -> str:
+        if not conversation_history:
+            return ""
+        lines = [
+            "Full conversation history for this user/session:",
+            "Use this history to resolve follow-up requests, but never execute SQL without approval.",
+        ]
+        for item in conversation_history:
+            role = str(item.get("role") or "unknown").strip().lower()
+            content = self._truncate(str(item.get("content") or "").strip(), 1500)
+            if not content:
+                continue
+            lines.append(f"- {role}: {content}")
+            sql = str(item.get("sql") or "").strip()
+            if sql:
+                lines.append(f"  SQL: {self._truncate(sql, 1200)}")
+        block = "\n".join(lines)
+        return self._truncate(block, 12000) + "\n\n"
 
     def _format_schema(self, schema_context: dict[str, Any] | None) -> str:
         if not schema_context:

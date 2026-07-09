@@ -237,7 +237,7 @@ def test_multi_turn_working_state_refines_previous_sql(monkeypatch) -> None:
 
     captured: list[dict | None] = []
 
-    def fake_generate(self, message, schema_context=None, working_state=None):
+    def fake_generate(self, message, schema_context=None, working_state=None, conversation_history=None):
         captured.append(working_state)
         if working_state:
             normalized = message.lower()
@@ -316,6 +316,63 @@ def test_multi_turn_working_state_refines_previous_sql(monkeypatch) -> None:
         assert conversation.working_state["revision"] == 5
 
 
+def test_query_sends_full_conversation_history_to_llm(monkeypatch) -> None:
+    monkeypatch.setenv("QUERY_PLAN_PROVIDER", "openai_compatible")
+    monkeypatch.setenv("LLM_API_BASE_URL", "https://example.test/v1")
+    monkeypatch.setenv("LLM_API_KEY", "test-key")
+    get_settings.cache_clear()
+
+    captured_history: list[list[dict]] = []
+    captured_working_state: list[dict | None] = []
+
+    def fake_generate(self, message, schema_context=None, working_state=None, conversation_history=None):
+        captured_history.append(list(conversation_history or []))
+        captured_working_state.append(working_state)
+        if working_state:
+            return GeminiQueryPlan(
+                mode="refine_query",
+                answer="Limited the previous query to five rows.",
+                sql="SELECT id FROM cards LIMIT 5",
+                explanation="Refined the previous cards query.",
+                assumptions=[],
+                tables_used=["cards"],
+                confidence=0.9,
+            )
+        return GeminiQueryPlan(
+            mode="new_query",
+            answer="Prepared a cards query.",
+            sql="SELECT id FROM cards",
+            explanation="Use the cards table.",
+            assumptions=[],
+            tables_used=["cards"],
+            confidence=0.9,
+        )
+
+    monkeypatch.setattr(OpenAICompatibleService, "generate_query_plan", fake_generate)
+    client = _client()
+    session_id = "pytest-full-history-session"
+    context = {"benchmark": "bird", "dbId": "card_games"}
+
+    first = client.post(
+        "/query",
+        json={"message": "show cards", "sessionId": session_id, "datasetContext": context},
+    )
+    assert first.status_code == 200
+    assert captured_history[0] == []
+
+    second = client.post(
+        "/query",
+        json={"message": "top 5", "sessionId": session_id, "datasetContext": context},
+    )
+    assert second.status_code == 200
+    assert second.json()["data"]["sql"] == "SELECT id FROM cards LIMIT 5"
+    assert captured_working_state[1]["current_sql"] == "SELECT id FROM cards"
+    assert [item["role"] for item in captured_history[1]] == ["user", "assistant"]
+    assert captured_history[1][0]["content"] == "show cards"
+    assert "I prepared a read-only SQL query" in captured_history[1][1]["content"]
+    assert captured_history[1][1]["sql"] == "SELECT id FROM cards"
+
+
 def test_dataset_change_ignores_old_working_state_before_llm(monkeypatch) -> None:
     monkeypatch.setenv("QUERY_PLAN_PROVIDER", "openai_compatible")
     monkeypatch.setenv("LLM_API_BASE_URL", "https://example.test/v1")
@@ -324,7 +381,7 @@ def test_dataset_change_ignores_old_working_state_before_llm(monkeypatch) -> Non
 
     captured: list[dict | None] = []
 
-    def fake_generate(self, message, schema_context=None, working_state=None):
+    def fake_generate(self, message, schema_context=None, working_state=None, conversation_history=None):
         captured.append(working_state)
         return GeminiQueryPlan(
             mode="new_query",
@@ -360,7 +417,7 @@ def test_run_sql_updates_working_state_summary(monkeypatch) -> None:
     monkeypatch.setattr(
         OpenAICompatibleService,
         "generate_query_plan",
-        lambda self, message, schema_context=None, working_state=None: GeminiQueryPlan(
+        lambda self, message, schema_context=None, working_state=None, conversation_history=None: GeminiQueryPlan(
             mode="new_query",
             answer="Prepared a cards query.",
             sql="SELECT id FROM cards LIMIT 1",
