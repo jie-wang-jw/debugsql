@@ -42,9 +42,22 @@
   display: flex;
   flex-direction: column;
   height: 100%;
+  padding-top: 52px;
+  box-sizing: border-box;
   min-width: 0;
   position: relative;
   z-index: 1;
+}
+
+.app-shell__right::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 51px;
+  border-bottom: 1px solid var(--border-default);
+  background: var(--bg-surface);
 }
 
 /* ---- Primary execution workspace ---- */
@@ -85,7 +98,7 @@
 
 .app-shell__drawer-backdrop {
   position: absolute;
-  inset: 0;
+  inset: 52px 0 0;
   z-index: 20;
   border: 0;
   background: rgba(0, 0, 0, 0.48);
@@ -94,7 +107,7 @@
 
 .app-shell__capabilities-drawer {
   position: absolute;
-  top: 0;
+  top: 52px;
   right: 0;
   bottom: 0;
   z-index: 21;
