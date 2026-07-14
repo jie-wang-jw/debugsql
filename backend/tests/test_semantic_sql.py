@@ -390,6 +390,51 @@ def test_craigslist_blue_chair_predicate_has_real_matches() -> None:
     assert matches[0].score >= 0.6
 
 
+@pytest.mark.skipif(not craigslist_dataset_ready(), reason="Craigslist benchmark files are not installed")
+@pytest.mark.parametrize(
+    "predicate",
+    [
+        "Find wooden tables with matching photos",
+        "Show red furniture images sorted by price",
+    ],
+)
+def test_craigslist_ui_example_predicates_have_real_matches(predicate: str) -> None:
+    from app.craigslist.resolver import CraigslistLabelResolver
+    from app.semantic_sql.schemas import NLFilterOp
+
+    matches = CraigslistLabelResolver().resolve_filter(
+        NLFilterOp(
+            op_id="nlf_0",
+            table="images",
+            table_alias="i",
+            column="img",
+            predicate=predicate,
+        )
+    )
+
+    assert matches
+    assert matches[0].score >= 0.6
+
+
+@pytest.mark.skipif(not craigslist_dataset_ready(), reason="Craigslist benchmark files are not installed")
+def test_craigslist_red_furniture_example_executes_in_price_order() -> None:
+    result = _run_sql(
+        _client(),
+        (
+            "SELECT f.aid, f.title, f.price, i.img AS asset_id "
+            "FROM furniture f JOIN images i ON i.aid = f.aid "
+            "WHERE NL_FILTER(i.img, 'Show red furniture images sorted by price') "
+            "ORDER BY f.price ASC LIMIT 20"
+        ),
+        CRAIGSLIST_CONTEXT,
+    )
+
+    assert result["rows"]
+    prices = [row["price"] for row in result["rows"] if row["price"] is not None]
+    assert prices == sorted(prices)
+    assert result["mediaPreviews"]
+
+
 def test_unsafe_sql_still_rejected_with_semantic_operators() -> None:
     client = _client()
     delete_result = _run_sql(

@@ -158,7 +158,11 @@ def _label_values(item: dict[str, Any]) -> list[str]:
 
 def _terms(value: str) -> set[str]:
     aliases = {"wooden": "wood", "chairs": "chair", "tables": "table", "sofas": "sofa"}
-    ignored = {"a", "an", "and", "find", "for", "image", "images", "in", "like", "look", "looking", "of", "show", "that", "the", "with"}
+    ignored = {
+        "a", "an", "and", "by", "find", "for", "furniture", "image", "images", "in",
+        "like", "look", "looking", "match", "matching", "of", "photo", "photos", "price",
+        "show", "sort", "sorted", "that", "the", "with",
+    }
     terms = set()
     for token in re.findall(r"[a-z0-9]+", value.lower()):
         normalized = aliases.get(token, token)
