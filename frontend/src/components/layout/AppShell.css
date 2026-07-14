@@ -61,7 +61,7 @@
 }
 
 .app-shell__capabilities-trigger {
-  margin-left: auto;
+  margin-left: var(--sp-2);
   display: inline-flex;
   align-items: center;
   gap: 6px;
