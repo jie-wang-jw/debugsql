@@ -435,6 +435,27 @@ def test_craigslist_red_furniture_example_executes_in_price_order() -> None:
     assert result["mediaPreviews"]
 
 
+@pytest.mark.skipif(not craigslist_dataset_ready(), reason="Craigslist benchmark files are not installed")
+def test_craigslist_wooden_table_example_executes_two_semantic_filters() -> None:
+    result = _run_sql(
+        _client(),
+        (
+            "SELECT f.aid, f.title, f.price, i.img AS asset_id "
+            "FROM furniture f JOIN images i ON i.aid = f.aid "
+            "WHERE NL_FILTER(f.title_u, 'wooden table') "
+            "AND NL_FILTER(i.img, 'table photo') "
+            "ORDER BY nlf_0_score DESC, nlf_1_score DESC LIMIT 20"
+        ),
+        CRAIGSLIST_CONTEXT,
+    )
+
+    assert result["rows"]
+    assert result["rows"][0].get("error") is None
+    assert len(result["semantic"]["operators"]) == 2
+    assert all(operator["matchCount"] > 0 for operator in result["semantic"]["operators"])
+    assert result["mediaPreviews"]
+
+
 def test_unsafe_sql_still_rejected_with_semantic_operators() -> None:
     client = _client()
     delete_result = _run_sql(

@@ -35,6 +35,7 @@ def rewrite_semantic_sql(
         return RewriteResult(sql=sql, original_sql=sql, explanation="No semantic operators found.")
 
     resolved: list[ResolvedOperator] = []
+    resolved_pairs: list[tuple[NLFilterOp, list[ResolvedMatch], str]] = []
     assumptions = [
         "Semantic predicates are resolved with prepared caption/transcript/tag keyword overlap; "
         "an embedding or vision model can replace this resolver later.",
@@ -63,8 +64,13 @@ def rewrite_semantic_sql(
                 matches=matches,
             )
         )
-
+        resolved_pairs.append((op, matches, pk))
         node.replace(exp.true())
+
+    # Replace every semantic predicate before adding CTEs. sqlglot's with_()
+    # returns a copied tree, which would otherwise leave later node references
+    # attached to the old tree when a query contains multiple NL_FILTER calls.
+    for op, matches, pk in resolved_pairs:
         tree = tree.with_(op.op_id, as_=_matches_cte_sql(matches))
         tree = tree.join(
             op.op_id,
