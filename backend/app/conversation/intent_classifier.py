@@ -42,7 +42,7 @@ def classify_message(message: str, dataset_context: dict | None = None) -> Conve
             reason="Message is asking about system or benchmark usage.",
         )
 
-    if db_type == "multimodal_demo":
+    if db_type in {"multimodal_demo", "craigslist"}:
         return ConversationIntent(
             intent_type="benchmark_query",
             confidence=0.75,

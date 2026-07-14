@@ -31,7 +31,7 @@ export interface SessionMessage {
 }
 
 export interface DatasetContext {
-  dbType?: 'sqlite_benchmark' | 'postgres' | 'multimodal_demo';
+  dbType?: 'sqlite_benchmark' | 'postgres' | 'multimodal_demo' | 'craigslist';
   benchmark?: string;
   dbId?: string;
 }

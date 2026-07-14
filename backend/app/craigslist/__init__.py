@@ -1,0 +1,2 @@
+"""Craigslist furniture benchmark support."""
+

@@ -4,7 +4,10 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.config import get_settings
+from app.craigslist.registry import dataset_ready as craigslist_dataset_ready
 from app.database import Base, get_engine, get_session_factory
+from app.gemini.openai_compatible_service import OpenAICompatibleService
+from app.gemini.schemas import GeminiQueryPlan
 from app.semantic_sql import (
     KeywordMediaResolver,
     SemanticSQLError,
@@ -16,6 +19,7 @@ from app.tools.connectors.multimodal_demo import (
     _TABLE_COLUMNS,
     NL_FILTER_EXAMPLE_SQL,
 )
+from app.tools.connectors.craigslist import NL_FILTER_EXAMPLE_SQL as CRAIGSLIST_NL_FILTER_EXAMPLE_SQL
 from app.tools.policy import is_safe_read_query
 
 
@@ -49,6 +53,7 @@ def _client() -> TestClient:
 
 
 MULTIMODAL_CONTEXT = {"dbType": "multimodal_demo", "dbId": "multimodal_demo"}
+CRAIGSLIST_CONTEXT = {"dbType": "craigslist", "benchmark": "craigslist", "dbId": "craigslist"}
 SPIDER_CONTEXT = {"dbType": "sqlite_benchmark", "benchmark": "spider", "dbId": "academic"}
 
 
@@ -72,10 +77,10 @@ def _run_sql(client: TestClient, sql: str, context: dict) -> dict:
 # ---------------------------------------------------------------------------
 
 
-def test_unified_benchmark_descriptors_include_all_three() -> None:
+def test_unified_benchmark_descriptors_include_supported_datasets() -> None:
     data = _client().get("/benchmarks").json()["data"]
     by_id = {item["id"]: item for item in data}
-    assert {"spider", "bird", "multimodal_demo"} <= set(by_id)
+    assert {"spider", "bird", "multimodal_demo", "craigslist"} <= set(by_id)
 
     for benchmark_id in ("spider", "bird"):
         descriptor = by_id[benchmark_id]
@@ -91,6 +96,33 @@ def test_unified_benchmark_descriptors_include_all_three() -> None:
     assert {"image", "audio", "video"} <= set(multimodal["modalities"])
     assert "ai_fuzzy_match" in multimodal["capabilities"]
     assert "image_semantic_predicate" in multimodal["capabilities"]
+
+    craigslist = by_id["craigslist"]
+    assert craigslist["connector"] == "craigslist"
+    assert {"table", "text", "image"} <= set(craigslist["modalities"])
+    assert "ai_fuzzy_match" in craigslist["capabilities"]
+
+
+def test_craigslist_database_and_capabilities_are_discoverable() -> None:
+    client = _client()
+    databases = client.get("/benchmarks/craigslist/databases").json()["data"]
+    assert len(databases) == 1
+    assert databases[0]["dbId"] == "craigslist"
+    assert databases[0]["tableCount"] == 2
+
+    capabilities = client.get(
+        "/capabilities?dbType=craigslist&benchmark=craigslist&dbId=craigslist"
+    ).json()["data"]
+    assert capabilities["connector"]["dbType"] == "craigslist"
+    assert capabilities["benchmark"]["id"] == "craigslist"
+    assert {table["name"] for table in capabilities["schemaPreview"]["tables"]} == {
+        "furniture",
+        "images",
+    }
+    semantic_examples = [
+        example["content"] for example in capabilities["examples"] if example["kind"] == "sql"
+    ]
+    assert any("NL_FILTER" in sql for sql in semantic_examples)
 
 
 def test_multimodal_datasets_alias_keeps_legacy_shape_and_adds_capabilities() -> None:
@@ -266,6 +298,77 @@ def test_multimodal_plain_sql_path_is_unchanged() -> None:
     )
     assert len(result["rows"]) == 3
     assert "semantic" not in result
+
+
+@pytest.mark.skipif(not craigslist_dataset_ready(), reason="Craigslist benchmark files are not installed")
+def test_craigslist_llm_semantic_sql_executes_and_returns_real_images(monkeypatch) -> None:
+    monkeypatch.setenv("QUERY_PLAN_PROVIDER", "openai_compatible")
+    monkeypatch.setenv("LLM_API_BASE_URL", "https://example.test/v1")
+    monkeypatch.setenv("LLM_API_KEY", "test-key")
+    get_settings.cache_clear()
+
+    def fake_generate(
+        self,
+        message,
+        schema_context=None,
+        working_state=None,
+        conversation_history=None,
+    ):
+        assert "blue chair" in message.lower()
+        semantic_sql = CRAIGSLIST_NL_FILTER_EXAMPLE_SQL
+        return GeminiQueryPlan(
+            mode="new_query",
+            answer="Prepared a semantic image query.",
+            sql=semantic_sql,
+            explanation="Join listings to images and apply a visual NL_FILTER predicate.",
+            assumptions=["Prepared image labels are used for semantic matching."],
+            tables_used=["furniture", "images"],
+            confidence=0.9,
+        )
+
+    monkeypatch.setattr(OpenAICompatibleService, "generate_query_plan", fake_generate)
+    client = _client()
+    query = client.post(
+        "/query",
+        json={
+            "message": "Show blue chair images under 200 dollars",
+            "sessionId": "pytest-craigslist-llm",
+            "datasetContext": CRAIGSLIST_CONTEXT,
+        },
+    )
+    assert query.status_code == 200
+    proposal = query.json()["data"]
+    assert proposal["sql"] == CRAIGSLIST_NL_FILTER_EXAMPLE_SQL
+    run_action = next(action for action in proposal["proposedActions"] if action["tool"] == "run_sql")
+
+    executed = client.post(
+        "/tools/execute",
+        json={
+            "tool": "run_sql",
+            "toolCallId": "pytest-craigslist-run",
+            "arguments": run_action["arguments"],
+            "context": CRAIGSLIST_CONTEXT,
+            "approved": True,
+            "sessionId": "pytest-craigslist-llm",
+        },
+    )
+    assert executed.status_code == 200
+    envelope = executed.json()["data"]
+    assert envelope["success"] is True
+    result = envelope["data"]
+    assert result["rows"]
+    assert "NL_FILTER" not in result["sql"]
+    assert result["semantic"]["operators"][0]["predicate"] == "blue chair"
+    assert result["mediaPreviews"]
+    preview_url = result["mediaPreviews"][0]["preview_url"]
+    assert preview_url.startswith("/api/craigslist/preview?img=")
+    assert client.get(preview_url.removeprefix("/api")).status_code == 200
+
+
+def test_craigslist_preview_rejects_unknown_and_traversal_paths() -> None:
+    client = _client()
+    assert client.get("/craigslist/preview", params={"img": "missing.jpg"}).status_code == 404
+    assert client.get("/craigslist/preview", params={"img": "../../.env"}).status_code == 404
 
 
 def test_unsafe_sql_still_rejected_with_semantic_operators() -> None:

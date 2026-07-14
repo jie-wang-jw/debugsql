@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from app.tools.connector_base import DatabaseConnector
 from app.tools.connectors.multimodal_demo import MultimodalDemoConnector
+from app.tools.connectors.craigslist import CraigslistConnector
 from app.tools.connectors.postgres import PostgresConnector
 from app.tools.connectors.sqlite_benchmark import BenchmarkSQLiteConnector
 from app.tools.schemas import DatasetContext
@@ -11,6 +12,7 @@ _CONNECTORS: dict[str, DatabaseConnector] = {
     "sqlite_benchmark": BenchmarkSQLiteConnector(),
     "postgres": PostgresConnector(),
     "multimodal_demo": MultimodalDemoConnector(),
+    "craigslist": CraigslistConnector(),
 }
 
 

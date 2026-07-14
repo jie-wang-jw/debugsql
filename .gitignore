@@ -45,6 +45,7 @@ data/benchmarks/bird/sqlite/*
 !data/benchmarks/spider/sqlite/.gitkeep
 data/benchmarks/spider/sqlite/*
 !data/benchmarks/spider/sqlite/.gitkeep
+data/benchmarks/Craigslist/
 
 .DS_Store
 Thumbs.db

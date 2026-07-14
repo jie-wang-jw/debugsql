@@ -11,6 +11,7 @@ class PromptBuilder:
         "You are a SQL planning assistant for DebugSQL. "
         "Given a natural-language question and optional database schema, "
         "produce a concise user answer and SQLite-compatible SELECT SQL. "
+        "When the schema describes semantic SQL operators, use those operators exactly as documented. "
         "Return only JSON matching the required schema. "
         "Do not wrap the response in markdown fences."
     )
@@ -86,6 +87,19 @@ class PromptBuilder:
                 for column in columns[:40]
             ]
             lines.append(f"- {name}({', '.join(column_names)})")
+
+        semantic = schema_context.get("semanticSql")
+        if isinstance(semantic, dict):
+            lines.extend(["", "Semantic SQL support:"])
+            instructions = str(semantic.get("instructions") or "").strip()
+            if instructions:
+                lines.append(f"- {instructions}")
+            operators = semantic.get("operators") or []
+            if operators:
+                lines.append(f"- Available operators: {', '.join(str(item) for item in operators)}")
+            example = str(semantic.get("exampleSql") or "").strip()
+            if example:
+                lines.append(f"- Example semantic SQL:\n{example}")
 
         return "\n".join(lines)
 

@@ -36,9 +36,11 @@ export function CapabilitiesPanel({ onExampleSelect }: CapabilitiesPanelProps) {
   const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle');
   const [error, setError] = useState<string | null>(null);
   const isMultimodal = selection.dbType === 'multimodal_demo' || selection.benchmark === 'multimodal_demo';
-  const effectiveDbType = isMultimodal ? 'multimodal_demo' : selection.dbType;
-  const effectiveBenchmark = isMultimodal ? 'multimodal_demo' : selection.benchmark;
-  const effectiveDbId = isMultimodal ? 'multimodal_demo' : selection.dbId;
+  const isCraigslist = selection.dbType === 'craigslist' || selection.benchmark === 'craigslist';
+  const isFixedDataset = isMultimodal || isCraigslist;
+  const effectiveDbType = isMultimodal ? 'multimodal_demo' : isCraigslist ? 'craigslist' : selection.dbType;
+  const effectiveBenchmark = isFixedDataset ? selection.benchmark : selection.benchmark;
+  const effectiveDbId = isFixedDataset ? selection.benchmark : selection.dbId;
 
   useEffect(() => {
     getBenchmarks()
@@ -47,8 +49,8 @@ export function CapabilitiesPanel({ onExampleSelect }: CapabilitiesPanelProps) {
   }, []);
 
   useEffect(() => {
-    const benchmarkToLoad = isMultimodal
-      ? 'multimodal_demo'
+    const benchmarkToLoad = isFixedDataset
+      ? selection.benchmark
       : selection.dbType === 'sqlite_benchmark'
         ? selection.benchmark
         : null;
@@ -61,8 +63,8 @@ export function CapabilitiesPanel({ onExampleSelect }: CapabilitiesPanelProps) {
       .then((items) => {
         if (cancelled) return;
         setDatabases(items);
-        if (isMultimodal) {
-          setDbId(items[0]?.dbId || 'multimodal_demo');
+        if (isFixedDataset) {
+          setDbId(items[0]?.dbId || selection.benchmark);
         } else if (!selection.dbId && items.length > 0) {
           setDbId(items.find((item) => item.hasSQLite)?.dbId || items[0].dbId);
         }
@@ -73,10 +75,10 @@ export function CapabilitiesPanel({ onExampleSelect }: CapabilitiesPanelProps) {
     return () => {
       cancelled = true;
     };
-  }, [isMultimodal, selection.benchmark, selection.dbId, selection.dbType, setBenchmark, setDbId, setDbType]);
+  }, [isFixedDataset, selection.benchmark, selection.dbId, selection.dbType, setDbId]);
 
   const loadCapabilities = useCallback(async () => {
-    if (!isMultimodal && selection.dbType === 'sqlite_benchmark' && !selection.dbId) {
+    if (!isFixedDataset && selection.dbType === 'sqlite_benchmark' && !selection.dbId) {
       setCapabilities(null);
       return;
     }
@@ -84,9 +86,9 @@ export function CapabilitiesPanel({ onExampleSelect }: CapabilitiesPanelProps) {
     setError(null);
     try {
       const payload = await getCapabilities({
-        dbType: isMultimodal ? 'multimodal_demo' : selection.dbType,
-        benchmark: isMultimodal ? 'multimodal_demo' : selection.dbType === 'sqlite_benchmark' ? selection.benchmark : undefined,
-        dbId: isMultimodal ? 'multimodal_demo' : selection.dbType === 'sqlite_benchmark' ? selection.dbId : undefined,
+        dbType: effectiveDbType,
+        benchmark: isFixedDataset ? selection.benchmark : selection.dbType === 'sqlite_benchmark' ? selection.benchmark : undefined,
+        dbId: isFixedDataset ? selection.benchmark : selection.dbType === 'sqlite_benchmark' ? selection.dbId : undefined,
       });
       setCapabilities(payload);
       setStatus('idle');
@@ -94,7 +96,7 @@ export function CapabilitiesPanel({ onExampleSelect }: CapabilitiesPanelProps) {
       setStatus('error');
       setError(err instanceof Error ? err.message : 'Failed to load capabilities');
     }
-  }, [isMultimodal, selection.benchmark, selection.dbId, selection.dbType]);
+  }, [effectiveDbType, isFixedDataset, selection.benchmark, selection.dbId, selection.dbType]);
 
   useEffect(() => {
     void loadCapabilities();
@@ -124,12 +126,15 @@ export function CapabilitiesPanel({ onExampleSelect }: CapabilitiesPanelProps) {
           <select
             value={effectiveDbType}
             onChange={(event) => {
-              const nextDbType = event.target.value as 'sqlite_benchmark' | 'postgres' | 'multimodal_demo';
+              const nextDbType = event.target.value as 'sqlite_benchmark' | 'postgres' | 'multimodal_demo' | 'craigslist';
               setDbType(nextDbType);
               if (nextDbType === 'multimodal_demo') {
                 setBenchmark('multimodal_demo');
                 setDbId('multimodal_demo');
-              } else if (nextDbType === 'sqlite_benchmark' && selection.benchmark === 'multimodal_demo') {
+              } else if (nextDbType === 'craigslist') {
+                setBenchmark('craigslist');
+                setDbId('craigslist');
+              } else if (nextDbType === 'sqlite_benchmark' && ['multimodal_demo', 'craigslist'].includes(selection.benchmark)) {
                 setBenchmark('spider');
                 setDbId('');
               }
@@ -137,6 +142,7 @@ export function CapabilitiesPanel({ onExampleSelect }: CapabilitiesPanelProps) {
           >
             <option value="sqlite_benchmark">Benchmark SQLite</option>
             <option value="multimodal_demo">Multimodal Demo</option>
+            <option value="craigslist">Craigslist Furniture</option>
             <option value="postgres">PostgreSQL</option>
           </select>
         </label>

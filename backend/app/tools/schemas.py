@@ -5,7 +5,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field
 
 
-DbType = Literal["sqlite_benchmark", "postgres", "multimodal_demo"]
+DbType = Literal["sqlite_benchmark", "postgres", "multimodal_demo", "craigslist"]
 
 
 class DatasetContext(BaseModel):

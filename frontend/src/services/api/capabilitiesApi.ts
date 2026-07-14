@@ -2,7 +2,7 @@ import { apiGet, apiPost } from './client';
 import type { RequestOptions } from './client';
 import type { DatasetContext } from './chatApi';
 
-export type DbType = 'sqlite_benchmark' | 'postgres' | 'multimodal_demo';
+export type DbType = 'sqlite_benchmark' | 'postgres' | 'multimodal_demo' | 'craigslist';
 
 export interface ConnectorCapabilities {
   dbType: DbType;

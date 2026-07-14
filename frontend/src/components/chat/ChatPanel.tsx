@@ -27,14 +27,14 @@ import './ChatPanel.css';
 
 const INITIAL_MESSAGES: ChatMessage[] = [];
 const HISTORY_SUMMARY_LIMIT = 20;
-const SQLITE_BENCHMARK_IDS = new Set(['spider', 'bird']);
+const SELECTABLE_BENCHMARK_IDS = new Set(['spider', 'bird', 'craigslist', 'multimodal_demo']);
 const FALLBACK_SQLITE_BENCHMARKS: BenchmarkInfo[] = [
   { id: 'spider', label: 'Spider', status: 'ready', databaseCount: 0 },
   { id: 'bird', label: 'BIRD', status: 'ready', databaseCount: 0 },
 ];
 
 function isSqliteBenchmarkOption(item: BenchmarkInfo): boolean {
-  return SQLITE_BENCHMARK_IDS.has(item.id.toLowerCase());
+  return SELECTABLE_BENCHMARK_IDS.has(item.id.toLowerCase());
 }
 
 interface ChatPanelProps {
@@ -69,6 +69,8 @@ export function ChatPanel({
       ? { dbType: 'postgres' as const }
       : selection.dbType === 'multimodal_demo'
         ? { dbType: 'multimodal_demo' as const, dbId: 'multimodal_demo' }
+      : selection.dbType === 'craigslist'
+        ? { dbType: 'craigslist' as const, benchmark: 'craigslist', dbId: 'craigslist' }
       : selection.dbId
         ? { dbType: 'sqlite_benchmark' as const, benchmark: selection.benchmark, dbId: selection.dbId }
         : undefined;
@@ -117,14 +119,15 @@ export function ChatPanel({
   }, [selection.benchmark, setBenchmark]);
 
   useEffect(() => {
-    if (selection.dbType === 'sqlite_benchmark' && selection.benchmark === 'multimodal_demo') {
-      setDbType('multimodal_demo');
-      setDbId('multimodal_demo');
+    if (selection.dbType === 'sqlite_benchmark' && ['multimodal_demo', 'craigslist'].includes(selection.benchmark)) {
+      const nextType = selection.benchmark === 'craigslist' ? 'craigslist' : 'multimodal_demo';
+      setDbType(nextType);
+      setDbId(selection.benchmark);
       return;
     }
     const benchmarkToLoad =
-      selection.dbType === 'multimodal_demo'
-        ? 'multimodal_demo'
+      selection.dbType === 'multimodal_demo' || selection.dbType === 'craigslist'
+        ? selection.benchmark
         : selection.dbType === 'sqlite_benchmark'
           ? selection.benchmark
           : null;
@@ -137,8 +140,8 @@ export function ChatPanel({
       .then((items) => {
         if (!isMounted) return;
         setDatabases(items);
-        if (selection.dbType === 'multimodal_demo') {
-          setDbId(items[0]?.dbId || 'multimodal_demo');
+        if (selection.dbType === 'multimodal_demo' || selection.dbType === 'craigslist') {
+          setDbId(items[0]?.dbId || selection.benchmark);
         } else if (!selection.dbId) {
           setDbId(items.find((item) => item.hasSQLite)?.dbId || items[0]?.dbId || '');
         }
@@ -351,20 +354,21 @@ export function ChatPanel({
   ];
   const prompts = selection.dbType === 'multimodal_demo' ? multimodalPrompts : databasePrompts;
   const isMultimodal = selection.dbType === 'multimodal_demo';
+  const isFixedMediaDataset = isMultimodal || selection.dbType === 'craigslist';
 
   return (
     <div className="chat-panel">
       <ChatHeader status={status} />
-      {(selection.dbType === 'sqlite_benchmark' || selection.dbType === 'multimodal_demo') && (
+      {(selection.dbType === 'sqlite_benchmark' || isFixedMediaDataset) && (
         <DatasetSelector
           benchmarks={benchmarks}
-          benchmark={selection.dbType === 'multimodal_demo' ? 'multimodal_demo' : selection.benchmark}
+          benchmark={isFixedMediaDataset ? selection.benchmark : selection.benchmark}
           onDbTypeChange={setDbType}
           onBenchmarkChange={setBenchmark}
           databases={databases}
-          selectedDbId={selection.dbType === 'multimodal_demo' ? 'multimodal_demo' : selection.dbId}
+          selectedDbId={isFixedMediaDataset ? selection.benchmark : selection.dbId}
           onDbChange={setDbId}
-          isMultimodal={selection.dbType === 'multimodal_demo'}
+          isMultimodal={isFixedMediaDataset}
         />
       )}
 
@@ -526,7 +530,7 @@ function HistoryPanel({
 interface DatasetSelectorProps {
   benchmarks: BenchmarkInfo[];
   benchmark: string;
-  onDbTypeChange: (dbType: 'sqlite_benchmark' | 'postgres' | 'multimodal_demo') => void;
+  onDbTypeChange: (dbType: 'sqlite_benchmark' | 'postgres' | 'multimodal_demo' | 'craigslist') => void;
   onBenchmarkChange: (benchmark: string) => void;
   databases: BenchmarkDatabaseInfo[];
   selectedDbId: string;
@@ -547,12 +551,11 @@ function DatasetSelector({
   const selected = databases.find((item) => item.dbId === selectedDbId);
   const localDbCount = databases.filter((item) => item.hasSQLite).length;
   const missingSqlite = Boolean(selected && !selected.hasSQLite);
-  const sqliteBenchmarks = benchmarks.filter(isSqliteBenchmarkOption);
-  const benchmarkOptions = [
-    { id: 'multimodal_demo', label: 'Multimodal Demo' },
-    ...(sqliteBenchmarks.length > 0 ? sqliteBenchmarks : FALLBACK_SQLITE_BENCHMARKS),
-  ];
-  const multimodalBenchmark = benchmarks.find((item) => item.id === 'multimodal_demo');
+  const selectableBenchmarks = benchmarks.filter(isSqliteBenchmarkOption);
+  const benchmarkOptions = selectableBenchmarks.length > 0
+    ? selectableBenchmarks
+    : FALLBACK_SQLITE_BENCHMARKS;
+  const multimodalBenchmark = benchmarks.find((item) => item.id === benchmark);
   const multimodalMediaCounts = multimodalBenchmark?.extra?.mediaCounts as
     | Record<string, number>
     | undefined;
@@ -572,10 +575,11 @@ function DatasetSelector({
             value={benchmark}
             onChange={(event) => {
               const nextBenchmark = event.target.value;
-              if (nextBenchmark === 'multimodal_demo') {
-                onDbTypeChange('multimodal_demo');
-                onBenchmarkChange('multimodal_demo');
-                onDbChange('multimodal_demo');
+              const descriptor = benchmarks.find((item) => item.id === nextBenchmark);
+              if (descriptor?.connector === 'multimodal_demo' || descriptor?.connector === 'craigslist') {
+                onDbTypeChange(descriptor.connector);
+                onBenchmarkChange(nextBenchmark);
+                onDbChange(nextBenchmark);
               } else {
                 onDbTypeChange('sqlite_benchmark');
                 onBenchmarkChange(nextBenchmark);

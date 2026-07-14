@@ -7,6 +7,7 @@ from app.benchmark_registry import get_schema_context
 from app.multimodal.query_planner import resolve_multimodal_query
 from app.conversation.sql_resolver import resolve_sql_for_message
 from app.tools.registry import normalize_context
+from app.tools.registry import get_connector
 from app.tools.schemas import DatasetContext, ProposedToolAction
 
 _SCHEMA_QUESTION_TERMS = (
@@ -85,6 +86,8 @@ def build_proposed_actions(
     schema = None
     if context.dbType == "sqlite_benchmark" and context.benchmark and context.dbId:
         schema = get_schema_context(context.benchmark, context.dbId)
+    elif context.dbType == "craigslist":
+        schema = get_connector(context).introspect_schema(context)
 
     resolved = resolve_sql_for_message(
         message,
@@ -98,13 +101,13 @@ def build_proposed_actions(
 
     actions: list[ProposedToolAction] = []
 
-    if context.dbType == "sqlite_benchmark" and context.benchmark and context.dbId:
+    if context.dbType in {"sqlite_benchmark", "craigslist"} and context.dbId:
         actions.append(
             ProposedToolAction(
                 id=_action_id("introspect"),
                 tool="introspect_schema",
                 label="Inspect schema",
-                description=f"Load tables and relationships for {context.benchmark}/{context.dbId}.",
+                description=f"Load tables and relationships for {_scope_label(context)}.",
                 arguments={},
                 requiresApproval=False,
             )
@@ -279,6 +282,8 @@ def _no_sql_content(context: DatasetContext, message: str, resolved) -> str:
 def _scope_label(context: DatasetContext) -> str:
     if context.dbType == "multimodal_demo":
         return "Multimodal Demo"
+    if context.dbType == "craigslist":
+        return "Craigslist Furniture"
     if context.dbType == "postgres":
         return "PostgreSQL"
     if context.benchmark and context.dbId:

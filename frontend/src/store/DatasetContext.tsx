@@ -37,7 +37,10 @@ export function DatasetProvider({ children }: { children: ReactNode }) {
       if (dbType === 'multimodal_demo') {
         return { dbType, benchmark: 'multimodal_demo', dbId: 'multimodal_demo' };
       }
-      if (dbType === 'sqlite_benchmark' && prev.benchmark === 'multimodal_demo') {
+      if (dbType === 'craigslist') {
+        return { dbType, benchmark: 'craigslist', dbId: 'craigslist' };
+      }
+      if (dbType === 'sqlite_benchmark' && ['multimodal_demo', 'craigslist'].includes(prev.benchmark)) {
         return { dbType, benchmark: 'spider', dbId: '' };
       }
       return { ...prev, dbType };
@@ -49,7 +52,10 @@ export function DatasetProvider({ children }: { children: ReactNode }) {
       if (benchmark === 'multimodal_demo') {
         return { dbType: 'multimodal_demo', benchmark, dbId: 'multimodal_demo' };
       }
-      if (prev.dbType === 'multimodal_demo') {
+      if (benchmark === 'craigslist') {
+        return { dbType: 'craigslist', benchmark, dbId: 'craigslist' };
+      }
+      if (prev.dbType === 'multimodal_demo' || prev.dbType === 'craigslist') {
         return { dbType: 'sqlite_benchmark', benchmark, dbId: '' };
       }
       return { ...prev, benchmark };

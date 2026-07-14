@@ -81,7 +81,6 @@ class MultimodalBenchmarkProvider:
                 },
             )
         ]
-
     def list_databases(self, benchmark_id: str) -> list[dict[str, Any]]:
         from app.multimodal.registry import dataset_info
 
@@ -96,3 +95,54 @@ class MultimodalBenchmarkProvider:
                 "sampleQuestions": [],
             }
         ]
+class CraigslistBenchmarkProvider:
+    """Descriptor for the prepared Craigslist furniture/image benchmark."""
+
+    def descriptors(self) -> list[BenchmarkDescriptor]:
+        from app.craigslist.registry import dataset_info
+
+        info = dataset_info()
+        return [
+            BenchmarkDescriptor(
+                id="craigslist",
+                label="Craigslist Furniture",
+                status=info["status"],
+                connector="craigslist",
+                modalities=["table", "text", "image"],
+                capabilities=[
+                    "structured_sql",
+                    "cross_table_join",
+                    "image_semantic_predicate",
+                    "ai_fuzzy_match",
+                ],
+                databaseCount=1,
+                description=(
+                    "Craigslist furniture listings joined with prepared listing images. "
+                    "Natural-language predicates compile to NL_FILTER semantic SQL."
+                ),
+                extra={
+                    "listingCount": info["listingCount"],
+                    "mediaCounts": {"image": info["imageCount"]},
+                },
+            )
+        ]
+
+    def list_databases(self, benchmark_id: str) -> list[dict[str, Any]]:
+        from app.craigslist.registry import dataset_info
+
+        info = dataset_info()
+        return [
+            {
+                "benchmark": "craigslist",
+                "dbId": "craigslist",
+                "label": "Craigslist Furniture",
+                "hasSQLite": info["status"] == "ready",
+                "tableCount": 2,
+                "sampleQuestions": [
+                    {"question": "Show blue chair images under 200 dollars"},
+                    {"question": "Find wooden tables with matching photos"},
+                    {"question": "Show red furniture images sorted by price"},
+                ],
+            }
+        ]
+

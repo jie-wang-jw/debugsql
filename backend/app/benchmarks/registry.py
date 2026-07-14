@@ -5,6 +5,7 @@ from typing import Any
 from app.benchmarks.descriptor import BenchmarkDescriptor
 from app.benchmarks.providers import (
     BenchmarkProvider,
+    CraigslistBenchmarkProvider,
     MultimodalBenchmarkProvider,
     RelationalBenchmarkProvider,
 )
@@ -12,6 +13,7 @@ from app.benchmarks.providers import (
 _PROVIDERS: list[BenchmarkProvider] = [
     RelationalBenchmarkProvider(),
     MultimodalBenchmarkProvider(),
+    CraigslistBenchmarkProvider(),
 ]
 
 
@@ -33,6 +35,8 @@ def descriptor_for_context(db_type: str, benchmark: str | None) -> BenchmarkDesc
     """
     if db_type == "multimodal_demo":
         return find_descriptor("multimodal_demo")
+    if db_type == "craigslist":
+        return find_descriptor("craigslist")
     if db_type == "sqlite_benchmark":
         return find_descriptor(benchmark)
     return None

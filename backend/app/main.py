@@ -9,6 +9,7 @@ from app.gemini import log_gemini_startup, log_openai_compatible_startup
 from app.admin_routes import router as admin_router
 from app.auth_routes import router as auth_router
 from app.chat_routes import router as chat_router
+from app.craigslist.routes import router as craigslist_router
 from app.benchmark_routes import router as benchmark_router
 from app.execution_routes import router as execution_router
 from app.evaluation_routes import router as evaluation_router
@@ -56,6 +57,7 @@ app.include_router(auth_router)
 app.include_router(benchmark_router)
 app.include_router(capabilities_router)
 app.include_router(chat_router)
+app.include_router(craigslist_router)
 app.include_router(query_plan_router)
 app.include_router(execution_router)
 app.include_router(history_router)

@@ -128,4 +128,26 @@ def _build_examples(context: DatasetContext, schema_preview: dict[str, Any]) -> 
                 content=NL_FILTER_EXAMPLE_SQL,
             )
         )
+    elif context.dbType == "craigslist":
+        for index, item in enumerate(schema_preview.get("exampleQuestions") or []):
+            question = item.get("question") if isinstance(item, dict) else None
+            if question:
+                examples.append(
+                    CapabilityExample(
+                        id=f"craigslist-prompt-{index}",
+                        kind="prompt",
+                        label=f"Craigslist example {index + 1}",
+                        content=question,
+                    )
+                )
+        from app.tools.connectors.craigslist import NL_FILTER_EXAMPLE_SQL
+
+        examples.append(
+            CapabilityExample(
+                id="craigslist-nl-filter",
+                kind="sql",
+                label="Semantic image filter",
+                content=NL_FILTER_EXAMPLE_SQL,
+            )
+        )
     return examples
