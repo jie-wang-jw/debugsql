@@ -5,6 +5,7 @@ import time
 from typing import Any
 
 from app.craigslist.registry import (
+    dataset_ready,
     images_by_aid,
     image_search_documents,
     load_furniture,
@@ -96,6 +97,12 @@ class CraigslistConnector(DatabaseConnector):
         }
 
     def execute_readonly(self, context: DatasetContext, sql: str, max_rows: int = 100) -> dict[str, Any]:
+        if not dataset_ready():
+            return _error_result(
+                sql,
+                "Craigslist dataset is not ready. Expected furnitures.csv, imgs.csv, both label JSON files, "
+                "and furniture_imgs/ under data/benchmarks/Craigslist/.",
+            )
         if not is_safe_read_query(sql):
             return _error_result(sql, "Only read-only SELECT/WITH SQL can be executed.")
 

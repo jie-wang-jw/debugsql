@@ -371,6 +371,25 @@ def test_craigslist_preview_rejects_unknown_and_traversal_paths() -> None:
     assert client.get("/craigslist/preview", params={"img": "../../.env"}).status_code == 404
 
 
+@pytest.mark.skipif(not craigslist_dataset_ready(), reason="Craigslist benchmark files are not installed")
+def test_craigslist_blue_chair_predicate_has_real_matches() -> None:
+    from app.craigslist.resolver import CraigslistLabelResolver
+    from app.semantic_sql.schemas import NLFilterOp
+
+    matches = CraigslistLabelResolver().resolve_filter(
+        NLFilterOp(
+            op_id="nlf_0",
+            table="images",
+            table_alias="i",
+            column="img",
+            predicate="blue chair",
+        )
+    )
+
+    assert matches
+    assert matches[0].score >= 0.6
+
+
 def test_unsafe_sql_still_rejected_with_semantic_operators() -> None:
     client = _client()
     delete_result = _run_sql(

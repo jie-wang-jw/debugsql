@@ -550,7 +550,7 @@ function DatasetSelector({
 }: DatasetSelectorProps) {
   const selected = databases.find((item) => item.dbId === selectedDbId);
   const localDbCount = databases.filter((item) => item.hasSQLite).length;
-  const missingSqlite = Boolean(selected && !selected.hasSQLite);
+  const missingDataset = Boolean(selected && !selected.hasSQLite);
   const selectableBenchmarks = benchmarks.filter(isSqliteBenchmarkOption);
   const benchmarkOptions = selectableBenchmarks.length > 0
     ? selectableBenchmarks
@@ -622,10 +622,19 @@ function DatasetSelector({
               : 'loading'}
         </span>
       </div>
-      {missingSqlite && (
+      {missingDataset && (
         <p className="dataset-selector__warning" role="status">
-          No local SQLite for <strong>{selectedDbId}</strong>. Copy BIRD{' '}
-          <code>dev_databases/</code> into <code>data/benchmarks/bird/sqlite/</code> (see README).
+          {benchmark === 'craigslist' ? (
+            <>
+              Craigslist data is not available to the backend. Copy the prepared CSV/JSON files and{' '}
+              <code>furniture_imgs/</code> into <code>data/benchmarks/Craigslist/</code>, then restart the backend.
+            </>
+          ) : (
+            <>
+              No local SQLite for <strong>{selectedDbId}</strong>. Copy the {benchmark.toUpperCase()}{' '}
+              databases into <code>data/benchmarks/{benchmark}/sqlite/</code> (see README).
+            </>
+          )}
         </p>
       )}
     </div>
