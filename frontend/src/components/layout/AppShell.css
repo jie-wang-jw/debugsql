@@ -47,58 +47,74 @@
   z-index: 1;
 }
 
-/* ---- Query plan area (top — ratio controlled via inline style) ---- */
-.app-shell__top-right {
-  overflow: hidden;
-  min-height: 0;
-}
-
-/* ---- Resize handle between top and bottom right panels ---- */
-.app-shell__resize-handle {
-  flex-shrink: 0;
-  height: 5px;
-  cursor: row-resize;
-  position: relative;
-  background: var(--bg-surface);
-  border-top: 1px solid var(--border-default);
-  border-bottom: 1px solid var(--border-default);
-  z-index: 2;
-  transition: background var(--t-fast);
-}
-
-.app-shell__resize-handle::after {
-  content: '';
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  width: 32px;
-  height: 2px;
-  border-radius: 1px;
-  background: var(--text-muted);
-  opacity: 0.35;
-  transition: opacity var(--t-fast);
-}
-
-.app-shell__resize-handle:hover {
-  background: var(--bg-hover);
-}
-
-.app-shell__resize-handle:hover::after {
-  opacity: 0.7;
-}
-
-/* ---- Inspector/Execution panel (bottom — ratio controlled via inline style) ---- */
-.app-shell__bottom-right {
+/* ---- Primary execution workspace ---- */
+.app-shell__execution {
+  flex: 1;
   overflow: hidden;
   min-height: 0;
 }
 
 /* Ensure FadeIn wrappers and direct children fill height correctly */
 .app-shell__left > div,
-.app-shell__top-right > div,
-.app-shell__bottom-right > div {
+.app-shell__execution > div {
   height: 100%;
+}
+
+.app-shell__capabilities-trigger {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 var(--sp-3);
+  border: 1px solid var(--border-default);
+  border-radius: var(--r-sm);
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: color var(--t-fast), background var(--t-fast), border-color var(--t-fast);
+}
+
+.app-shell__capabilities-trigger:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+  border-color: var(--border-strong);
+}
+
+.app-shell__drawer-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  border: 0;
+  background: rgba(0, 0, 0, 0.48);
+  cursor: default;
+}
+
+.app-shell__capabilities-drawer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 21;
+  width: min(680px, 55vw);
+  min-width: 460px;
+  overflow: hidden;
+  background: var(--bg-base);
+  border-left: 1px solid var(--border-default);
+  box-shadow: -12px 0 32px rgba(0, 0, 0, 0.38);
+}
+
+.app-shell__capabilities-drawer > div {
+  height: 100%;
+}
+
+@media (max-width: 900px) {
+  .app-shell__capabilities-drawer {
+    width: 100%;
+    min-width: 0;
+  }
 }
 
 /* ---- Bottom tab container ---- */

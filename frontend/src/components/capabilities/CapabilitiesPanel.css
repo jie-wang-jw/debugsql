@@ -23,6 +23,12 @@
   letter-spacing: 0.02em;
 }
 
+.capabilities-panel__header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
 .capabilities-panel__refresh {
   display: inline-flex;
   align-items: center;
@@ -33,6 +39,25 @@
   border-radius: 6px;
   padding: 0.35rem 0.55rem;
   font-size: var(--text-sm);
+}
+
+.capabilities-panel__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.capabilities-panel__close:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
 }
 
 .capabilities-panel__context {

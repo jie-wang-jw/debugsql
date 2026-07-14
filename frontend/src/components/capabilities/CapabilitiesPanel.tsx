@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { FiDatabase, FiRefreshCw, FiZap } from 'react-icons/fi';
+import { FiDatabase, FiRefreshCw, FiX, FiZap } from 'react-icons/fi';
 import {
   getCapabilities,
   type CapabilitiesResponse,
@@ -16,6 +16,7 @@ import './CapabilitiesPanel.css';
 
 interface CapabilitiesPanelProps {
   onExampleSelect?: (example: CapabilityExample) => void;
+  onClose?: () => void;
 }
 
 const SQLITE_BENCHMARK_IDS = new Set(['spider', 'bird']);
@@ -28,7 +29,7 @@ function isSqliteBenchmarkOption(item: BenchmarkInfo): boolean {
   return SQLITE_BENCHMARK_IDS.has(item.id.toLowerCase());
 }
 
-export function CapabilitiesPanel({ onExampleSelect }: CapabilitiesPanelProps) {
+export function CapabilitiesPanel({ onExampleSelect, onClose }: CapabilitiesPanelProps) {
   const { selection, setDbType, setBenchmark, setDbId } = useDatasetContext();
   const [benchmarks, setBenchmarks] = useState<BenchmarkInfo[]>([]);
   const [databases, setDatabases] = useState<BenchmarkDatabaseInfo[]>([]);
@@ -114,10 +115,23 @@ export function CapabilitiesPanel({ onExampleSelect }: CapabilitiesPanelProps) {
           <FiDatabase size={14} />
           <span>Capabilities Explorer</span>
         </div>
-        <button type="button" className="capabilities-panel__refresh" onClick={() => void loadCapabilities()}>
-          <FiRefreshCw size={12} />
-          Refresh
-        </button>
+        <div className="capabilities-panel__header-actions">
+          <button type="button" className="capabilities-panel__refresh" onClick={() => void loadCapabilities()}>
+            <FiRefreshCw size={12} />
+            Refresh
+          </button>
+          {onClose && (
+            <button
+              type="button"
+              className="capabilities-panel__close"
+              onClick={onClose}
+              aria-label="Close capabilities explorer"
+              title="Close capabilities explorer"
+            >
+              <FiX size={16} />
+            </button>
+          )}
+        </div>
       </header>
 
       <section className="capabilities-panel__context">

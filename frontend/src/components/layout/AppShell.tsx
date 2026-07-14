@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiTerminal } from 'react-icons/fi';
+import { FiDatabase, FiTerminal } from 'react-icons/fi';
 import { FadeIn } from '../animations/FadeIn';
 import { ChatPanel } from '../chat/ChatPanel';
 import { CapabilitiesPanel } from '../capabilities/CapabilitiesPanel';
@@ -27,36 +27,17 @@ export function AppShell() {
 
 function AppShellInner() {
   const { status } = useExecutionContext();
-  const [topRatio, setTopRatio] = useState(57);
   const [externalPrompt, setExternalPrompt] = useState<string | null>(null);
-  const rightPanelRef = useRef<HTMLDivElement>(null);
-  const isDragging = useRef(false);
+  const [capabilitiesOpen, setCapabilitiesOpen] = useState(false);
 
-  const handleResizeStart = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    isDragging.current = true;
-    document.body.style.cursor = 'row-resize';
-    document.body.style.userSelect = 'none';
-
-    const onMove = (ev: MouseEvent) => {
-      if (!isDragging.current || !rightPanelRef.current) return;
-      const rect = rightPanelRef.current.getBoundingClientRect();
-      const offsetY = ev.clientY - rect.top;
-      const pct = (offsetY / rect.height) * 100;
-      setTopRatio(Math.min(80, Math.max(25, pct)));
+  useEffect(() => {
+    if (!capabilitiesOpen) return undefined;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setCapabilitiesOpen(false);
     };
-
-    const onUp = () => {
-      isDragging.current = false;
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseup', onUp);
-    };
-
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
-  }, []);
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [capabilitiesOpen]);
 
   const handleExampleSelect = useCallback((example: CapabilityExample) => {
     setExternalPrompt(example.kind === 'prompt' ? example.content : example.content);
@@ -73,20 +54,8 @@ function AppShellInner() {
         />
       </FadeIn>
 
-      <div className="app-shell__right" ref={rightPanelRef}>
-        <div className="app-shell__top-right" style={{ flex: `0 0 ${topRatio}%` }}>
-          <CapabilitiesPanel onExampleSelect={handleExampleSelect} />
-        </div>
-
-        <div
-          className="app-shell__resize-handle"
-          onMouseDown={handleResizeStart}
-          role="separator"
-          aria-orientation="horizontal"
-          aria-label="Resize capabilities and execution panels"
-        />
-
-        <div className="app-shell__bottom-right" style={{ flex: `0 0 ${100 - topRatio}%` }}>
+      <div className="app-shell__right">
+        <div className="app-shell__execution">
           <div className="bottom-tabs bottom-tabs--single">
             <div className="bottom-tabs__bar" role="tablist">
               <div className="bottom-tabs__tab bottom-tabs__tab--active" role="tab" aria-selected>
@@ -94,6 +63,17 @@ function AppShellInner() {
                 <span className="bottom-tabs__tab-label">Execution</span>
                 <ExecutionStatus status={status} compact />
               </div>
+              <button
+                type="button"
+                className="app-shell__capabilities-trigger"
+                onClick={() => setCapabilitiesOpen(true)}
+                aria-haspopup="dialog"
+                aria-expanded={capabilitiesOpen}
+                title="Open database capabilities"
+              >
+                <FiDatabase size={13} />
+                <span>Capabilities</span>
+              </button>
             </div>
             <div className="bottom-tabs__content" role="tabpanel">
               <AnimatePresence mode="wait" initial={false}>
@@ -111,6 +91,37 @@ function AppShellInner() {
             </div>
           </div>
         </div>
+
+        <AnimatePresence>
+          {capabilitiesOpen && (
+            <>
+              <motion.button
+                type="button"
+                className="app-shell__drawer-backdrop"
+                aria-label="Close capabilities explorer"
+                onClick={() => setCapabilitiesOpen(false)}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              />
+              <motion.aside
+                className="app-shell__capabilities-drawer"
+                role="dialog"
+                aria-modal="true"
+                aria-label="Capabilities Explorer"
+                initial={{ x: '100%' }}
+                animate={{ x: 0 }}
+                exit={{ x: '100%' }}
+                transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+              >
+                <CapabilitiesPanel
+                  onExampleSelect={handleExampleSelect}
+                  onClose={() => setCapabilitiesOpen(false)}
+                />
+              </motion.aside>
+            </>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
