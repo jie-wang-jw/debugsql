@@ -5,7 +5,7 @@ import csv
 import io
 import json
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from sqlalchemy import desc, func, select
@@ -312,6 +312,8 @@ def persist_chat_interaction(
         conversation.updated_at = _utc_now()
 
         base = {"conversation": conversation.id, "time": time.time()}
+        user_created_at = _utc_now()
+        assistant_created_at = user_created_at + timedelta(microseconds=1)
         session.add(
             Message(
                 id=_stable_id("msg", {**base, "role": "user", "content": user_message}),
@@ -320,6 +322,7 @@ def persist_chat_interaction(
                 role="user",
                 content=user_message,
                 dataset_context=_safe_json(dataset_context) if dataset_context else None,
+                created_at=user_created_at,
             )
         )
         session.add(
@@ -333,6 +336,7 @@ def persist_chat_interaction(
                 plan_id=plan_id,
                 sql=response.get("sql"),
                 dataset_context=_safe_json(dataset_context) if dataset_context else None,
+                created_at=assistant_created_at,
                 extra=_safe_json(
                     {
                         "requiresPlan": response.get("requiresPlan"),
@@ -397,6 +401,8 @@ def persist_chat_failure(
         )
         conversation.updated_at = _utc_now()
         base = {"conversation": conversation.id, "time": time.time()}
+        user_created_at = _utc_now()
+        assistant_created_at = user_created_at + timedelta(microseconds=1)
         session.add(
             Message(
                 id=_stable_id("msg", {**base, "role": "user", "content": user_message}),
@@ -405,6 +411,7 @@ def persist_chat_failure(
                 role="user",
                 content=user_message,
                 dataset_context=_safe_json(dataset_context) if dataset_context else None,
+                created_at=user_created_at,
             )
         )
         session.add(
@@ -416,6 +423,7 @@ def persist_chat_failure(
                 content=assistant_content,
                 intent_type="error",
                 dataset_context=_safe_json(dataset_context) if dataset_context else None,
+                created_at=assistant_created_at,
                 extra=_safe_json(response),
             )
         )

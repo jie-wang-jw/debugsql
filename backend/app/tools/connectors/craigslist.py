@@ -7,12 +7,12 @@ from typing import Any
 from app.craigslist.registry import (
     dataset_ready,
     images_by_aid,
-    image_search_documents,
+    image_to_aid,
     load_furniture,
     load_images,
     media_preview,
 )
-from app.craigslist.resolver import CraigslistLabelResolver
+from app.craigslist.resolver import CraigslistSemanticResolver
 from app.semantic_sql import SemanticSQLError, contains_semantic_operators, rewrite_semantic_sql
 from app.tools.connector_base import DatabaseConnector
 from app.tools.policy import is_safe_read_query
@@ -100,8 +100,8 @@ class CraigslistConnector(DatabaseConnector):
         if not dataset_ready():
             return _error_result(
                 sql,
-                "Craigslist dataset is not ready. Expected furnitures.csv, imgs.csv, both label JSON files, "
-                "and furniture_imgs/ under data/benchmarks/Craigslist/.",
+                "Craigslist dataset is not ready. Expected furnitures.csv, imgs.csv, and "
+                "furniture_imgs/ under data/benchmarks/Craigslist/.",
             )
         if not is_safe_read_query(sql):
             return _error_result(sql, "Only read-only SELECT/WITH SQL can be executed.")
@@ -113,7 +113,7 @@ class CraigslistConnector(DatabaseConnector):
             try:
                 rewrite = rewrite_semantic_sql(
                     sql,
-                    resolver=CraigslistLabelResolver(),
+                    resolver=CraigslistSemanticResolver(),
                     table_columns=_TABLE_COLUMNS,
                     semantic_tables=_SEMANTIC_TABLES,
                 )
@@ -192,7 +192,7 @@ def _media_previews(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     previews: list[dict[str, Any]] = []
     seen: set[str] = set()
     by_aid = images_by_aid()
-    known_images = image_search_documents()
+    known_images = image_to_aid()
     for row in rows:
         value = row.get("img") or row.get("asset_id")
         img = str(value) if value is not None else ""

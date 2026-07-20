@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import csv
-import json
-import re
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -16,8 +14,6 @@ from app.benchmark_registry import BENCHMARK_ROOT
 _REQUIRED_FILES = (
     "furnitures.csv",
     "imgs.csv",
-    "craigslist_furnitures_title_label.json",
-    "craigslist_imgs_label.json",
 )
 
 
@@ -61,24 +57,13 @@ def load_images() -> list[dict[str, str]]:
 
 
 @lru_cache(maxsize=1)
-def title_search_documents() -> dict[str, str]:
-    labels = _load_json("craigslist_furnitures_title_label.json")
-    titles = {row["aid"]: str(row.get("title") or "") for row in load_furniture()}
-    return {
-        str(item.get("aid") or ""): " ".join([titles.get(str(item.get("aid") or ""), ""), *_label_values(item)])
-        for item in labels
-        if item.get("aid") is not None
-    }
+def furniture_by_aid() -> dict[str, dict[str, Any]]:
+    return {row["aid"]: row for row in load_furniture()}
 
 
 @lru_cache(maxsize=1)
-def image_search_documents() -> dict[str, str]:
-    labels = _load_json("craigslist_imgs_label.json")
-    return {
-        str(item.get("img") or ""): " ".join(_label_values(item))
-        for item in labels
-        if item.get("img")
-    }
+def image_to_aid() -> dict[str, str]:
+    return {row["img"]: row["aid"] for row in load_images() if row["img"]}
 
 
 @lru_cache(maxsize=1)
@@ -90,10 +75,11 @@ def images_by_aid() -> dict[str, list[str]]:
 
 
 def media_preview(img: str, score: float = 0.0) -> dict[str, Any] | None:
-    known = image_search_documents()
+    known = image_to_aid()
     if img not in known:
         return None
-    aid = next((row["aid"] for row in load_images() if row["img"] == img), "")
+    aid = known[img]
+    listing = furniture_by_aid().get(aid, {})
     return {
         "asset_id": img,
         "entity_id": aid,
@@ -101,7 +87,7 @@ def media_preview(img: str, score: float = 0.0) -> dict[str, Any] | None:
         "score": score,
         "file_path": img,
         "preview_url": f"/api/craigslist/preview?img={quote(img, safe='')}",
-        "caption": known[img],
+        "caption": str(listing.get("title") or ""),
         "transcript": "",
         "tags": [],
         "metadata": {"aid": aid},
@@ -109,7 +95,7 @@ def media_preview(img: str, score: float = 0.0) -> dict[str, Any] | None:
 
 
 def resolve_image_path(img: str) -> Path:
-    if img not in image_search_documents():
+    if img not in image_to_aid():
         raise HTTPException(status_code=404, detail="Craigslist image not found.")
     candidate = (craigslist_root() / "furniture_imgs" / Path(img).name).resolve()
     allowed = (craigslist_root() / "furniture_imgs").resolve()
@@ -119,56 +105,18 @@ def resolve_image_path(img: str) -> Path:
 
 
 def dataset_info() -> dict[str, Any]:
+    from app.semantic_index.store import craigslist_index_status
+
+    index = craigslist_index_status()
+    raw_ready = dataset_ready()
     return {
         "id": "craigslist",
         "label": "Craigslist Furniture",
-        "status": "ready" if dataset_ready() else "missing",
-        "listingCount": len(load_furniture()) if dataset_ready() else 0,
-        "imageCount": len(load_images()) if dataset_ready() else 0,
+        "status": "ready" if raw_ready and index["indexStatus"] == "ready" else ("partial" if raw_ready else "missing"),
+        "listingCount": len(load_furniture()) if raw_ready else 0,
+        "imageCount": len(load_images()) if raw_ready else 0,
+        **index,
     }
-
-
-def token_overlap(document: str, predicate: str) -> float:
-    query_terms = _terms(predicate)
-    if not query_terms:
-        return 0.0
-    document_terms = _terms(document)
-    return len(query_terms & document_terms) / len(query_terms)
-
-
-def _load_json(name: str) -> list[dict[str, Any]]:
-    path = craigslist_root() / name
-    if not path.is_file():
-        return []
-    payload = json.loads(path.read_text(encoding="utf-8"))
-    return payload if isinstance(payload, list) else []
-
-
-def _label_values(item: dict[str, Any]) -> list[str]:
-    values: list[str] = []
-    for key, value in item.items():
-        if key in {"aid", "img"} or value is None:
-            continue
-        if isinstance(value, list):
-            values.extend(str(part) for part in value)
-        else:
-            values.append(str(value))
-    return values
-
-
-def _terms(value: str) -> set[str]:
-    aliases = {"wooden": "wood", "chairs": "chair", "tables": "table", "sofas": "sofa"}
-    ignored = {
-        "a", "an", "and", "by", "find", "for", "furniture", "image", "images", "in",
-        "like", "look", "looking", "match", "matching", "of", "photo", "photos", "price",
-        "show", "sort", "sorted", "that", "the", "with",
-    }
-    terms = set()
-    for token in re.findall(r"[a-z0-9]+", value.lower()):
-        normalized = aliases.get(token, token)
-        if normalized not in ignored:
-            terms.add(normalized)
-    return terms
 
 
 def _number(value: Any) -> float | None:

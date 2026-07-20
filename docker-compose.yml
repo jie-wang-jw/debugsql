@@ -32,11 +32,19 @@ services:
       NL2IR_PROVIDER: ${NL2IR_PROVIDER:-stub}
       BENCHMARK_DATA_DIR: ${BENCHMARK_DATA_DIR:-/app/data/benchmarks}
       MULTIMODAL_DATA_DIR: ${MULTIMODAL_DATA_DIR:-/app/data/multimodal_demo}
+      SEMANTIC_INDEX_DIR: ${SEMANTIC_INDEX_DIR:-/app/data/indexes}
+      CRAIGSLIST_EVALUATION_DIR: ${CRAIGSLIST_EVALUATION_DIR:-/app/data/evaluation/craigslist}
+      HF_HOME: ${HF_HOME:-/app/data/model-cache/huggingface}
+      TORCH_HOME: ${TORCH_HOME:-/app/data/model-cache/torch}
+      HF_HUB_OFFLINE: ${HF_HUB_OFFLINE:-0}
+      TRANSFORMERS_OFFLINE: ${TRANSFORMERS_OFFLINE:-0}
     expose:
       - "8000"
     volumes:
       - ${BENCHMARK_HOST_DATA_DIR:-./data/benchmarks}:/app/data/benchmarks:ro
       - ${MULTIMODAL_HOST_DATA_DIR:-./data/multimodal_demo}:/app/data/multimodal_demo:ro
+      - ${SEMANTIC_INDEX_HOST_DIR:-./data/indexes}:/app/data/indexes
+      - ${MODEL_CACHE_HOST_DIR:-./data/model-cache}:/app/data/model-cache
     depends_on:
       postgres:
         condition: service_healthy

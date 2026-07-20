@@ -1,5 +1,6 @@
 .env
 .env.local
+.env.server.ready
 
 __pycache__/
 *.py[cod]
@@ -46,6 +47,10 @@ data/benchmarks/bird/sqlite/*
 data/benchmarks/spider/sqlite/*
 !data/benchmarks/spider/sqlite/.gitkeep
 data/benchmarks/Craigslist/
+data/indexes/
+data/evaluation/
+data/model-cache/
+.cache/
 
 .DS_Store
 Thumbs.db

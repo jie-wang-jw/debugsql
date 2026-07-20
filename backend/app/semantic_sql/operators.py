@@ -8,9 +8,9 @@ from sqlglot import exp
 from app.semantic_sql.schemas import NLFilterOp, SemanticSQLError
 
 
-SEMANTIC_FUNCTION_NAMES = ("NL_FILTER", "NL_JOIN")
+SEMANTIC_FUNCTION_NAMES = ("NL_FILTER", "NL", "NL_JOIN")
 
-_SEMANTIC_TOKEN = re.compile(r"\b(NL_FILTER|NL_JOIN)\s*\(", re.IGNORECASE)
+_SEMANTIC_TOKEN = re.compile(r"\b(NL_FILTER|NL|NL_JOIN)\s*\(", re.IGNORECASE)
 
 
 def contains_semantic_operators(sql: str) -> bool:
@@ -48,7 +48,7 @@ def extract_nl_filters(
             raise SemanticSQLError(
                 "NL_JOIN is planned but not supported yet. Only NL_FILTER is available in this version."
             )
-        if name != "NL_FILTER":
+        if name not in {"NL_FILTER", "NL"}:
             continue
 
         if node.find_ancestor(exp.Select) is not tree or node.find_ancestor(exp.Where) is None:

@@ -22,7 +22,7 @@ def rewrite_semantic_sql(
 ) -> RewriteResult:
     """Rewrite SQL containing NL_FILTER into plain executable SQLite SQL.
 
-    Each NL_FILTER becomes an inner join against a VALUES CTE of
+    Each NL_FILTER becomes a left join against a VALUES CTE of
     (match_key, score) rows keyed by the semantic table's primary key.
     The result exposes ``asset_id``, ``score``, and ``<op_id>_score`` columns
     so media previews and ranking keep working.
@@ -36,10 +36,7 @@ def rewrite_semantic_sql(
 
     resolved: list[ResolvedOperator] = []
     resolved_pairs: list[tuple[NLFilterOp, list[ResolvedMatch], str]] = []
-    assumptions = [
-        "Semantic predicates are resolved with prepared caption/transcript/tag keyword overlap; "
-        "an embedding or vision model can replace this resolver later.",
-    ]
+    assumptions = ["Semantic predicates are resolved by the configured semantic resolver."]
 
     for op, node in pairs:
         pk = semantic_tables.get(op.table)
@@ -65,7 +62,7 @@ def rewrite_semantic_sql(
             )
         )
         resolved_pairs.append((op, matches, pk))
-        node.replace(exp.true())
+        node.replace(sqlglot_condition(f"{op.op_id}.match_key IS NOT NULL"))
 
     # Replace every semantic predicate before adding CTEs. sqlglot's with_()
     # returns a copied tree, which would otherwise leave later node references
@@ -75,7 +72,7 @@ def rewrite_semantic_sql(
         tree = tree.join(
             op.op_id,
             on=f"{op.op_id}.match_key = {op.table_alias}.{pk}",
-            join_type="inner",
+            join_type="left",
         )
 
     tree = _append_score_columns(tree, [op for op, _ in pairs])
@@ -90,8 +87,8 @@ def rewrite_semantic_sql(
         original_sql=sql,
         operators=resolved,
         explanation=(
-            f"Rewrote {len(pairs)} NL_FILTER operator(s) ({predicates}) into VALUES CTE joins "
-            "keyed by the media table primary key."
+            f"Rewrote {len(pairs)} NL_FILTER operator(s) ({predicates}) into LEFT JOIN score "
+            "CTEs and membership expressions, preserving the original Boolean structure."
         ),
         assumptions=assumptions,
     )
@@ -107,6 +104,8 @@ def _matches_cte_sql(matches: list[ResolvedMatch]) -> str:
 
 
 def _append_score_columns(tree: exp.Select, ops: list[NLFilterOp]) -> exp.Select:
+    if any(expression.find(exp.AggFunc) for expression in tree.expressions):
+        return tree
     existing = {e.alias_or_name for e in tree.expressions}
     additions: list[str] = []
     first = ops[0]
@@ -125,3 +124,9 @@ def _append_score_columns(tree: exp.Select, ops: list[NLFilterOp]) -> exp.Select
 
 def _escape(value: str) -> str:
     return value.replace("'", "''")
+
+
+def sqlglot_condition(sql: str) -> exp.Expression:
+    from sqlglot import parse_one
+
+    return parse_one(sql, into=exp.Condition, read="sqlite")

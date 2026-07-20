@@ -53,6 +53,20 @@ class Settings(BaseSettings):
     # boolean membership (0..1). 0.6 requires more than half the terms.
     semantic_sql_score_cutoff: float = 0.6
     semantic_sql_max_matches: int = 20
+    semantic_resolver: str = "clip_vlm"
+    semantic_index_dir: str = "data/indexes"
+    clip_model: str = "ViT-B-32"
+    clip_pretrained: str = "laion2b_s34b_b79k"
+    text_embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
+    clip_candidate_count: int = 200
+    vision_provider: str = "openai_compatible"
+    vision_api_base_url: str = "https://goapi.gptnb.ai/v1"
+    vision_api_key: str = ""
+    vision_model: str = "gpt-4o-mini"
+    vision_rerank_count: int = 24
+    vision_timeout_seconds: int = 60
+    vision_allow_clip_only: bool = False
+    craigslist_evaluation_dir: str = "data/evaluation/craigslist"
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
 
     model_config = SettingsConfigDict(

@@ -123,6 +123,11 @@ class CraigslistBenchmarkProvider:
                 extra={
                     "listingCount": info["listingCount"],
                     "mediaCounts": {"image": info["imageCount"]},
+                    "indexStatus": info.get("indexStatus", "missing"),
+                    "imageModel": info.get("imageModel", ""),
+                    "imageCount": info.get("imageCount", 0),
+                    "indexedImageCount": info.get("indexedImageCount", 0),
+                    "visionReranker": info.get("visionReranker", ""),
                 },
             )
         ]

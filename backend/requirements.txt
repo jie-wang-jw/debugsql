@@ -8,3 +8,10 @@ openai==2.28.0
 google-genai==1.30.0
 pyyaml==6.0.2
 sqlglot==27.28.0
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.7.1+cpu
+torchvision==0.22.1+cpu
+numpy==2.2.6
+pillow==11.2.1
+open-clip-torch==2.32.0
+sentence-transformers==4.1.0

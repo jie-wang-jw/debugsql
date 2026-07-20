@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+import sqlite3
+from pathlib import Path
+
 import pytest
 from fastapi.testclient import TestClient
 
 from app.config import get_settings
 from app.craigslist.registry import dataset_ready as craigslist_dataset_ready
+from app.craigslist.registry import load_images
 from app.database import Base, get_engine, get_session_factory
 from app.gemini.openai_compatible_service import OpenAICompatibleService
 from app.gemini.schemas import GeminiQueryPlan
@@ -21,6 +25,13 @@ from app.tools.connectors.multimodal_demo import (
 )
 from app.tools.connectors.craigslist import NL_FILTER_EXAMPLE_SQL as CRAIGSLIST_NL_FILTER_EXAMPLE_SQL
 from app.tools.policy import is_safe_read_query
+from app.semantic_sql.schemas import ResolvedMatch
+from app.evaluation.craigslist import load_benchmark_queries
+from app.tools.connectors.craigslist import (
+    _SEMANTIC_TABLES as CRAIGSLIST_SEMANTIC_TABLES,
+    _TABLE_COLUMNS as CRAIGSLIST_TABLE_COLUMNS,
+    _load_tables as load_craigslist_tables,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -70,6 +81,21 @@ def _run_sql(client: TestClient, sql: str, context: dict) -> dict:
     )
     assert response.status_code == 200
     return response.json()["data"]["data"]
+
+
+@pytest.fixture
+def fake_craigslist_resolver(monkeypatch):
+    from app.craigslist.resolver import CraigslistSemanticResolver
+
+    image_rows = load_images()[:8]
+    image_ids = [row["img"] for row in image_rows]
+    title_ids = list(dict.fromkeys(row["aid"] for row in image_rows))
+
+    def resolve(self, op):
+        ids = image_ids if op.table == "images" else title_ids
+        return [ResolvedMatch(key=item, score=0.9 - index * 0.01) for index, item in enumerate(ids)]
+
+    monkeypatch.setattr(CraigslistSemanticResolver, "resolve_filter", resolve)
 
 
 # ---------------------------------------------------------------------------
@@ -250,6 +276,65 @@ def test_contains_semantic_operators_detection() -> None:
     assert not contains_semantic_operators("SELECT name FROM entities")
 
 
+def test_rewrite_preserves_or_with_left_join_membership() -> None:
+    class Resolver:
+        def resolve_filter(self, op):
+            key = "img-a" if op.table == "images" else "aid-b"
+            return [ResolvedMatch(key=key, score=0.9)]
+
+    result = rewrite_semantic_sql(
+        "SELECT * FROM images i, furniture f WHERE "
+        "(NL_FILTER(i.img, 'blue chair') OR NL_FILTER(f.title_u, 'wood')) "
+        "AND i.aid = f.aid",
+        resolver=Resolver(),
+        table_columns={"images": ["img", "aid"], "furniture": ["aid", "title_u"]},
+        semantic_tables={"images": "img", "furniture": "aid"},
+    )
+    normalized = result.sql.upper()
+    assert normalized.count("LEFT JOIN") == 2
+    assert " OR " in normalized
+    assert normalized.count("NOT NLF_") == 2
+    assert normalized.count("IS NULL") == 2
+
+
+def test_legacy_nl_alias_is_supported() -> None:
+    class Resolver:
+        def resolve_filter(self, op):
+            return [ResolvedMatch(key="img-a", score=0.9)]
+
+    result = rewrite_semantic_sql(
+        "SELECT * FROM images WHERE nl(img, 'blue chair')",
+        resolver=Resolver(),
+        table_columns={"images": ["img", "aid"]},
+        semantic_tables={"images": "img"},
+    )
+    assert "NL(" not in result.sql.upper()
+    assert "LEFT JOIN" in result.sql.upper()
+
+
+@pytest.mark.skipif(not craigslist_dataset_ready(), reason="Craigslist benchmark files are not installed")
+def test_all_craigslist_benchmark_queries_parse_rewrite_and_execute() -> None:
+    class Resolver:
+        def resolve_filter(self, op):
+            rows = load_images()[:12]
+            ids = [row["img"] for row in rows] if op.table == "images" else list({row["aid"] for row in rows})
+            return [ResolvedMatch(key=item, score=0.9) for item in ids]
+
+    queries = load_benchmark_queries()
+    assert len(queries) == 25
+    with sqlite3.connect(":memory:") as connection:
+        load_craigslist_tables(connection)
+        for query in queries:
+            rewritten = rewrite_semantic_sql(
+                query.sql,
+                resolver=Resolver(),
+                table_columns=CRAIGSLIST_TABLE_COLUMNS,
+                semantic_tables=CRAIGSLIST_SEMANTIC_TABLES,
+            )
+            assert "NL(" not in rewritten.sql.upper()
+            connection.execute(rewritten.sql).fetchall()
+
+
 # ---------------------------------------------------------------------------
 # Multimodal connector end-to-end
 # ---------------------------------------------------------------------------
@@ -301,7 +386,9 @@ def test_multimodal_plain_sql_path_is_unchanged() -> None:
 
 
 @pytest.mark.skipif(not craigslist_dataset_ready(), reason="Craigslist benchmark files are not installed")
-def test_craigslist_llm_semantic_sql_executes_and_returns_real_images(monkeypatch) -> None:
+def test_craigslist_llm_semantic_sql_executes_and_returns_real_images(
+    monkeypatch, fake_craigslist_resolver
+) -> None:
     monkeypatch.setenv("QUERY_PLAN_PROVIDER", "openai_compatible")
     monkeypatch.setenv("LLM_API_BASE_URL", "https://example.test/v1")
     monkeypatch.setenv("LLM_API_KEY", "test-key")
@@ -321,7 +408,7 @@ def test_craigslist_llm_semantic_sql_executes_and_returns_real_images(monkeypatc
             answer="Prepared a semantic image query.",
             sql=semantic_sql,
             explanation="Join listings to images and apply a visual NL_FILTER predicate.",
-            assumptions=["Prepared image labels are used for semantic matching."],
+            assumptions=["Raw image embeddings and a vision reranker are used."],
             tables_used=["furniture", "images"],
             confidence=0.9,
         )
@@ -365,6 +452,27 @@ def test_craigslist_llm_semantic_sql_executes_and_returns_real_images(monkeypatc
     assert client.get(preview_url.removeprefix("/api")).status_code == 200
 
 
+@pytest.mark.skipif(not craigslist_dataset_ready(), reason="Craigslist benchmark files are not installed")
+def test_craigslist_runtime_query_never_opens_hidden_annotations(
+    monkeypatch, fake_craigslist_resolver
+) -> None:
+    original_open = Path.open
+    original_read_text = Path.read_text
+
+    def guarded_open(path, *args, **kwargs):
+        assert "_label.json" not in path.name
+        return original_open(path, *args, **kwargs)
+
+    def guarded_read_text(path, *args, **kwargs):
+        assert "_label.json" not in path.name
+        return original_read_text(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "open", guarded_open)
+    monkeypatch.setattr(Path, "read_text", guarded_read_text)
+    result = _run_sql(_client(), CRAIGSLIST_NL_FILTER_EXAMPLE_SQL, CRAIGSLIST_CONTEXT)
+    assert result["rows"]
+
+
 def test_craigslist_preview_rejects_unknown_and_traversal_paths() -> None:
     client = _client()
     assert client.get("/craigslist/preview", params={"img": "missing.jpg"}).status_code == 404
@@ -372,52 +480,7 @@ def test_craigslist_preview_rejects_unknown_and_traversal_paths() -> None:
 
 
 @pytest.mark.skipif(not craigslist_dataset_ready(), reason="Craigslist benchmark files are not installed")
-def test_craigslist_blue_chair_predicate_has_real_matches() -> None:
-    from app.craigslist.resolver import CraigslistLabelResolver
-    from app.semantic_sql.schemas import NLFilterOp
-
-    matches = CraigslistLabelResolver().resolve_filter(
-        NLFilterOp(
-            op_id="nlf_0",
-            table="images",
-            table_alias="i",
-            column="img",
-            predicate="blue chair",
-        )
-    )
-
-    assert matches
-    assert matches[0].score >= 0.6
-
-
-@pytest.mark.skipif(not craigslist_dataset_ready(), reason="Craigslist benchmark files are not installed")
-@pytest.mark.parametrize(
-    "predicate",
-    [
-        "Find wooden tables with matching photos",
-        "Show red furniture images sorted by price",
-    ],
-)
-def test_craigslist_ui_example_predicates_have_real_matches(predicate: str) -> None:
-    from app.craigslist.resolver import CraigslistLabelResolver
-    from app.semantic_sql.schemas import NLFilterOp
-
-    matches = CraigslistLabelResolver().resolve_filter(
-        NLFilterOp(
-            op_id="nlf_0",
-            table="images",
-            table_alias="i",
-            column="img",
-            predicate=predicate,
-        )
-    )
-
-    assert matches
-    assert matches[0].score >= 0.6
-
-
-@pytest.mark.skipif(not craigslist_dataset_ready(), reason="Craigslist benchmark files are not installed")
-def test_craigslist_red_furniture_example_executes_in_price_order() -> None:
+def test_craigslist_red_furniture_example_executes_in_price_order(fake_craigslist_resolver) -> None:
     result = _run_sql(
         _client(),
         (
@@ -436,7 +499,9 @@ def test_craigslist_red_furniture_example_executes_in_price_order() -> None:
 
 
 @pytest.mark.skipif(not craigslist_dataset_ready(), reason="Craigslist benchmark files are not installed")
-def test_craigslist_wooden_table_example_executes_two_semantic_filters() -> None:
+def test_craigslist_wooden_table_example_executes_two_semantic_filters(
+    fake_craigslist_resolver,
+) -> None:
     result = _run_sql(
         _client(),
         (
