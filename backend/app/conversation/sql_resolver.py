@@ -91,7 +91,10 @@ def resolve_sql_for_message(
                 answer="I found a matching benchmark question and prepared its reference SQL.",
             )
 
-    if schema:
+    # Craigslist questions may require NL_FILTER and image joins. The simple
+    # single-table fallback cannot preserve those semantics, so failing the
+    # LLM request must not silently produce a different query.
+    if schema and context.dbType != "craigslist":
         fallback = build_simple_schema_nl2sql(message, schema)
         if fallback:
             has_filters = bool(fallback.intent_ir.get("filters"))
@@ -102,6 +105,18 @@ def resolve_sql_for_message(
                     provider="simple_fallback",
                     answer="I prepared a simple schema-aware SQL query for this question.",
                 )
+
+    if context.dbType == "craigslist":
+        return ResolvedSQL(
+            sql=None,
+            explanation="The configured SQL assistant did not return usable Craigslist semantic SQL.",
+            provider="none",
+            answer=(
+                "I could not prepare a reliable image-aware query for Craigslist. "
+                "Please retry; no fallback SQL was generated because it could change the meaning of your request."
+            ),
+            conversation_mode="clarify",
+        )
 
     return ResolvedSQL(sql=None, explanation="", provider="none")
 

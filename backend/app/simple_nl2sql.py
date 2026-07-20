@@ -30,7 +30,11 @@ def build_simple_schema_nl2sql(
         return None
 
     table_name = str(table["name"])
-    columns = [str(column) for column in table.get("columns", []) if column and column != "*"]
+    columns = [
+        name
+        for column in table.get("columns", [])
+        if (name := _column_name(column)) and name != "*"
+    ]
     lower_columns = {column.lower(): column for column in columns}
 
     limit = _extract_limit(text) or (10 if _is_top_query(text) else None)
@@ -172,7 +176,7 @@ def _choose_table(text: str, tables: list[dict[str, Any]]) -> dict[str, Any] | N
             if _contains_word(text, token) or _contains_word(text, _singular(token)):
                 score += 4
         for column in table.get("columns", []):
-            for token in _name_tokens(str(column)):
+            for token in _name_tokens(_column_name(column)):
                 if len(token) > 2 and _contains_word(text, token):
                     score += 1
         if score:
@@ -364,3 +368,9 @@ def _singular(token: str) -> str:
 def _quote_identifier(identifier: str) -> str:
     escaped = identifier.replace('"', '""')
     return f'"{escaped}"'
+
+
+def _column_name(column: Any) -> str:
+    if isinstance(column, dict):
+        return str(column.get("name") or "")
+    return str(column or "")
