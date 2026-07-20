@@ -46,19 +46,25 @@ class VisionReranker:
 
     def _request(self, predicate: str, candidates: list[tuple[str, float]]) -> dict[str, float]:
         settings = get_settings()
+        token_to_image = {
+            f"candidate_{index + 1}": image_id
+            for index, (image_id, _) in enumerate(candidates)
+        }
+        allowed_tokens = ", ".join(token_to_image)
         content: list[dict] = [{
             "type": "text",
             "text": (
                 "Score how well each image matches this visual predicate: " + predicate +
-                ". Return only JSON: {\"scores\":[{\"id\":\"...\",\"score\":0.0}]}. "
+                ". Return only JSON: {\"scores\":[{\"id\":\"candidate_1\",\"score\":0.0}]}. "
+                f"The only valid IDs are: {allowed_tokens}. "
                 "Include every supplied ID exactly once; scores must be between 0 and 1."
             ),
         }]
-        for image_id, _ in candidates:
+        for token, image_id in token_to_image.items():
             path = resolve_image_path(image_id)
             mime = mimetypes.guess_type(path.name)[0] or "image/jpeg"
             encoded = base64.b64encode(_resized_jpeg(path)).decode("ascii")
-            content.append({"type": "text", "text": f"Image ID: {image_id}"})
+            content.append({"type": "text", "text": f"Image ID: {token}"})
             content.append({
                 "type": "image_url",
                 "image_url": {"url": f"data:{mime};base64,{encoded}", "detail": "low"},
@@ -79,17 +85,19 @@ class VisionReranker:
             payload = json.loads(response.choices[0].message.content or "{}")
         except Exception as exc:
             raise VisionProviderError(f"Vision reranking failed: {exc}") from exc
-        expected = {image_id for image_id, _ in candidates}
+        expected = set(token_to_image)
+        token_scores: dict[str, float] = {}
         scores: dict[str, float] = {}
         for item in payload.get("scores", []):
-            image_id = str(item.get("id") or "")
+            token = str(item.get("id") or "")
             score = item.get("score")
-            if image_id not in expected or image_id in scores or not isinstance(score, (int, float)):
+            if token not in expected or token in token_scores or not isinstance(score, (int, float)):
                 raise VisionProviderError("Vision response contains invalid or duplicate image IDs.")
             if not 0 <= float(score) <= 1:
                 raise VisionProviderError("Vision response scores must be between 0 and 1.")
-            scores[image_id] = float(score)
-        if set(scores) != expected:
+            token_scores[token] = float(score)
+            scores[token_to_image[token]] = float(score)
+        if set(token_scores) != expected:
             raise VisionProviderError("Vision response did not score every shortlisted image.")
         return scores
 

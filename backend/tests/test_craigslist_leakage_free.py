@@ -45,7 +45,7 @@ def test_preview_authorization_uses_imgs_csv(monkeypatch) -> None:
 
 def test_vision_reranker_rejects_missing_ids(monkeypatch, tmp_path) -> None:
     class Message:
-        content = json.dumps({"scores": [{"id": "one.jpg", "score": 0.8}]})
+        content = json.dumps({"scores": [{"id": "candidate_1", "score": 0.8}]})
 
     class Completion:
         choices = [type("Choice", (), {"message": Message()})]
@@ -75,10 +75,10 @@ def test_vision_reranker_batches_and_caches_requests(monkeypatch, tmp_path) -> N
     class Completions:
         def create(self, **kwargs):
             content = kwargs["messages"][0]["content"]
-            ids = [item["text"].removeprefix("Image ID: ") for item in content if item.get("type") == "text" and item["text"].startswith("Image ID: ")]
-            requests.append(ids)
+            tokens = [item["text"].removeprefix("Image ID: ") for item in content if item.get("type") == "text" and item["text"].startswith("Image ID: ")]
+            requests.append(tokens)
             message = type("Message", (), {"content": json.dumps({
-                "scores": [{"id": image_id, "score": 0.75} for image_id in ids]
+                "scores": [{"id": token, "score": 0.75} for token in tokens]
             })})()
             return type("Completion", (), {"choices": [type("Choice", (), {"message": message})()]})()
 
@@ -98,7 +98,9 @@ def test_vision_reranker_batches_and_caches_requests(monkeypatch, tmp_path) -> N
 
     reranker = VisionReranker()
     candidates = [(f"image-{index}.jpg", 0.5) for index in range(10)]
-    assert len(reranker.rerank("red chair", candidates)) == 10
+    scores = reranker.rerank("red chair", candidates)
+    assert len(scores) == 10
+    assert set(scores) == {image_id for image_id, _ in candidates}
     assert [len(batch) for batch in requests] == [8, 2]
     assert reranker.request_count == 2
     assert reranker.scored_image_count == 10
