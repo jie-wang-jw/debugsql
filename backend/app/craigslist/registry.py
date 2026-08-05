@@ -88,9 +88,10 @@ def media_preview(img: str, score: float = 0.0) -> dict[str, Any] | None:
         "file_path": img,
         "preview_url": f"/api/craigslist/preview?img={quote(img, safe='')}",
         "caption": str(listing.get("title") or ""),
+        "price": listing.get("price"),
         "transcript": "",
         "tags": [],
-        "metadata": {"aid": aid},
+        "metadata": {"aid": aid, "price": listing.get("price")},
     }
 
 

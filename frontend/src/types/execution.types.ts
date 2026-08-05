@@ -30,6 +30,7 @@ export interface MediaPreview {
   score: number;
   preview_url?: string | null;
   caption?: string | null;
+  price?: string | number | null;
   transcript?: string | null;
   tags?: string[];
   metadata?: Record<string, unknown>;

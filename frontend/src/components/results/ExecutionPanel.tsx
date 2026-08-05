@@ -180,6 +180,17 @@ function FailedState() {
   );
 }
 
+function formatPreviewPrice(price: MediaPreview['price']): string | null {
+  if (price === null || price === undefined || price === '') return null;
+  const numericPrice = typeof price === 'number' ? price : Number(price);
+  if (!Number.isFinite(numericPrice)) return String(price);
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    maximumFractionDigits: 2,
+  }).format(numericPrice);
+}
+
 function MediaPreviewGrid({ items }: { items: MediaPreview[] }) {
   if (!items.length) return null;
   return (
@@ -189,26 +200,32 @@ function MediaPreviewGrid({ items }: { items: MediaPreview[] }) {
         <small>{items.length} matched assets</small>
       </div>
       <div className="media-preview-grid__items">
-        {items.map((item) => (
-          <article key={item.asset_id} className="media-preview-card">
-            {item.media_type === 'image' || item.media_type === 'video' ? (
-              <img
-                src={item.preview_url ?? ''}
-                alt={item.caption ?? item.asset_id}
-                className="media-preview-card__visual"
-              />
-            ) : (
-              <div className="media-preview-card__audio">
-                <span>Audio transcript</span>
+        {items.map((item) => {
+          const formattedPrice = formatPreviewPrice(item.price);
+          return (
+            <article key={item.asset_id} className="media-preview-card">
+              {item.media_type === 'image' || item.media_type === 'video' ? (
+                <img
+                  src={item.preview_url ?? ''}
+                  alt={item.caption ?? item.asset_id}
+                  className="media-preview-card__visual"
+                />
+              ) : (
+                <div className="media-preview-card__audio">
+                  <span>Audio transcript</span>
+                </div>
+              )}
+              <div className="media-preview-card__body">
+                <strong>{item.asset_id}</strong>
+                <span>{item.media_type} / score {item.score.toFixed(2)}</span>
+                {formattedPrice && (
+                  <span className="media-preview-card__price">{formattedPrice}</span>
+                )}
+                <p>{item.caption || item.transcript || 'No preview text available.'}</p>
               </div>
-            )}
-            <div className="media-preview-card__body">
-              <strong>{item.asset_id}</strong>
-              <span>{item.media_type} / score {item.score.toFixed(2)}</span>
-              <p>{item.caption || item.transcript || 'No preview text available.'}</p>
-            </div>
-          </article>
-        ))}
+            </article>
+          );
+        })}
       </div>
     </section>
   );

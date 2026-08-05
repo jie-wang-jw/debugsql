@@ -281,6 +281,13 @@
   font-size: var(--text-xs);
 }
 
+.media-preview-card__body .media-preview-card__price {
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
 .media-preview-card__body p {
   margin: 0;
   color: var(--text-secondary);

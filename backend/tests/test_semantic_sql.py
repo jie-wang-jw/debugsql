@@ -447,6 +447,12 @@ def test_craigslist_llm_semantic_sql_executes_and_returns_real_images(
     assert "NL_FILTER" not in result["sql"]
     assert result["semantic"]["operators"][0]["predicate"] == "blue chair"
     assert result["mediaPreviews"]
+    first_preview = result["mediaPreviews"][0]
+    listing_price = next(
+        row["price"] for row in result["rows"] if row["asset_id"] == first_preview["asset_id"]
+    )
+    assert first_preview["price"] == listing_price
+    assert first_preview["metadata"]["price"] == listing_price
     preview_url = result["mediaPreviews"][0]["preview_url"]
     assert preview_url.startswith("/api/craigslist/preview?img=")
     assert client.get(preview_url.removeprefix("/api")).status_code == 200
