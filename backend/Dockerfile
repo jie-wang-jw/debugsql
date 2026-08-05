@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:1.7
+
 FROM python:3.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -9,8 +11,10 @@ ENV UV_LINK_MODE=copy
 WORKDIR /app
 
 COPY pyproject.toml uv.lock requirements.txt ./
-RUN pip install --no-cache-dir uv \
-    && uv pip install --system --no-cache -r requirements.txt
+RUN --mount=type=cache,target=/root/.cache/pip \
+    --mount=type=cache,target=/root/.cache/uv \
+    pip install uv \
+    && uv pip install --system -r requirements.txt
 
 COPY app ./app
 COPY alembic.ini ./alembic.ini
